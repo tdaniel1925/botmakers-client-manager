@@ -3,6 +3,7 @@ import { PaymentStatusAlert } from "@/components/payment/payment-status-alert";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/utilities/providers";
 import LayoutWrapper from "@/components/layout-wrapper";
+import { ErrorBoundary } from "@/components/error-boundary"; // ✅ FIX BUG-006
 import { ClerkProvider } from "@clerk/nextjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
@@ -63,17 +64,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <Providers
-            attribute="class"
-            defaultTheme="light"
-            disableTransitionOnChange
-          >
-            <LayoutWrapper>
-              {userId && <PaymentStatusAlert />}
-              {children}
-            </LayoutWrapper>
-            <Toaster />
-          </Providers>
+          {/* ✅ FIX BUG-006: Wrap entire app in error boundary */}
+          <ErrorBoundary>
+            <Providers
+              attribute="class"
+              defaultTheme="light"
+              disableTransitionOnChange
+            >
+              <LayoutWrapper>
+                {userId && <PaymentStatusAlert />}
+                {children}
+              </LayoutWrapper>
+              <Toaster />
+            </Providers>
+          </ErrorBoundary>
         </body>
       </html>
     </ClerkProvider>
