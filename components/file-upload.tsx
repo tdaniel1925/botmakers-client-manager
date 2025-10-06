@@ -115,17 +115,66 @@ export function FileUpload({
     async (fileList: File[]) => {
       if (!fileList || fileList.length === 0) return;
 
+      // ✅ FIX BUG-002: Enhanced file validation before upload
+      
       // Validate file count
       if (!multiple && fileList.length > 1) {
         toast.error('Only one file is allowed');
+        if (onError) onError('Only one file is allowed');
         return;
       }
 
-      // Validate file sizes
+      // Validate individual file sizes with specific file names
       const maxSizeBytes = maxSize * 1024 * 1024;
       const oversizedFiles = fileList.filter((file) => file.size > maxSizeBytes);
       if (oversizedFiles.length > 0) {
-        toast.error(`Files must be smaller than ${maxSize}MB`);
+        const fileNames = oversizedFiles.map(f => f.name).join(', ');
+        const errorMsg = `The following files exceed the ${maxSize}MB limit: ${fileNames}`;
+        toast.error(errorMsg);
+        if (onError) onError(errorMsg);
+        return;
+      }
+
+      // Validate total upload size (prevent 100 x 24MB uploads)
+      const totalSize = fileList.reduce((sum, file) => sum + file.size, 0);
+      const maxTotalSize = 250 * 1024 * 1024; // 250MB total limit
+      if (totalSize > maxTotalSize) {
+        const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
+        const errorMsg = `Total upload size (${totalMB}MB) exceeds the 250MB limit. Please upload files in smaller batches.`;
+        toast.error(errorMsg);
+        if (onError) onError(errorMsg);
+        return;
+      }
+
+      // Validate file types if accept filter is specified
+      if (accept) {
+        const acceptedTypes = accept.split(',').map(t => t.trim().toLowerCase());
+        const invalidFiles = fileList.filter(file => {
+          const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+          const fileMime = file.type.toLowerCase();
+          return !acceptedTypes.some(type => 
+            type === fileExt || 
+            type === fileMime || 
+            (type.endsWith('/*') && fileMime.startsWith(type.replace('/*', '')))
+          );
+        });
+        
+        if (invalidFiles.length > 0) {
+          const fileNames = invalidFiles.map(f => f.name).join(', ');
+          const errorMsg = `Invalid file type(s): ${fileNames}. Accepted: ${accept}`;
+          toast.error(errorMsg);
+          if (onError) onError(errorMsg);
+          return;
+        }
+      }
+
+      // Validate minimum file size (prevent 0-byte files)
+      const emptyFiles = fileList.filter((file) => file.size === 0);
+      if (emptyFiles.length > 0) {
+        const fileNames = emptyFiles.map(f => f.name).join(', ');
+        const errorMsg = `The following files are empty (0 bytes): ${fileNames}`;
+        toast.error(errorMsg);
+        if (onError) onError(errorMsg);
         return;
       }
 
@@ -168,7 +217,7 @@ export function FileUpload({
         }
       }
     },
-    [maxSize, multiple, onError, startUpload, usePublicUpload, publicToken, organizationId, category]
+    [maxSize, multiple, accept, onError, startUpload, usePublicUpload, publicToken, organizationId, category]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

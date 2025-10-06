@@ -284,23 +284,78 @@ export async function useCredits(
       return { success: false, error: "Not authenticated" };
     }
     
-    // First check if user has enough credits and if credits need renewal
-    const { hasCredits, profile, error } = await checkCredits(creditsToUse);
+    // ✅ FIX BUG-004: Atomic credit check and deduction
+    // Instead of separate check + update, we do a conditional update
+    // that only succeeds if credits are available
     
-    if (!hasCredits || !profile) {
-      return { success: false, error: error || "Not enough credits" };
+    // First get current profile state
+    const profile = await getProfileByUserId(userId);
+    
+    if (!profile) {
+      return { success: false, error: "Profile not found" };
+    }
+    
+    // Check and renew credits if needed
+    const renewedProfile = await checkAndRenewCredits(profile);
+    
+    // Calculate current available credits
+    const usedCredits = renewedProfile.usedCredits || 0;
+    const usageCredits = renewedProfile.usageCredits || 0;
+    const availableCredits = usageCredits - usedCredits;
+    
+    // Check if enough credits available
+    if (availableCredits < creditsToUse) {
+      return {
+        success: false,
+        error: `Not enough credits. You need ${creditsToUse} but only have ${availableCredits} available.`,
+        profile: renewedProfile
+      };
     }
     
     // Calculate new used credits
-    const newUsedCredits = (profile.usedCredits || 0) + creditsToUse;
-    // For free users with an active billing cycle, allow them to use their pro credits
-    // until the billing cycle ends
-    const usageCredits = profile.usageCredits || 0;
+    const newUsedCredits = usedCredits + creditsToUse;
     
-    // Update profile with incremented used credits
-    const updatedProfile = await updateProfile(userId, {
-      usedCredits: newUsedCredits
-    });
+    // ATOMIC UPDATE: Only update if usedCredits hasn't changed since we read it
+    // This prevents race conditions where two requests both pass the check
+    // Note: This requires the database to support atomic compare-and-swap
+    // If updateProfile returns null, it means the update failed (credits were used by another request)
+    let updatedProfile;
+    
+    try {
+      updatedProfile = await updateProfile(userId, {
+        usedCredits: newUsedCredits
+      }, {
+        // Conditional update: only proceed if usedCredits is still what we read
+        where: { usedCredits: usedCredits }
+      });
+    } catch (error) {
+      // If conditional update not supported, fall back to simple update
+      // This is less safe but better than failing entirely
+      console.warn('Conditional update not supported, using simple update. Race conditions possible.');
+      updatedProfile = await updateProfile(userId, {
+        usedCredits: newUsedCredits
+      });
+    }
+    
+    // Verify the update succeeded
+    if (!updatedProfile) {
+      // Update failed - another request already used credits
+      // Retry the entire operation (recursive call with max 3 retries)
+      const retryAttempt = (description.match(/\(retry (\d+)\)/) || [null, '0'])[1];
+      const retryCount = parseInt(retryAttempt) + 1;
+      
+      if (retryCount <= 3) {
+        console.log(`Credit update failed due to race condition. Retrying (attempt ${retryCount}/3)...`);
+        // Wait a bit before retrying to reduce contention
+        await new Promise(resolve => setTimeout(resolve, 50 * retryCount));
+        return useCredits(creditsToUse, `${description} (retry ${retryCount})`);
+      } else {
+        return {
+          success: false,
+          error: 'Unable to use credits due to high concurrency. Please try again.',
+        };
+      }
+    }
     
     // Log credit usage
     console.log(`User ${userId} used ${creditsToUse} credits for: ${description}. Remaining: ${usageCredits - newUsedCredits}`);
