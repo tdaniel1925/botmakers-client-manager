@@ -23,6 +23,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"; // ✅ FIX BUG-009
 import Link from "next/link";
 import { TableSkeleton } from "@/components/crm/loading-skeleton";
 import { ErrorState, EmptyState } from "@/components/crm/error-state";
@@ -35,6 +44,13 @@ export default function ContactsPage() {
   const [organizationId, setOrganizationId] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<SelectContact | null>(null);
+  
+  // ✅ FIX BUG-009: Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalContacts, setTotalContacts] = useState(0);
+  const [pageSize] = useState(25); // 25 contacts per page
+  const totalPages = Math.ceil(totalContacts / pageSize);
+  
   const { toast } = useToast();
 
   // ✅ FIX BUG-010: Debounce search term to prevent API call on every keystroke
@@ -42,7 +58,12 @@ export default function ContactsPage() {
 
   useEffect(() => {
     loadContacts();
-  }, [debouncedSearchTerm]); // Use debounced value instead of raw searchTerm
+  }, [debouncedSearchTerm, currentPage]); // ✅ FIX BUG-009: Also reload when page changes
+
+  useEffect(() => {
+    // Reset to page 1 when search term changes
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   const loadContacts = async () => {
     setLoading(true);
@@ -59,14 +80,17 @@ export default function ContactsPage() {
       const orgId = orgsResult.data[0].id;
       setOrganizationId(orgId);
       
-      // Fetch contacts with debounced search term
+      // ✅ FIX BUG-009: Fetch contacts with pagination
+      const offset = (currentPage - 1) * pageSize;
       const result = await getContactsAction(orgId, {
         search: debouncedSearchTerm,
-        limit: 100,
+        limit: pageSize,
+        offset: offset,
       });
       
       if (result.isSuccess && result.data) {
         setContacts(result.data.contacts);
+        setTotalContacts(result.data.total); // Set total for pagination
       } else {
         setError(result.message || "Failed to load contacts");
       }
@@ -158,9 +182,15 @@ export default function ContactsPage() {
       {/* Contacts Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg md:text-xl">All Contacts ({contacts.length})</CardTitle>
+          <CardTitle className="text-lg md:text-xl">All Contacts</CardTitle>
           <CardDescription className="text-sm">
-            View and manage your contact database
+            {totalContacts > 0 ? (
+              <>
+                Showing {Math.min((currentPage - 1) * pageSize + 1, totalContacts)} - {Math.min(currentPage * pageSize, totalContacts)} of {totalContacts} contacts
+              </>
+            ) : (
+              "View and manage your contact database"
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -341,6 +371,64 @@ export default function ContactsPage() {
                 ))}
               </div>
             </>
+          )}
+          
+          {/* ✅ FIX BUG-009: Pagination Controls */}
+          {totalPages > 1 && !loading && !error && (
+            <div className="mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {/* Generate page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1);
+                    
+                    // Show ellipsis
+                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+
+                    if (showEllipsisBefore || showEllipsisAfter) {
+                      return (
+                        <PaginationItem key={`ellipsis-${page}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+
+                    if (!showPage) return null;
+
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
         </CardContent>
       </Card>

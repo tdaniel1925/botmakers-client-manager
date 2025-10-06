@@ -55,6 +55,11 @@ export default function DealsPage() {
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string>("");
   const [activeDeal, setActiveDeal] = useState<SelectDeal | null>(null);
+  
+  // ✅ FIX BUG-009: Track which stages are showing all deals (for "Show More" functionality)
+  const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
+  const DEALS_PER_STAGE_DEFAULT = 10; // Show 10 deals per stage by default
+  
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -184,6 +189,25 @@ export default function DealsPage() {
   };
 
   const totalDealsCount = Object.values(dealsByStage).flat().length;
+  
+  // ✅ FIX BUG-009: Toggle stage expansion
+  const toggleStageExpansion = (stageName: string) => {
+    setExpandedStages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(stageName)) {
+        newSet.delete(stageName);
+      } else {
+        newSet.add(stageName);
+      }
+      return newSet;
+    });
+  };
+  
+  // ✅ FIX BUG-009: Get visible deals for a stage
+  const getVisibleDeals = (stageName: string, allDeals: SelectDeal[]) => {
+    const isExpanded = expandedStages.has(stageName);
+    return isExpanded ? allDeals : allDeals.slice(0, DEALS_PER_STAGE_DEFAULT);
+  };
 
   return (
     <main className="p-4 md:p-6 lg:p-10">
@@ -234,8 +258,12 @@ export default function DealsPage() {
         >
           <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4">
             {stages.map((stage) => {
-              const stageDeals = dealsByStage[stage.name] || [];
-              const stageValue = stageDeals.reduce(
+              const allStageDeals = dealsByStage[stage.name] || [];
+              const visibleDeals = getVisibleDeals(stage.name, allStageDeals); // ✅ FIX BUG-009
+              const hasMore = allStageDeals.length > DEALS_PER_STAGE_DEFAULT;
+              const isExpanded = expandedStages.has(stage.name);
+              
+              const stageValue = allStageDeals.reduce(
                 (sum, deal) => sum + parseFloat(deal.value.toString()),
                 0
               );
@@ -251,7 +279,7 @@ export default function DealsPage() {
                           {stage.name}
                         </CardTitle>
                         <span className="text-sm text-gray-500">
-                          {stageDeals.length}
+                          {allStageDeals.length}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
@@ -260,19 +288,34 @@ export default function DealsPage() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <SortableContext
-                        items={stageDeals.map((d) => d.id)}
+                        items={visibleDeals.map((d) => d.id)}
                         strategy={verticalListSortingStrategy}
                         id={stage.name}
                       >
                         <div className="space-y-3 min-h-[200px]">
-                          {stageDeals.length === 0 ? (
+                          {allStageDeals.length === 0 ? (
                             <div className="text-center py-8 text-sm text-gray-400">
                               Drag deals here
                             </div>
                           ) : (
-                            stageDeals.map((deal) => (
-                              <SortableDealCard key={deal.id} deal={deal} />
-                            ))
+                            <>
+                              {visibleDeals.map((deal) => (
+                                <SortableDealCard key={deal.id} deal={deal} />
+                              ))}
+                              {/* ✅ FIX BUG-009: Show More/Less button */}
+                              {hasMore && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full text-xs"
+                                  onClick={() => toggleStageExpansion(stage.name)}
+                                >
+                                  {isExpanded 
+                                    ? `Show Less (${visibleDeals.length - DEALS_PER_STAGE_DEFAULT} hidden)` 
+                                    : `Show ${allStageDeals.length - DEALS_PER_STAGE_DEFAULT} More`}
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </SortableContext>
