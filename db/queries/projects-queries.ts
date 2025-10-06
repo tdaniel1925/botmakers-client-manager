@@ -8,7 +8,7 @@ import {
   InsertProjectTask,
 } from "../schema/projects-schema";
 import { organizationsTable } from "../schema/crm-schema";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, sql } from "drizzle-orm"; // ✅ FIX BUG-017: Added sql for atomic progress calculation
 
 /**
  * Create a new project
@@ -297,19 +297,28 @@ export async function calculateTaskProgress(projectId: string): Promise<number> 
 }
 
 /**
- * Update project's auto-calculated progress based on tasks
+ * Update project's auto-calculated progress based on tasks (atomic calculation)
+ * ✅ FIX BUG-017: Use atomic SQL calculation to prevent race conditions
  */
 export async function updateAutoCalculatedProgress(projectId: string): Promise<void> {
   try {
-    const progress = await calculateTaskProgress(projectId);
-    
-    await db
-      .update(projectsTable)
-      .set({ 
-        autoCalculatedProgress: progress,
-        updatedAt: new Date(),
-      })
-      .where(eq(projectsTable.id, projectId));
+    // ✅ Atomic calculation directly in SQL to prevent race conditions
+    // This ensures concurrent task updates don't create incorrect progress values
+    await db.execute(sql`
+      UPDATE ${projectsTable}
+      SET 
+        auto_calculated_progress = (
+          SELECT 
+            CASE 
+              WHEN COUNT(*) = 0 THEN 0
+              ELSE ROUND((COUNT(*) FILTER (WHERE status = 'completed')::numeric / COUNT(*)::numeric) * 100)
+            END
+          FROM project_tasks
+          WHERE project_id = ${projectId}
+        ),
+        updated_at = NOW()
+      WHERE id = ${projectId}
+    `);
   } catch (error) {
     console.error("Error updating auto-calculated progress:", error);
   }

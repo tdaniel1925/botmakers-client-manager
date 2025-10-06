@@ -92,15 +92,60 @@ export function OnboardingWizard({ session, project, token }: OnboardingWizardPr
     }
   };
 
-  const autoSave = async () => {
+  // ✅ FIX BUG-020: Enhanced auto-save with retry logic and error handling
+  const autoSave = async (retryCount = 0) => {
     if (!stepData[currentStep] || saving) return;
 
     setSaving(true);
-    const result = await saveStepResponseAction(token, currentStep, stepData[currentStep]);
-    setSaving(false);
+    
+    try {
+      const result = await saveStepResponseAction(token, currentStep, stepData[currentStep]);
+      setSaving(false);
 
-    if (result.isSuccess) {
-      setLastSaved(new Date());
+      if (result.isSuccess) {
+        setLastSaved(new Date());
+        // Clear any previous failure state
+        if (retryCount > 0) {
+          toast.success("Reconnected! Progress saved successfully.");
+        }
+      } else {
+        // Server returned an error - retry with backoff
+        if (retryCount < 3) {
+          const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10s
+          console.warn(`Auto-save failed, retrying in ${backoffDelay}ms... (attempt ${retryCount + 1}/3)`);
+          
+          setTimeout(() => {
+            autoSave(retryCount + 1);
+          }, backoffDelay);
+        } else {
+          // Max retries reached - notify user
+          toast.error("Unable to save progress. Please check your connection and click 'Save & Exit' to try again.", {
+            duration: 10000,
+          });
+        }
+      }
+    } catch (error: any) {
+      setSaving(false);
+      console.error("Auto-save network error:", error);
+      
+      // Network error - retry with backoff
+      if (retryCount < 3) {
+        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        console.warn(`Auto-save network error, retrying in ${backoffDelay}ms... (attempt ${retryCount + 1}/3)`);
+        
+        setTimeout(() => {
+          autoSave(retryCount + 1);
+        }, backoffDelay);
+      } else {
+        // Max retries reached - notify user
+        toast.error("Connection lost. Your progress is saved locally. Please check your internet and click 'Save & Exit'.", {
+          duration: 10000,
+          action: {
+            label: 'Retry Now',
+            onClick: () => autoSave(0), // Reset retry count
+          },
+        });
+      }
     }
   };
 
