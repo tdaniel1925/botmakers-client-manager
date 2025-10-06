@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { ensurePlatformAdmin } from "@/lib/platform-admin";
 import Link from "next/link";
-import { Building2, LayoutDashboard, LineChart, MessageSquare, Settings, FolderKanban, CheckCircle, HelpCircle, FileText } from "lucide-react";
+import { Building2, LayoutDashboard, LineChart, MessageSquare, Settings, FolderKanban, CheckCircle, HelpCircle, FileText, Activity } from "lucide-react";
 
 export default async function PlatformLayout({
   children,
@@ -28,6 +28,7 @@ export default async function PlatformLayout({
     { name: "Projects", href: "/platform/projects", icon: FolderKanban },
     { name: "Onboarding", href: "/platform/onboarding", icon: CheckCircle },
     { name: "Analytics", href: "/platform/analytics", icon: LineChart },
+    { name: "System Health", href: "/platform/system-health", icon: Activity },
     { name: "Support", href: "/platform/support", icon: MessageSquare },
     { name: "Templates", href: "/platform/templates", icon: FileText },
     { name: "Help", href: "/platform/help", icon: HelpCircle },
