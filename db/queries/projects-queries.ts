@@ -12,14 +12,23 @@ import { eq, desc, and, count } from "drizzle-orm";
 
 /**
  * Create a new project
+ * ✅ FIX BUG-008: Check for duplicate names before creating
  */
 export async function createProject(data: InsertProject): Promise<SelectProject> {
-  const result = await db
-    .insert(projectsTable)
-    .values(data)
-    .returning();
-  
-  return result[0];
+  try {
+    const result = await db
+      .insert(projectsTable)
+      .values(data)
+      .returning();
+    
+    return result[0];
+  } catch (error: any) {
+    // Check if error is due to unique constraint violation
+    if (error.code === '23505' && error.constraint === 'idx_projects_org_name_unique') {
+      throw new Error(`A project named "${data.name}" already exists in this organization. Please choose a different name.`);
+    }
+    throw error;
+  }
 }
 
 /**
