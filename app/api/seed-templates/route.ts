@@ -1,7 +1,24 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { seedTemplatesAction, clearTemplatesAction } from '@/actions/seed-templates-action';
+import { applyRateLimit, authRateLimiter } from '@/lib/rate-limit'; // ✅ FIX BUG-018
 
 export async function POST(request: Request) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  // ✅ FIX BUG-018: Rate limit template operations (5 req/min per user)
+  const rateLimitResult = await applyRateLimit(request, authRateLimiter, userId);
+  if (!rateLimitResult.allowed) {
+    return rateLimitResult.response;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action'); // 'reseed' or 'clear'

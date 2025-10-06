@@ -4,6 +4,7 @@ import { createOnboardingSession, getOnboardingSessionByProjectId } from '@/db/q
 import { getTemplateById } from '@/db/queries/onboarding-templates-queries';
 import { getProjectById } from '@/db/queries/projects-queries';
 import { sendOnboardingInvitation } from '@/lib/email-service';
+import { applyRateLimit, apiRateLimiter } from '@/lib/rate-limit'; // ✅ FIX BUG-018
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -13,6 +14,12 @@ export async function POST(request: Request) {
       { error: 'Unauthorized' },
       { status: 401 }
     );
+  }
+
+  // ✅ FIX BUG-018: Apply rate limiting (100 req/min per user)
+  const rateLimitResult = await applyRateLimit(request, apiRateLimiter, userId);
+  if (!rateLimitResult.allowed) {
+    return rateLimitResult.response;
   }
 
   try {

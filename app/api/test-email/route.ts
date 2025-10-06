@@ -5,8 +5,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendTestEmail } from '@/lib/email-service';
+import { applyRateLimit, authRateLimiter } from '@/lib/rate-limit'; // ✅ FIX BUG-018
 
 export async function POST(request: NextRequest) {
+  // ✅ FIX BUG-018: Very strict rate limiting (5 req/min per IP) to prevent email spam
+  const rateLimitResult = await applyRateLimit(request, authRateLimiter);
+  if (!rateLimitResult.allowed) {
+    return rateLimitResult.response;
+  }
+
   try {
     const { email } = await request.json();
 
