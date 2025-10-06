@@ -47,16 +47,26 @@ export function ManualOnboardingForm({ session, template, onComplete }: ManualOn
   // Parse template questions into sections
   const sections = Array.isArray(template.questions) ? template.questions : [];
 
-  // Auto-save every 30 seconds if there are unsaved changes
+  // ✅ FIX #3: Validate template structure
   useEffect(() => {
-    if (!hasUnsavedChanges) return;
+    if (!Array.isArray(sections) || sections.length === 0) {
+      toast.error('Invalid template structure - no sections found');
+      console.error('Template questions are not in expected format:', template);
+    }
+  }, [sections, template]);
+
+  // ✅ FIX #5: Auto-save with race condition prevention
+  useEffect(() => {
+    if (!hasUnsavedChanges || isSaving) return; // Check if already saving
 
     const autoSaveTimer = setTimeout(() => {
-      handleSave();
+      if (!isSaving) { // Double-check before saving
+        handleSave();
+      }
     }, 30000); // 30 seconds
 
     return () => clearTimeout(autoSaveTimer);
-  }, [hasUnsavedChanges, responses]);
+  }, [hasUnsavedChanges]); // Removed responses to prevent constant recreation
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -108,12 +118,16 @@ export function ManualOnboardingForm({ session, template, onComplete }: ManualOn
   };
 
   const handleSave = async () => {
+    if (isSaving) return; // ✅ FIX #5: Prevent concurrent saves
+    
     setIsSaving(true);
     
     try {
       // Save all sections
-      for (const section of sections) {
-        const sectionId = section.id || section.title;
+      for (let index = 0; index < sections.length; index++) {
+        const section = sections[index];
+        // ✅ FIX #4: Use index as fallback to prevent collisions
+        const sectionId = section.id || section.title || `section-${index}`;
         const isDelegated = delegatedSections.includes(sectionId);
         
         // Get responses for this section
@@ -124,7 +138,8 @@ export function ManualOnboardingForm({ session, template, onComplete }: ManualOn
           }
         });
 
-        if (Object.keys(sectionResponses).length > 0) {
+        // ✅ FIX #6: Always save delegated sections, even if empty
+        if (Object.keys(sectionResponses).length > 0 || isDelegated) {
           const result = await saveManualSectionAction(
             session.id,
             sectionId,
@@ -148,7 +163,48 @@ export function ManualOnboardingForm({ session, template, onComplete }: ManualOn
     }
   };
 
+  // ✅ FIX #7: Validation before submit
+  const validateForm = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Check if at least one section is completed
+    const hasAnyResponses = Object.keys(responses).length > 0;
+    if (!hasAnyResponses && delegatedSections.length === 0) {
+      errors.push('Please fill out at least one section or delegate sections to client');
+    }
+
+    // Check required fields in non-delegated sections
+    sections.forEach((section: any, index: number) => {
+      const sectionId = section.id || section.title || `section-${index}`;
+      const isDelegated = delegatedSections.includes(sectionId);
+
+      if (!isDelegated) {
+        section.fields?.forEach((field: any) => {
+          if (field.required && !responses[field.id]) {
+            errors.push(`${field.label} is required in ${section.title}`);
+          }
+        });
+      }
+    });
+
+    // If sending for review, check that at least some sections are delegated
+    if (!finalizeNow && delegatedSections.length === 0) {
+      errors.push('When sending for client review, you should delegate at least one section to the client');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent concurrent submits
+    
+    // ✅ FIX #7: Validate before submitting
+    const validation = validateForm();
+    if (!validation.isValid) {
+      validation.errors.forEach(error => toast.error(error));
+      return;
+    }
+
     if (hasUnsavedChanges) {
       await handleSave();
     }
