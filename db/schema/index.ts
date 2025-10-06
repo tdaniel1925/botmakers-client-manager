@@ -10,3 +10,4 @@ export * from "./reminder-schema";
 export * from "./templates-schema";
 export * from "./branding-schema";
 export * from "./healing-schema";
+export * from "./organization-contacts-schema";
