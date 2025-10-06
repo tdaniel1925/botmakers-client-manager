@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/db/queries/organizations-queries";
 import { canAccessResource, canEditResource, canDeleteResource } from "@/lib/rbac";
+import { validateContact, formatValidationErrors } from "@/lib/validation-utils"; // ✅ FIX BUG-019
 
 export async function getContactsAction(
   organizationId: string,
@@ -100,6 +101,22 @@ export async function createContactAction(
       return { isSuccess: false, message: "Unauthorized" };
     }
     
+    // ✅ FIX BUG-019: Validate required fields before creation
+    const validation = validateContact({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email || undefined,
+      phone: data.phone || undefined,
+      organizationId: data.organizationId,
+    });
+    
+    if (!validation.isValid) {
+      return {
+        isSuccess: false,
+        message: formatValidationErrors(validation.errors),
+      };
+    }
+    
     const userRole = await getUserRole(userId, data.organizationId);
     
     if (!userRole) {
@@ -137,6 +154,24 @@ export async function updateContactAction(
     
     if (!contact) {
       return { isSuccess: false, message: "Contact not found" };
+    }
+    
+    // ✅ FIX BUG-019: Validate fields before update (only if provided)
+    if (data.firstName !== undefined || data.lastName !== undefined || data.email !== undefined || data.phone !== undefined) {
+      const validation = validateContact({
+        firstName: data.firstName !== undefined ? data.firstName : contact.firstName,
+        lastName: data.lastName !== undefined ? data.lastName : contact.lastName,
+        email: data.email !== undefined ? data.email || undefined : contact.email || undefined,
+        phone: data.phone !== undefined ? data.phone || undefined : contact.phone || undefined,
+        organizationId: organizationId,
+      });
+      
+      if (!validation.isValid) {
+        return {
+          isSuccess: false,
+          message: formatValidationErrors(validation.errors),
+        };
+      }
     }
     
     const userRole = await getUserRole(userId, organizationId);

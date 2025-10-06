@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/db/queries/organizations-queries";
 import { canAccessResource, canEditResource, canDeleteResource } from "@/lib/rbac";
+import { validateDeal, formatValidationErrors } from "@/lib/validation-utils"; // ✅ FIX BUG-019
 
 export async function getDealsAction(
   organizationId: string,
@@ -138,6 +139,23 @@ export async function createDealAction(
       return { isSuccess: false, message: "Unauthorized" };
     }
     
+    // ✅ FIX BUG-019: Validate required fields before creation
+    const validation = validateDeal({
+      title: data.title,
+      value: data.value,
+      stage: data.stage,
+      probability: data.probability,
+      organizationId: data.organizationId,
+      contactId: data.contactId,
+    });
+    
+    if (!validation.isValid) {
+      return {
+        isSuccess: false,
+        message: formatValidationErrors(validation.errors),
+      };
+    }
+    
     const userRole = await getUserRole(userId, data.organizationId);
     
     if (!userRole) {
@@ -175,6 +193,25 @@ export async function updateDealAction(
     
     if (!deal) {
       return { isSuccess: false, message: "Deal not found" };
+    }
+    
+    // ✅ FIX BUG-019: Validate fields before update (only if provided)
+    if (data.title !== undefined || data.value !== undefined || data.stage !== undefined || data.probability !== undefined) {
+      const validation = validateDeal({
+        title: data.title !== undefined ? data.title : deal.title,
+        value: data.value !== undefined ? data.value : deal.value,
+        stage: data.stage !== undefined ? data.stage : deal.stage,
+        probability: data.probability !== undefined ? data.probability : deal.probability,
+        organizationId: organizationId,
+        contactId: data.contactId !== undefined ? data.contactId : deal.contactId,
+      });
+      
+      if (!validation.isValid) {
+        return {
+          isSuccess: false,
+          message: formatValidationErrors(validation.errors),
+        };
+      }
     }
     
     const userRole = await getUserRole(userId, organizationId);
