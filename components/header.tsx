@@ -1,7 +1,7 @@
 /**
- * Header component for the Template App
- * Features a modern glassmorphism design with bento-style UI elements
- * Includes subtle 3D effects and glowing accents
+ * Header component for ClientFlow
+ * Note: This component is currently not used in the app.
+ * ClientFlow uses sidebar-only navigation throughout.
  */
 "use client";
 
@@ -107,7 +107,7 @@ export default function Header() {
                 </svg>
               </div>
               <div className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Template App
+                ClientFlow
               </div>
             </motion.div>
 

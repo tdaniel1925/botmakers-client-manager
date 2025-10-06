@@ -14,12 +14,12 @@ import { claimPendingProfile } from "@/actions/whop-actions";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Template App",
-  description: "A full-stack template for modern web applications."
+  title: "ClientFlow",
+  description: "Multi-tenant CRM platform for managing client organizations."
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (userId) {
     try {

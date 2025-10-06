@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { Home, Settings, Database, Target, Users, Sparkles, CreditCard } from "lucide-react";
+import { Home, Settings, Database, Target, Users, Sparkles, CreditCard, LayoutDashboard, UserCircle, Briefcase, CheckSquare, BarChart3, Shield, FolderKanban } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -21,9 +21,10 @@ interface SidebarProps {
   userEmail?: string;
   whopMonthlyPlanId: string;
   whopYearlyPlanId: string;
+  isPlatformAdmin?: boolean;
 }
 
-export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlanId }: SidebarProps) {
+export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlanId, isPlatformAdmin }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
@@ -41,11 +42,13 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
   // Plan IDs now come from props, not environment variables
   
   const navItems = [
-    { href: "/dashboard", icon: <Home size={16} />, label: "Home" },
+    { href: "/dashboard", icon: <LayoutDashboard size={16} />, label: "Dashboard" },
+    { href: "/dashboard/contacts", icon: <UserCircle size={16} />, label: "Contacts" },
+    { href: "/dashboard/deals", icon: <Briefcase size={16} />, label: "Deals" },
+    { href: "/dashboard/projects", icon: <FolderKanban size={16} />, label: "Projects" },
+    { href: "/dashboard/activities", icon: <CheckSquare size={16} />, label: "Activities" },
+    { href: "/dashboard/analytics", icon: <BarChart3 size={16} />, label: "Analytics" },
     { href: "/dashboard/settings", icon: <Settings size={16} />, label: "Settings" },
-    { href: "/dashboard/data-source", icon: <Database size={16} />, label: "Data source" },
-    { href: "/dashboard/targets", icon: <Target size={16} />, label: "Targets" },
-    { href: "/dashboard/members", icon: <Users size={16} />, label: "Members" },
   ];
 
   // Handle navigation item click
@@ -107,10 +110,10 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
               transition={{ duration: 0.2 }}
             >
               <div className="hidden md:block">
-                <span className="font-bold text-lg">App Name</span>
+                <span className="font-bold text-lg">ClientFlow</span>
               </div>
               <div className="block md:hidden text-center">
-                <span className="font-bold text-sm">A</span>
+                <span className="font-bold text-sm">CF</span>
               </div>
             </motion.div>
           </Link>
@@ -149,6 +152,32 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
                 </motion.div>
               </Link>
             ))}
+            
+            {/* Platform Admin Link - Only show if user is platform admin */}
+            {isPlatformAdmin && (
+              <>
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-3" />
+                <Link href="/platform/dashboard" className="block">
+                  <motion.div 
+                    className="flex items-center py-2 px-3 rounded-lg cursor-pointer transition-all bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 text-blue-700 hover:shadow-md"
+                    whileHover={{ 
+                      scale: 1.03, 
+                      x: 4,
+                      transition: { duration: 0.2 }
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex items-center justify-center">
+                      <Shield size={16} />
+                    </div>
+                    <span className="ml-3 hidden md:block text-sm font-medium">
+                      Platform Admin
+                    </span>
+                  </motion.div>
+                </Link>
+              </>
+            )}
           </div>
         </nav>
 

@@ -2,9 +2,20 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isPlatformRoute = createRouteMatcher(["/platform(.*)"]);
 
 // This handles both payment provider use cases from whop-setup.md and stripe-setup.md
 export default clerkMiddleware(async (auth, req) => {
+  // Allow public access to onboarding routes (token-based access control)
+  if (req.nextUrl.pathname.startsWith('/onboarding')) {
+    return NextResponse.next();
+  }
+  
+  // Skip auth for Uploadthing API (has its own middleware)
+  if (req.nextUrl.pathname.startsWith('/api/uploadthing')) {
+    return NextResponse.next();
+  }
+  
   // Skip auth for webhook endpoints
   if (req.nextUrl.pathname.startsWith('/api/whop/webhooks')) {
     console.log("Skipping Clerk auth for Whop webhook endpoint");
@@ -60,6 +71,17 @@ export default clerkMiddleware(async (auth, req) => {
 
   const { userId, redirectToSignIn } = auth();
 
+  // Platform route protection - requires platform admin access
+  if (isPlatformRoute(req)) {
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.nextUrl.pathname });
+    }
+    
+    // Platform admin check is handled server-side in the platform pages
+    // Middleware just ensures user is authenticated
+    return NextResponse.next();
+  }
+
   // Standard route protection logic
   if (!userId && isProtectedRoute(req)) {
     // Return to dashboard after login instead of /login to avoid redirect loops
@@ -75,8 +97,13 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Match all routes except for these:
-    "/((?!api/whop/webhooks|_next/static|_next/image|favicon.ico).*)",
-    "/"
-  ]
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

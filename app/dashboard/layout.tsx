@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import CancellationPopup from "@/components/cancellation-popup";
 import WelcomeMessagePopup from "@/components/welcome-message-popup";
 import PaymentSuccessPopup from "@/components/payment-success-popup";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 
 /**
  * Check if a free user with an expired billing cycle needs their credits downgraded
@@ -63,7 +64,7 @@ async function checkExpiredSubscriptionCredits(profile: any | null): Promise<any
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   // Fetch user profile once at the layout level
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return redirect("/login");
@@ -87,12 +88,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const user = await currentUser();
   const userEmail = user?.emailAddresses?.[0]?.emailAddress || "";
   
+  // Check if user is a platform admin
+  const isPlatformAdminUser = await isPlatformAdmin();
+  
   // Log profile details for debugging
   console.log('Dashboard profile:', {
     userId: profile.userId,
     membership: profile.membership,
     createdAt: profile.createdAt,
-    usageCredits: profile.usageCredits
+    usageCredits: profile.usageCredits,
+    isPlatformAdmin: isPlatformAdminUser
   });
 
   return (
@@ -114,6 +119,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         userEmail={userEmail} 
         whopMonthlyPlanId={process.env.WHOP_PLAN_ID_MONTHLY || ''}
         whopYearlyPlanId={process.env.WHOP_PLAN_ID_YEARLY || ''}
+        isPlatformAdmin={isPlatformAdminUser}
       />
       
       {/* Main content area */}
