@@ -71,6 +71,14 @@ export async function startOnboardingAction(token: string): Promise<ActionResult
       return { isSuccess: false, message: "Invalid token." };
     }
 
+    // ✅ FIX BUG-011: Check expiration before allowing start
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      return {
+        isSuccess: false,
+        message: "This onboarding link has expired. Please contact us for a new link.",
+      };
+    }
+
     if (session.status === 'pending') {
       await markSessionStarted(session.id);
     }
@@ -100,6 +108,14 @@ export async function saveStepResponseAction(
     const session = await getOnboardingSessionByToken(token);
     if (!session) {
       return { isSuccess: false, message: "Invalid token." };
+    }
+
+    // ✅ FIX BUG-011: Check expiration before allowing save
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      return {
+        isSuccess: false,
+        message: "This onboarding link has expired. Please contact us for a new link.",
+      };
     }
 
     // Merge new step data with existing responses
@@ -201,6 +217,14 @@ export async function completeOnboardingAction(
     const session = await getOnboardingSessionByToken(token);
     if (!session) {
       return { isSuccess: false, message: "Invalid token." };
+    }
+
+    // ✅ FIX BUG-011: Check expiration before allowing completion
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      return {
+        isSuccess: false,
+        message: "This onboarding link has expired. Your progress has been saved, but please contact us for a new link to complete.",
+      };
     }
 
     // Save final data if provided
