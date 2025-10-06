@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SelectActivity } from "@/db/schema";
 import { Calendar, Mail, Phone, Users, FileText, CheckCircle2, Clock } from "lucide-react";
+import { formatDateTime, isToday as checkIsToday, isOverdue as checkIsOverdue } from "@/lib/date-utils"; // ✅ FIX BUG-024
 
 interface ActivityItemProps {
   activity: SelectActivity & { contactName?: string; dealTitle?: string };
@@ -31,8 +32,9 @@ export function ActivityItem({ activity, onComplete, onEdit }: ActivityItemProps
   const Icon = activityIcons[activity.type] || FileText;
   const iconColor = activityColors[activity.type] || "text-gray-600";
   
-  const isOverdue = activity.dueDate && !activity.completed && new Date(activity.dueDate) < new Date();
-  const isToday = activity.dueDate && new Date(activity.dueDate).toDateString() === new Date().toDateString();
+  // ✅ FIX BUG-024: Use timezone-aware date checking
+  const isOverdue = activity.dueDate && !activity.completed && checkIsOverdue(activity.dueDate);
+  const isToday = activity.dueDate && checkIsToday(activity.dueDate);
 
   return (
     <Card className={`${activity.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-red-300' : ''}`}>
@@ -71,7 +73,7 @@ export function ActivityItem({ activity, onComplete, onEdit }: ActivityItemProps
                   <Clock className="h-3 w-3" />
                   {isOverdue && 'Overdue: '}
                   {isToday && 'Today: '}
-                  {new Date(activity.dueDate).toLocaleString()}
+                  {formatDateTime(activity.dueDate)}
                 </div>
               )}
               
