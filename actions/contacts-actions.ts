@@ -16,8 +16,10 @@ import { auth } from "@clerk/nextjs/server";
 import { getUserRole } from "@/db/queries/organizations-queries";
 import { canAccessResource, canEditResource, canDeleteResource } from "@/lib/rbac";
 import { validateContact, formatValidationErrors } from "@/lib/validation-utils"; // ✅ FIX BUG-019
+import { withSelfHealing } from "@/lib/self-healing/error-interceptor"; // ✅ Self-healing integration
 
-export async function getContactsAction(
+export const getContactsAction = withSelfHealing(
+  async function getContactsAction(
   organizationId: string,
   options?: {
     search?: string;
@@ -54,9 +56,12 @@ export async function getContactsAction(
     console.error("Error getting contacts:", error);
     return { isSuccess: false, message: "Failed to get contacts" };
   }
-}
+},
+{ source: 'getContactsAction', category: 'database' }
+);
 
-export async function getContactByIdAction(
+export const getContactByIdAction = withSelfHealing(
+  async function getContactByIdAction(
   contactId: string,
   organizationId: string
 ): Promise<ActionResult<SelectContact | null>> {
@@ -89,9 +94,12 @@ export async function getContactByIdAction(
     console.error("Error getting contact:", error);
     return { isSuccess: false, message: "Failed to get contact" };
   }
-}
+},
+{ source: 'getContactByIdAction', category: 'database' }
+);
 
-export async function createContactAction(
+export const createContactAction = withSelfHealing(
+  async function createContactAction(
   data: InsertContact
 ): Promise<ActionResult<SelectContact>> {
   try {
@@ -136,9 +144,12 @@ export async function createContactAction(
     console.error("Error creating contact:", error);
     return { isSuccess: false, message: "Failed to create contact" };
   }
-}
+},
+{ source: 'createContactAction', category: 'database' }
+);
 
-export async function updateContactAction(
+export const updateContactAction = withSelfHealing(
+  async function updateContactAction(
   contactId: string,
   organizationId: string,
   data: Partial<InsertContact>
@@ -198,9 +209,12 @@ export async function updateContactAction(
     console.error("Error updating contact:", error);
     return { isSuccess: false, message: "Failed to update contact" };
   }
-}
+},
+{ source: 'updateContactAction', category: 'database' }
+);
 
-export async function deleteContactAction(
+export const deleteContactAction = withSelfHealing(
+  async function deleteContactAction(
   contactId: string,
   organizationId: string
 ): Promise<ActionResult<void>> {
@@ -240,9 +254,12 @@ export async function deleteContactAction(
     console.error("Error deleting contact:", error);
     return { isSuccess: false, message: "Failed to delete contact" };
   }
-}
+},
+{ source: 'deleteContactAction', category: 'database' }
+);
 
-export async function bulkDeleteContactsAction(
+export const bulkDeleteContactsAction = withSelfHealing(
+  async function bulkDeleteContactsAction(
   contactIds: string[],
   organizationId: string
 ): Promise<ActionResult<number>> {
@@ -271,9 +288,12 @@ export async function bulkDeleteContactsAction(
     console.error("Error bulk deleting contacts:", error);
     return { isSuccess: false, message: "Failed to delete contacts" };
   }
-}
+},
+{ source: 'bulkDeleteContactsAction', category: 'database' }
+);
 
-export async function getContactCountByStatusAction(
+export const getContactCountByStatusAction = withSelfHealing(
+  async function getContactCountByStatusAction(
   organizationId: string
 ): Promise<ActionResult<Record<string, number>>> {
   try {
@@ -289,7 +309,9 @@ export async function getContactCountByStatusAction(
     console.error("Error getting contact counts:", error);
     return { isSuccess: false, message: "Failed to get contact counts" };
   }
-}
+},
+{ source: 'getContactCountByStatusAction', category: 'database' }
+);
 
 
 
