@@ -35,6 +35,10 @@ export const organizationsTable = pgTable("organizations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
   suspendedAt: timestamp("suspended_at"),
   cancelledAt: timestamp("cancelled_at"),
+  
+  // ✅ FIX BUG-014: Soft delete support
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: text("deleted_by"), // User ID who soft-deleted this organization
 });
 
 // User roles table (maps Clerk users to organizations with roles)
