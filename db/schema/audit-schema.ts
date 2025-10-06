@@ -1,7 +1,8 @@
-import { pgTable, text, timestamp, jsonb, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, uuid, index } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./crm-schema";
 
 // Audit logs table - tracks all important actions across the platform
+// ✅ FIX BUG-015: Added indexes for query performance
 export const auditLogsTable = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }), // Null for platform-level actions
@@ -16,7 +17,14 @@ export const auditLogsTable = pgTable("audit_logs", {
   userAgent: text("user_agent"), // Browser/client info
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // ✅ FIX BUG-015: Performance indexes for common query patterns
+  userIdIdx: index("idx_audit_logs_user_id").on(table.userId),
+  orgCreatedIdx: index("idx_audit_logs_org_created").on(table.organizationId, table.createdAt),
+  entityIdx: index("idx_audit_logs_entity").on(table.entityType, table.entityId),
+  actionIdx: index("idx_audit_logs_action").on(table.action),
+  createdAtIdx: index("idx_audit_logs_created_at").on(table.createdAt),
+}));
 
 // Type exports
 export type InsertAuditLog = typeof auditLogsTable.$inferInsert;
