@@ -27,6 +27,7 @@ export interface ManualOnboardingResult {
   success: boolean;
   sessionId?: string;
   error?: string;
+  message?: string; // For success messages
 }
 
 /**
@@ -327,24 +328,50 @@ export async function convertToManualOnboardingAction(
   }
 
   try {
+    // ✅ FIX #9: Validate session state before converting
     const session = await getOnboardingSessionById(sessionId);
     
     if (!session) {
       return { success: false, error: 'Session not found' };
     }
 
-    // Convert to hybrid mode (preserve client responses, admin continues)
-    await updateSessionCompletionMode(sessionId, 'hybrid', userId);
+    // Don't convert already completed sessions
+    if (session.status === 'completed') {
+      return { success: false, error: 'Cannot convert completed sessions. This onboarding is already finished.' };
+    }
+
+    // Don't convert already manual sessions
+    if (session.completionMode === 'manual') {
+      return { success: false, error: 'Session is already in manual mode' };
+    }
+
+    // Check if session has meaningful client responses to preserve
+    const hasClientResponses = session.responses && Object.keys(session.responses).length > 0;
+    
+    // Convert to hybrid mode if there are client responses, manual otherwise
+    const newMode = hasClientResponses ? 'hybrid' : 'manual';
+    await updateSessionCompletionMode(sessionId, newMode, userId);
 
     await logAudit({
       userId,
       action: 'onboarding_converted_to_manual',
       resourceType: 'onboarding_session',
       resourceId: sessionId,
-      metadata: { previousMode: session.completionMode || 'client' },
+      metadata: { 
+        previousMode: session.completionMode || 'client',
+        newMode,
+        hadClientResponses: hasClientResponses,
+        responseCount: hasClientResponses ? Object.keys(session.responses).length : 0
+      },
     });
 
-    return { success: true, sessionId };
+    return { 
+      success: true, 
+      sessionId,
+      message: hasClientResponses 
+        ? 'Session converted to hybrid mode. Client responses preserved.'
+        : 'Session converted to manual mode.'
+    };
   } catch (error: any) {
     console.error('Error converting to manual onboarding:', error);
     return { success: false, error: error.message };
