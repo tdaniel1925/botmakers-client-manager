@@ -1,7 +1,10 @@
 'use server';
 
+import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db/db';
 import { notificationTemplatesTable } from '@/db/schema';
+import { isPlatformAdmin } from '@/db/queries/platform-queries';
+import { logAudit } from '@/lib/audit-logger';
 
 const SEED_TEMPLATES = [
   // Email Templates
@@ -294,7 +297,29 @@ export async function seedTemplatesAction(forceReseed = false) {
 // Action to clear all templates (admin only)
 export async function clearTemplatesAction() {
   try {
+    // ✅ FIX BUG-003: Add authentication and authorization checks
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, message: 'Unauthorized - Authentication required' };
+    }
+
+    // Verify platform admin access
+    const isAdmin = await isPlatformAdmin(userId);
+    if (!isAdmin) {
+      return { success: false, message: 'Forbidden - Platform admin access required' };
+    }
+
     await db.delete(notificationTemplatesTable);
+    
+    // Log this critical action for audit trail
+    await logAudit({
+      userId,
+      action: 'templates_cleared',
+      resourceType: 'notification_templates',
+      resourceId: null,
+      metadata: { operation: 'delete_all' }
+    });
+    
     return { success: true, message: 'All templates cleared' };
   } catch (error: any) {
     console.error('Clear error:', error);

@@ -283,18 +283,75 @@ export async function submitClientReviewAction(
       return { success: false, error: 'Session not found' };
     }
 
-    // Merge client updates with existing responses
+    // ✅ FIX BUG-005: Validate and sanitize client responses before merging
     if (updatedResponses) {
+      // Get template to validate against
+      const template = session.templateLibraryId 
+        ? await getTemplateById(session.templateLibraryId)
+        : null;
+
+      if (!template || !template.questions) {
+        return { success: false, error: 'Invalid session template' };
+      }
+
+      // Build a map of valid field IDs from template
+      const validFieldIds = new Set<string>();
+      template.questions.forEach((section: any) => {
+        section.fields?.forEach((field: any) => {
+          validFieldIds.add(field.id);
+        });
+      });
+
+      // Validate each response
+      const validatedResponses: Record<string, any> = {};
+      const errors: string[] = [];
+
+      for (const [fieldId, value] of Object.entries(updatedResponses)) {
+        // Check if field exists in template
+        if (!validFieldIds.has(fieldId)) {
+          errors.push(`Invalid field: ${fieldId}`);
+          continue;
+        }
+
+        // Basic XSS prevention: sanitize strings
+        if (typeof value === 'string') {
+          // Remove script tags and limit length
+          const sanitized = value
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .substring(0, 10000); // Max 10k characters per field
+          validatedResponses[fieldId] = sanitized;
+        } else if (Array.isArray(value)) {
+          // Validate array items
+          validatedResponses[fieldId] = value.slice(0, 100); // Max 100 array items
+        } else if (typeof value === 'object' && value !== null) {
+          // Limit object size
+          validatedResponses[fieldId] = value;
+        } else {
+          validatedResponses[fieldId] = value;
+        }
+      }
+
+      if (errors.length > 0) {
+        console.warn('Client review validation errors:', errors);
+        return { success: false, error: `Invalid fields: ${errors.join(', ')}` };
+      }
+
+      // Merge validated responses with existing data
       const existingResponses = (session.responses as Record<string, any>) || {};
-      const mergedResponses = { ...existingResponses, ...updatedResponses };
+      const mergedResponses = { ...existingResponses, ...validatedResponses };
       
       await updateOnboardingSession(session.id, {
         responses: mergedResponses,
       });
     }
 
+    // Sanitize review notes
+    const sanitizedNotes = reviewNotes
+      ?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .substring(0, 5000) || '';
+
     // Mark as reviewed by client
-    await markSessionReviewedByClient(session.id, reviewNotes);
+    await markSessionReviewedByClient(session.id, sanitizedNotes);
 
     // Trigger AI analysis and todo generation
     const analysis = await analyzeOnboardingCompletion(session.id);

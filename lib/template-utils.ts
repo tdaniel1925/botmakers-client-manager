@@ -4,19 +4,41 @@
  */
 
 /**
+ * Escape HTML special characters to prevent XSS
+ * ✅ FIX BUG-012: HTML escaping for template variables
+ */
+export function escapeHtml(str: string): string {
+  const htmlEscapeMap: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+  };
+  
+  return str.replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char]);
+}
+
+/**
  * Replace variables in template content
  * Replaces {{variableName}} with actual values
+ * Use shouldEscapeHtml=true for HTML templates to prevent XSS
  */
 export function replaceVariables(
   content: string,
-  variables: Record<string, string | number>
+  variables: Record<string, string | number>,
+  shouldEscapeHtml = false
 ): string {
   let result = content;
   
   // Replace each variable
   Object.entries(variables).forEach(([key, value]) => {
     const regex = new RegExp(`{{${key}}}`, 'g');
-    result = result.replace(regex, String(value));
+    const stringValue = String(value);
+    // Escape HTML if this is HTML content
+    const finalValue = shouldEscapeHtml ? escapeHtml(stringValue) : stringValue;
+    result = result.replace(regex, finalValue);
   });
   
   return result;

@@ -96,16 +96,17 @@ export async function renderTemplate(
     const brandingVars = await getBrandingVariables();
     const allVariables = { ...brandingVars, ...variables };
     
+    // ✅ FIX BUG-012: Escape HTML in variables for email templates
     const result: any = {
-      text: replaceVariables(template.bodyText, allVariables),
+      text: replaceVariables(template.bodyText, allVariables, false), // Plain text, no escaping needed
     };
     
     if (template.subject) {
-      result.subject = replaceVariables(template.subject, allVariables);
+      result.subject = replaceVariables(template.subject, allVariables, false); // Subject line, no HTML
     }
     
     if (template.bodyHtml) {
-      result.html = replaceVariables(template.bodyHtml, allVariables);
+      result.html = replaceVariables(template.bodyHtml, allVariables, true); // HTML content, ESCAPE IT!
     }
     
     return result;

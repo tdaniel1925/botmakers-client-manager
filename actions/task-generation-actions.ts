@@ -145,37 +145,43 @@ export async function createGeneratedTasksAction(
       };
     }
 
-    // Insert tasks
-    const createdTasks = [];
-    for (const task of tasks) {
-      const [created] = await db
-        .insert(projectTasksTable)
-        .values({
-          projectId: session.projectId,
-          title: task.title,
-          description: task.description,
-          status: task.status || "todo",
-          assignedTo: task.assignedTo || null,
-          dueDate: task.dueDate || null,
-          priority: task.priority || "medium",
-          sourceType: "onboarding_response",
-          sourceId: sessionId,
-          sourceMetadata: task.sourceMetadata,
+    // ✅ FIX BUG-001: Wrap in transaction to prevent partial data writes
+    const createdTasks = await db.transaction(async (tx) => {
+      const tasks_created = [];
+      
+      // Insert all tasks within transaction
+      for (const task of tasks) {
+        const [created] = await tx
+          .insert(projectTasksTable)
+          .values({
+            projectId: session.projectId,
+            title: task.title,
+            description: task.description,
+            status: task.status || "todo",
+            assignedTo: task.assignedTo || null,
+            dueDate: task.dueDate || null,
+            priority: task.priority || "medium",
+            sourceType: "onboarding_response",
+            sourceId: sessionId,
+            sourceMetadata: task.sourceMetadata,
+          })
+          .returning();
+
+        tasks_created.push(created);
+      }
+
+      // Update session to mark tasks as generated (within same transaction)
+      await tx
+        .update(clientOnboardingSessionsTable)
+        .set({
+          tasksGenerated: true,
+          tasksGeneratedAt: new Date(),
+          taskCount: tasks_created.length,
         })
-        .returning();
-
-      createdTasks.push(created);
-    }
-
-    // Update session to mark tasks as generated
-    await db
-      .update(clientOnboardingSessionsTable)
-      .set({
-        tasksGenerated: true,
-        tasksGeneratedAt: new Date(),
-        taskCount: createdTasks.length,
-      })
-      .where(eq(clientOnboardingSessionsTable.id, sessionId));
+        .where(eq(clientOnboardingSessionsTable.id, sessionId));
+      
+      return tasks_created;
+    });
 
     revalidatePath(`/platform/projects/${session.projectId}`);
     revalidatePath(`/platform/onboarding/${sessionId}`);
@@ -261,24 +267,58 @@ export async function regenerateTasksAction(sessionId: string) {
       return { success: false, error: "Invalid session" };
     }
 
-    // Delete existing onboarding-generated tasks for this session
-    await db
-      .delete(projectTasksTable)
-      .where(eq(projectTasksTable.sourceId, sessionId));
-
-    // Generate new tasks
+    // Generate new tasks first (outside transaction)
     const generateResult = await generateTasksFromOnboardingAction(sessionId);
     if (!generateResult.success || !generateResult.data) {
       return generateResult;
     }
 
-    // Create new tasks
-    const createResult = await createGeneratedTasksAction(
-      sessionId,
-      generateResult.data.tasks
-    );
+    // ✅ FIX BUG-001: Wrap delete + create in transaction for atomicity
+    const result = await db.transaction(async (tx) => {
+      // Delete existing onboarding-generated tasks for this session
+      await tx
+        .delete(projectTasksTable)
+        .where(eq(projectTasksTable.sourceId, sessionId));
 
-    return createResult;
+      // Create new tasks within same transaction
+      const createdTasks = [];
+      for (const task of generateResult.data.tasks) {
+        const [created] = await tx
+          .insert(projectTasksTable)
+          .values({
+            projectId: session.projectId,
+            title: task.title,
+            description: task.description,
+            status: task.status || "todo",
+            assignedTo: task.assignedTo || null,
+            dueDate: task.dueDate || null,
+            priority: task.priority || "medium",
+            sourceType: "onboarding_response",
+            sourceId: sessionId,
+            sourceMetadata: task.sourceMetadata,
+          })
+          .returning();
+        createdTasks.push(created);
+      }
+
+      // Update session
+      await tx
+        .update(clientOnboardingSessionsTable)
+        .set({
+          tasksGenerated: true,
+          tasksGeneratedAt: new Date(),
+          taskCount: createdTasks.length,
+        })
+        .where(eq(clientOnboardingSessionsTable.id, sessionId));
+
+      return { success: true, data: { createdTasks, totalCreated: createdTasks.length } };
+    });
+
+    revalidatePath(`/platform/projects/${session.projectId}`);
+    revalidatePath(`/platform/onboarding/${sessionId}`);
+    revalidatePath("/platform/onboarding");
+
+    return result;
   } catch (error) {
     console.error("Error regenerating tasks:", error);
     return {
