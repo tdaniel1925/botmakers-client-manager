@@ -6,10 +6,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, AlertCircle, ExternalLink, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, ExternalLink, Mail, Plus, RefreshCw, Trash2, FolderKanban, GitMerge } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -30,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { createOnboardingSessionAction, sendOnboardingInvitationAction, resetOnboardingSessionAction } from "@/actions/onboarding-actions";
+import { startManualOnboardingAction, convertToManualOnboardingAction } from "@/actions/manual-onboarding-actions";
 import Link from "next/link";
 
 interface ProjectOnboardingSectionProps {
@@ -41,12 +51,14 @@ export function ProjectOnboardingSection({
   projectId,
   onboardingSession,
 }: ProjectOnboardingSectionProps) {
+  const router = useRouter();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [templateType, setTemplateType] = useState<string>("auto");
   const [clientEmail, setClientEmail] = useState("");
   const [clientName, setClientName] = useState("");
@@ -103,6 +115,44 @@ export function ProjectOnboardingSection({
       window.location.reload(); // Refresh to show new session
     } else {
       toast.error(result.message || "Failed to reset onboarding session");
+    }
+  };
+
+  const handleManualOnboarding = async () => {
+    if (!onboardingSession?.templateLibraryId) {
+      toast.error("No template found for this session");
+      return;
+    }
+
+    const result = await startManualOnboardingAction(
+      projectId,
+      onboardingSession.templateLibraryId,
+      'manual',
+      onboardingSession.id
+    );
+
+    if (result.success && result.sessionId) {
+      toast.success("Starting manual onboarding...");
+      router.push(`/platform/onboarding/manual/${result.sessionId}`);
+    } else {
+      toast.error(result.error || "Failed to start manual onboarding");
+    }
+  };
+
+  const handleConvertToManual = async () => {
+    if (!onboardingSession) {
+      return;
+    }
+
+    setConverting(true);
+    const result = await convertToManualOnboardingAction(onboardingSession.id);
+    setConverting(false);
+
+    if (result.success && result.sessionId) {
+      toast.success("Converting to manual onboarding...");
+      router.push(`/platform/onboarding/manual/${result.sessionId}`);
+    } else {
+      toast.error(result.error || "Failed to convert to manual onboarding");
     }
   };
 
@@ -256,6 +306,21 @@ export function ProjectOnboardingSection({
           )}
         </div>
 
+        {/* Completion Mode Badge */}
+        {onboardingSession.completionMode && onboardingSession.completionMode !== 'client' && (
+          <div className="flex items-center gap-2">
+            <Badge variant={onboardingSession.completionMode === 'manual' ? 'default' : 'secondary'}>
+              {onboardingSession.completionMode === 'manual' && '👤 Admin Filled'}
+              {onboardingSession.completionMode === 'hybrid' && '🤝 Hybrid'}
+            </Badge>
+            {onboardingSession.manuallyCompletedBy && (
+              <span className="text-xs text-gray-500">
+                by admin on {new Date(onboardingSession.manuallyCompletedAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-2 pt-4 border-t flex-wrap">
           <Link href={`/platform/onboarding/${onboardingSession.id}`}>
@@ -266,51 +331,82 @@ export function ProjectOnboardingSection({
           </Link>
 
           {onboardingSession.status !== "completed" && (
-            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Invitation
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Send Onboarding Invitation</DialogTitle>
-                  <DialogDescription>
-                    Enter the client's information to send them the onboarding link
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label htmlFor="clientName">Client Name</Label>
-                    <Input
-                      id="clientName"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="clientEmail">Client Email</Label>
-                    <Input
-                      id="clientEmail"
-                      type="email"
-                      value={clientEmail}
-                      onChange={(e) => setClientEmail(e.target.value)}
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
-                    Cancel
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm">
+                    <FolderKanban className="h-4 w-4 mr-2" />
+                    Onboarding Actions
                   </Button>
-                  <Button onClick={handleSendInvitation} disabled={sending}>
-                    {sending ? "Sending..." : "Send Invitation"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>Admin Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={handleManualOnboarding}>
+                    <FolderKanban className="h-4 w-4 mr-2" />
+                    Complete Onboarding Myself
+                  </DropdownMenuItem>
+
+                  {onboardingSession.status === 'in_progress' && onboardingSession.completionMode === 'client' && (
+                    <DropdownMenuItem onClick={handleConvertToManual} disabled={converting}>
+                      <GitMerge className="h-4 w-4 mr-2" />
+                      {converting ? 'Converting...' : 'Convert to Manual'}
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Client Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEmailDialogOpen(true); }}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Send/Resend Invitation
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Send Onboarding Invitation</DialogTitle>
+                        <DialogDescription>
+                          Enter the client's information to send them the onboarding link
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div>
+                          <Label htmlFor="clientName">Client Name</Label>
+                          <Input
+                            id="clientName"
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
+                            placeholder="John Doe"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="clientEmail">Client Email</Label>
+                          <Input
+                            id="clientEmail"
+                            type="email"
+                            value={clientEmail}
+                            onChange={(e) => setClientEmail(e.target.value)}
+                            placeholder="john@example.com"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSendInvitation} disabled={sending}>
+                          {sending ? "Sending..." : "Send Invitation"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
 
           <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
