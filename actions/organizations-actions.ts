@@ -200,6 +200,21 @@ export async function removeUserFromOrganizationAction(
       return { isSuccess: false, message: "Cannot remove yourself from the organization" };
     }
     
+    // ✅ FIX BUG-026: Check if target user is an admin
+    const targetUserRole = await getUserRole(targetUserId, organizationId);
+    if (targetUserRole?.role === "admin") {
+      // Count total admins in the organization
+      const allMembers = await getOrganizationMembers(organizationId);
+      const adminCount = allMembers.filter(member => member.role === "admin").length;
+      
+      if (adminCount <= 1) {
+        return { 
+          isSuccess: false, 
+          message: "Cannot remove the last admin. Please assign another admin before removing this user." 
+        };
+      }
+    }
+    
     const success = await removeUserFromOrganization(targetUserId, organizationId);
     
     if (!success) {
