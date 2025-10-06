@@ -1,377 +1,289 @@
+'use client';
+
 /**
  * Onboarding Sessions List Component
- * Displays table of all onboarding sessions with filters and actions
+ * Displays all onboarding sessions with manual onboarding actions
  */
 
-"use client";
-
-import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, Mail, Copy, MoreHorizontal, Trash2, Bell, BellOff, Sparkles } from "lucide-react";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { deleteOnboardingSessionAction } from "@/actions/onboarding-actions";
+} from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { MoreHorizontal, User, Users, GitMerge, Mail, FolderKanban, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { convertToManualOnboardingAction } from '@/actions/manual-onboarding-actions';
+import { formatDistanceToNow } from 'date-fns';
 
 interface OnboardingSessionsListProps {
   sessions: any[];
 }
 
 export function OnboardingSessionsList({ sessions }: OnboardingSessionsListProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<string>("");
-  const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false);
+  const router = useRouter();
+  const [convertingSession, setConvertingSession] = useState<string | null>(null);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
 
-  // Filter sessions
-  const filteredSessions = sessions.filter((session) => {
-    const matchesStatus = statusFilter === "all" || session.status === statusFilter;
-    const matchesSearch =
-      searchQuery === "" ||
-      session.projectId?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const handleConvertToManual = async () => {
+    if (!selectedSession) return;
+
+    setConvertingSession(selectedSession.id);
+    setShowConvertDialog(false);
+
+    try {
+      const result = await convertToManualOnboardingAction(selectedSession.id);
+      
+      if (result.success) {
+        toast.success('Session converted to manual onboarding');
+        // Redirect to manual onboarding page
+        router.push(`/platform/onboarding/manual/${selectedSession.id}`);
+      } else {
+        toast.error(result.error || 'Failed to convert session');
+      }
+    } catch (error) {
+      console.error('Error converting session:', error);
+      toast.error('Failed to convert session');
+    } finally {
+      setConvertingSession(null);
+      setSelectedSession(null);
+    }
+  };
+
+  const openConvertDialog = (session: any) => {
+    setSelectedSession(session);
+    setShowConvertDialog(true);
+  };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; variant: any }> = {
-      pending: { label: "Pending", variant: "secondary" },
-      in_progress: { label: "In Progress", variant: "default" },
-      completed: { label: "Completed", variant: "default" },
-      abandoned: { label: "Abandoned", variant: "destructive" },
-    };
-
-    const config = statusConfig[status] || statusConfig.pending;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const copyOnboardingLink = (token: string) => {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    const link = `${appUrl}/onboarding/${token}`;
-    navigator.clipboard.writeText(link);
-    toast.success("Onboarding link copied to clipboard!");
-  };
-
-  const handleDeleteClick = (sessionId: string) => {
-    setSessionToDelete(sessionId);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!sessionToDelete) return;
-
-    setIsDeleting(true);
-    const result = await deleteOnboardingSessionAction(sessionToDelete);
-    setIsDeleting(false);
-
-    if (result.isSuccess) {
-      toast.success("Onboarding session deleted successfully!");
-      setDeleteDialogOpen(false);
-      setSessionToDelete(null);
-      // Refresh the page to show updated list
-      window.location.reload();
-    } else {
-      toast.error(result.message || "Failed to delete onboarding session");
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" />Completed</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-600"><Clock className="w-3 h-3 mr-1" />In Progress</Badge>;
+      case 'pending':
+        return <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" />Pending</Badge>;
+      case 'expired':
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Expired</Badge>;
+      case 'pending_review':
+        return <Badge className="bg-orange-600"><Clock className="w-3 h-3 mr-1" />Pending Review</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const toggleSelectAll = () => {
-    if (selectedSessions.size === filteredSessions.length) {
-      setSelectedSessions(new Set());
-    } else {
-      setSelectedSessions(new Set(filteredSessions.map(s => s.id)));
+  const getCompletionModeBadge = (mode: string) => {
+    switch (mode) {
+      case 'manual':
+        return (
+          <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+            <User className="w-3 h-3 mr-1" />
+            Admin Filled
+          </Badge>
+        );
+      case 'hybrid':
+        return (
+          <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">
+            <GitMerge className="w-3 h-3 mr-1" />
+            Hybrid
+          </Badge>
+        );
+      case 'client':
+      default:
+        return (
+          <Badge variant="outline">
+            <Users className="w-3 h-3 mr-1" />
+            Client
+          </Badge>
+        );
     }
   };
 
-  const toggleSelectSession = (sessionId: string) => {
-    const newSelected = new Set(selectedSessions);
-    if (newSelected.has(sessionId)) {
-      newSelected.delete(sessionId);
-    } else {
-      newSelected.add(sessionId);
-    }
-    setSelectedSessions(newSelected);
+  const isAbandoned = (session: any) => {
+    if (session.status !== 'in_progress') return false;
+    if (!session.updatedAt) return false;
+    
+    const daysSinceUpdate = Math.floor(
+      (Date.now() - new Date(session.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    return daysSinceUpdate >= 7; // 7+ days considered abandoned
   };
 
-  const handleApplyBulkAction = async () => {
-    if (!bulkAction || selectedSessions.size === 0) {
-      toast.error("Please select sessions and an action");
-      return;
-    }
-
-    setIsApplyingBulkAction(true);
-
-    if (bulkAction === "delete") {
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const sessionId of selectedSessions) {
-        const result = await deleteOnboardingSessionAction(sessionId);
-        if (result.isSuccess) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      }
-
-      setIsApplyingBulkAction(false);
-
-      if (successCount > 0) {
-        toast.success(`${successCount} session(s) deleted successfully`);
-      }
-      if (failCount > 0) {
-        toast.error(`Failed to delete ${failCount} session(s)`);
-      }
-
-      setSelectedSessions(new Set());
-      setBulkAction("");
-      window.location.reload();
-    } else if (bulkAction === "send_reminder") {
-      // TODO: Implement send reminder functionality
-      toast.info("Send reminder functionality coming soon");
-      setIsApplyingBulkAction(false);
-    }
-  };
+  if (!sessions || sessions.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <FolderKanban className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600">No onboarding sessions found</p>
+        <p className="text-sm text-gray-400 mt-2">
+          Create a new project with onboarding to get started
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Filters and Bulk Actions */}
-      <div className="flex gap-4 items-center justify-between">
-        <div className="flex gap-4">
-          <Input
-            placeholder="Search by project ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-sm"
-          />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="abandoned">Abandoned</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Bulk Actions */}
-        {selectedSessions.size > 0 && (
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-gray-600">
-              {selectedSessions.size} selected
-            </span>
-            <Select value={bulkAction} onValueChange={setBulkAction}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Bulk Actions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="delete">Delete Sessions</SelectItem>
-                <SelectItem value="send_reminder">Send Reminder</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={handleApplyBulkAction}
-              disabled={!bulkAction || isApplyingBulkAction}
-              variant="default"
-            >
-              {isApplyingBulkAction ? "Applying..." : "Apply"}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="border rounded-lg">
+    <>
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={selectedSessions.size === filteredSessions.length && filteredSessions.length > 0}
-                  onCheckedChange={toggleSelectAll}
-                />
-              </TableHead>
+              <TableHead>Client</TableHead>
               <TableHead>Project</TableHead>
-              <TableHead>Organization</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Reminders</TableHead>
-              <TableHead>Started</TableHead>
-              <TableHead>Last Activity</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Mode</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Last Updated</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSessions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                  No onboarding sessions found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSessions.map((session) => (
-                <TableRow key={session.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedSessions.has(session.id)}
-                      onCheckedChange={() => toggleSelectSession(session.id)}
-                    />
-                  </TableCell>
+            {sessions.map((session) => {
+              const abandoned = isAbandoned(session);
+              
+              return (
+                <TableRow key={session.id} className={abandoned ? 'bg-orange-50/50' : ''}>
                   <TableCell className="font-medium">
-                    {session.projectId?.substring(0, 8)}...
-                  </TableCell>
-                  <TableCell>
-                    {session.organizationId?.substring(0, 8)}...
-                  </TableCell>
-                  <TableCell>{getStatusBadge(session.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${session.completionPercentage}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {session.completionPercentage}%
-                      </span>
+                    <div>
+                      <p>{session.clientName || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500">{session.clientEmail}</p>
                     </div>
                   </TableCell>
+                  
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      {session.reminderEnabled ? (
-                        <>
-                          <Bell className="h-4 w-4 text-blue-600" />
-                          <span className="text-xs text-gray-600">
-                            {session.reminderCount || 0} sent
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <BellOff className="h-4 w-4 text-gray-400" />
-                          <span className="text-xs text-gray-400">Off</span>
-                        </>
-                      )}
-                      {session.tasksGenerated && (
-                        <Sparkles className="h-4 w-4 text-purple-600 ml-1" title="Tasks Generated" />
+                    <div>
+                      <p className="font-medium">{session.projectName || 'Unnamed Project'}</p>
+                      {session.projectId && (
+                        <p className="text-xs text-gray-500">ID: {session.projectId.slice(0, 8)}...</p>
                       )}
                     </div>
                   </TableCell>
+                  
                   <TableCell>
-                    {session.startedAt
-                      ? new Date(session.startedAt).toLocaleDateString()
-                      : "-"}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(session.status)}
+                      {abandoned && (
+                        <Badge variant="destructive" className="text-xs">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Abandoned
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
+                  
                   <TableCell>
-                    {session.lastActivityAt
-                      ? new Date(session.lastActivityAt).toLocaleDateString()
-                      : "-"}
+                    {getCompletionModeBadge(session.completionMode || 'client')}
                   </TableCell>
-                  <TableCell>
+                  
+                  <TableCell className="text-sm text-gray-600">
+                    {session.createdAt ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true }) : 'N/A'}
+                  </TableCell>
+                  
+                  <TableCell className="text-sm text-gray-600">
+                    {session.updatedAt ? formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true }) : 'N/A'}
+                  </TableCell>
+                  
+                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" disabled={convertingSession === session.id}>
+                          <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/platform/onboarding/${session.id}`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => copyOnboardingLink(session.accessToken)}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Link
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Reminder
-                        </DropdownMenuItem>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuLabel>Onboarding Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClick(session.id)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Session
+                        
+                        {/* View Session */}
+                        <DropdownMenuItem onClick={() => router.push(`/platform/onboarding/${session.id}`)}>
+                          <FolderKanban className="w-4 h-4 mr-2" />
+                          View Details
                         </DropdownMenuItem>
+                        
+                        {/* Complete Manually - Only for pending or in_progress client sessions */}
+                        {(session.status === 'pending' || session.status === 'in_progress') && session.completionMode === 'client' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => router.push(`/platform/onboarding/manual/${session.id}`)}
+                              className="text-purple-700"
+                            >
+                              <User className="w-4 h-4 mr-2" />
+                              Complete Onboarding Myself
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem 
+                              onClick={() => openConvertDialog(session)}
+                              className="text-indigo-700"
+                            >
+                              <GitMerge className="w-4 h-4 mr-2" />
+                              Convert to Manual
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        
+                        {/* Continue Manual - For manual/hybrid in progress */}
+                        {(session.status === 'in_progress' || session.status === 'pending_review') && 
+                         (session.completionMode === 'manual' || session.completionMode === 'hybrid') && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => router.push(`/platform/onboarding/manual/${session.id}`)}
+                              className="text-purple-700"
+                            >
+                              <User className="w-4 h-4 mr-2" />
+                              Continue Manual Onboarding
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        
+                        {/* Resend Invitation - Only for client mode */}
+                        {session.completionMode === 'client' && (session.status === 'pending' || session.status === 'in_progress') && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => toast.info('Resend invitation feature coming soon')}>
+                              <Mail className="w-4 h-4 mr-2" />
+                              Resend Client Invitation
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Convert to Manual Confirmation Dialog */}
+      <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Onboarding Session?</AlertDialogTitle>
+            <AlertDialogTitle>Convert to Manual Onboarding?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the onboarding session
-              and all associated responses and uploaded files.
+              This will convert the onboarding session to manual mode, allowing you to complete it on behalf of the client.
+              Any responses already provided by the client will be preserved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? "Deleting..." : "Delete Session"}
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConvertToManual}>
+              Convert & Continue
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
