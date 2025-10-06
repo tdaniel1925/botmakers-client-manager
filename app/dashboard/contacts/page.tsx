@@ -12,6 +12,7 @@ import { getUserOrganizationsAction } from "@/actions/organizations-actions";
 import { SelectContact } from "@/db/schema";
 import { Search, Plus, Trash2, Edit, Mail, Phone, Building2, UserCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useDebounce } from "@/lib/use-debounce"; // ✅ FIX BUG-010
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,9 +37,12 @@ export default function ContactsPage() {
   const [contactToDelete, setContactToDelete] = useState<SelectContact | null>(null);
   const { toast } = useToast();
 
+  // ✅ FIX BUG-010: Debounce search term to prevent API call on every keystroke
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   useEffect(() => {
     loadContacts();
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]); // Use debounced value instead of raw searchTerm
 
   const loadContacts = async () => {
     setLoading(true);
@@ -55,9 +59,9 @@ export default function ContactsPage() {
       const orgId = orgsResult.data[0].id;
       setOrganizationId(orgId);
       
-      // Fetch contacts
+      // Fetch contacts with debounced search term
       const result = await getContactsAction(orgId, {
-        search: searchTerm,
+        search: debouncedSearchTerm,
         limit: 100,
       });
       
