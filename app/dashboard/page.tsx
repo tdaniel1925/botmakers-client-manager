@@ -18,6 +18,9 @@ import { ErrorState } from "@/components/crm/error-state";
 import { getPlatformAdminPreferences } from "@/db/queries/notification-preferences-queries";
 import { auth } from "@clerk/nextjs/server";
 
+// ✅ FIX BUG-028: Add cache revalidation (stats refresh every 5 minutes)
+export const revalidate = 300; // 5 minutes in seconds
+
 /**
  * Main CRM dashboard page component
  */
