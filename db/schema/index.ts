@@ -9,3 +9,4 @@ export * from "./onboarding-schema";
 export * from "./reminder-schema";
 export * from "./templates-schema";
 export * from "./branding-schema";
+export * from "./healing-schema";
