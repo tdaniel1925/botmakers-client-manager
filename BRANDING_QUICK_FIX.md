@@ -1,25 +1,25 @@
 # Branding Quick Fixes
 
-## Issue 1: Logo Upload Not Working ❌
+## Issue 1: Logo Upload Now Using UploadThing ✅
 
-**Error:** `BlobError: No token found`
+**Updated:** Logo uploads now use **UploadThing** instead of Vercel Blob!
 
-**Fix:** Add Vercel Blob token to your environment variables
+**Why?** You already have UploadThing configured for file uploads, so we switched the logo upload to use the same service.
 
-### Option A: Add Environment Variable (Recommended)
+### Option A: Add UploadThing Keys (Recommended)
 
 1. **Create/Edit `.env.local` in the `codespring-boilerplate` folder:**
 
 ```env
-BLOB_READ_WRITE_TOKEN=vercel_blob_rw_XXXXXXXXXX
+UPLOADTHING_SECRET=your_uploadthing_secret
+UPLOADTHING_APP_ID=your_uploadthing_app_id
 ```
 
-2. **Get your token from Vercel:**
-   - Go to https://vercel.com/dashboard
-   - Select your project
-   - Go to **Storage** tab
-   - Create a Blob Store (if needed)
-   - Copy the `BLOB_READ_WRITE_TOKEN`
+2. **Get your keys from UploadThing:**
+   - Go to https://uploadthing.com/dashboard
+   - Sign in or create a free account
+   - Create a new app (if needed)
+   - Copy your **Secret Key** and **App ID**
 
 3. **Restart dev server:**
 ```bash

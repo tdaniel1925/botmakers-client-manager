@@ -7,8 +7,10 @@ import {
   getOrganizationBranding,
   updateOrganizationBranding 
 } from '@/db/queries/branding-queries';
-import { put } from '@vercel/blob';
+import { UTApi } from 'uploadthing/server';
 import { revalidatePath } from 'next/cache';
+
+const utapi = new UTApi();
 
 /**
  * Get current branding settings
@@ -82,12 +84,19 @@ export async function uploadLogoAction(formData: FormData) {
       return { success: false, error: 'File size must be under 2MB' };
     }
 
-    // Upload to Vercel Blob
-    const blob = await put(`branding/logo-${Date.now()}-${file.name}`, file, {
-      access: 'public',
-    });
+    // Upload using UploadThing
+    const response = await utapi.uploadFiles([file]);
+    
+    if (!response || response.length === 0 || response[0].error) {
+      const errorMessage = response?.[0]?.error?.message || 'Upload failed';
+      console.error('UploadThing error:', errorMessage);
+      return { success: false, error: errorMessage };
+    }
 
-    return { success: true, url: blob.url };
+    const uploadedFile = response[0].data;
+    console.log('✅ Logo uploaded successfully via UploadThing:', uploadedFile.url);
+
+    return { success: true, url: uploadedFile.url };
   } catch (error: any) {
     console.error('Upload logo error:', error);
     return { success: false, error: error.message };
