@@ -57,7 +57,7 @@ export default clerkMiddleware(async (auth, req) => {
   // If a user has just completed signup after payment and is authenticated,
   // redirect them to the dashboard instead of keeping them on the signup page
   if (req.nextUrl.pathname.startsWith('/signup') && req.nextUrl.search.includes('payment=success')) {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     // If user is authenticated and on signup page with payment=success, they should go to dashboard
     if (userId) {
@@ -69,7 +69,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  const { userId, redirectToSignIn } = auth();
+  const { userId, redirectToSignIn } = await auth();
 
   // Platform route protection - requires platform admin access
   if (isPlatformRoute(req)) {
