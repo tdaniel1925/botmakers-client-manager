@@ -504,3 +504,103 @@ export async function sendAllTodosCompleteEmail({
 
   return { isSuccess: true };
 }
+
+/**
+ * Send client review notification for manual onboarding
+ */
+export async function sendClientReviewNotificationEmail(
+  clientEmail: string,
+  clientName: string,
+  sessionId: string,
+  accessToken: string,
+  adminFilledSections: string[]
+) {
+  const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/${accessToken}/review`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; }
+          .button { 
+            display: inline-block; 
+            background-color: #667eea; 
+            color: white; 
+            padding: 15px 30px; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            margin: 20px 0;
+            font-weight: bold;
+          }
+          .section-list {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 15px 20px;
+            margin: 20px 0;
+          }
+          .section-list ul {
+            margin: 10px 0;
+            padding-left: 20px;
+          }
+          .section-list li {
+            margin: 5px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0;">📋 Review Your Onboarding Information</h1>
+          </div>
+          
+          <div style="padding: 20px 0;">
+            <p>Hi ${clientName},</p>
+            
+            <p>We've filled out some of your project onboarding questionnaire to help speed things along and get your project started faster.</p>
+            
+            ${adminFilledSections.length > 0 ? `
+              <div class="section-list">
+                <p><strong>Sections we completed for you:</strong></p>
+                <ul>
+                  ${adminFilledSections.map(section => `<li>${section}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+            
+            <p><strong>What you need to do:</strong></p>
+            <ol>
+              <li>Review all the information we've entered</li>
+              <li>Make any changes or corrections needed</li>
+              <li>Complete any remaining sections</li>
+              <li>Add any notes or feedback you have</li>
+              <li>Click "Approve & Finalize" when you're satisfied</li>
+            </ol>
+            
+            <div style="text-align: center;">
+              <a href="${reviewUrl}" class="button">Review & Complete Onboarding →</a>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 14px; color: #6b7280;">
+              <strong>💡 Tip:</strong> You can edit any information we've entered if it needs to be changed. We want to make sure everything is accurate before we proceed with your project.
+            </p>
+          </div>
+          
+          <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb;">
+            <p>Questions? Just reply to this email and we'll be happy to help!</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  await sendEmail({
+    to: clientEmail,
+    subject: `Please review your project onboarding information`,
+    html,
+  });
+
+  return { isSuccess: true };
+}

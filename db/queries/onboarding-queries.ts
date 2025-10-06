@@ -396,3 +396,142 @@ export async function getCompletionRateStats() {
     rate: totalCount > 0 ? (completedCount / totalCount) * 100 : 0,
   };
 }
+
+// ============================================================================
+// Manual Onboarding Queries
+// ============================================================================
+
+/**
+ * Update session completion mode
+ */
+export async function updateSessionCompletionMode(
+  sessionId: string,
+  mode: 'client' | 'manual' | 'hybrid',
+  adminUserId?: string
+) {
+  const [updated] = await db
+    .update(clientOnboardingSessionsTable)
+    .set({
+      completionMode: mode,
+      manuallyCompletedBy: adminUserId,
+      manuallyCompletedAt: mode !== 'client' ? new Date() : null,
+    })
+    .where(eq(clientOnboardingSessionsTable.id, sessionId))
+    .returning();
+
+  return updated;
+}
+
+/**
+ * Update section completion tracking
+ */
+export async function updateSectionCompletion(
+  sessionId: string,
+  sectionId: string,
+  completedBy: string
+) {
+  const session = await getOnboardingSessionById(sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  const completedBySections = (session.completedBySections as Record<string, any>) || {};
+  
+  completedBySections[sectionId] = {
+    completed_by: completedBy,
+    completed_at: new Date().toISOString(),
+  };
+  
+  const [updated] = await db
+    .update(clientOnboardingSessionsTable)
+    .set({ completedBySections })
+    .where(eq(clientOnboardingSessionsTable.id, sessionId))
+    .returning();
+
+  return updated;
+}
+
+/**
+ * Mark session as finalized (with or without client review)
+ */
+export async function markSessionFinalized(
+  sessionId: string,
+  finalizedByAdmin: boolean,
+  reviewRequested: boolean
+) {
+  const [updated] = await db
+    .update(clientOnboardingSessionsTable)
+    .set({
+      finalizedByAdmin,
+      clientReviewRequestedAt: reviewRequested ? new Date() : null,
+      status: finalizedByAdmin ? 'completed' : 'in_progress',
+      lastActivityAt: new Date(),
+    })
+    .where(eq(clientOnboardingSessionsTable.id, sessionId))
+    .returning();
+
+  return updated;
+}
+
+/**
+ * Mark session as reviewed by client
+ */
+export async function markSessionReviewedByClient(
+  sessionId: string,
+  reviewNotes?: string
+) {
+  const [updated] = await db
+    .update(clientOnboardingSessionsTable)
+    .set({
+      clientReviewedAt: new Date(),
+      clientReviewNotes: reviewNotes,
+      status: 'completed',
+      completedAt: new Date(),
+      lastActivityAt: new Date(),
+    })
+    .where(eq(clientOnboardingSessionsTable.id, sessionId))
+    .returning();
+
+  return updated;
+}
+
+/**
+ * Get sessions by completion mode for filtering
+ */
+export async function getSessionsByCompletionMode(
+  organizationId: string,
+  mode: 'client' | 'manual' | 'hybrid'
+) {
+  return db
+    .select()
+    .from(clientOnboardingSessionsTable)
+    .where(
+      and(
+        eq(clientOnboardingSessionsTable.organizationId, organizationId),
+        eq(clientOnboardingSessionsTable.completionMode, mode)
+      )
+    )
+    .orderBy(desc(clientOnboardingSessionsTable.createdAt));
+}
+
+/**
+ * Get abandoned sessions (in progress for more than 7 days)
+ */
+export async function getAbandonedSessions(organizationId: string) {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  return db
+    .select()
+    .from(clientOnboardingSessionsTable)
+    .where(
+      and(
+        eq(clientOnboardingSessionsTable.organizationId, organizationId),
+        eq(clientOnboardingSessionsTable.status, 'in_progress'),
+        eq(clientOnboardingSessionsTable.completionMode, 'client'),
+        sql`${clientOnboardingSessionsTable.lastActivityAt} < ${sevenDaysAgo}`
+      )
+    )
+    .orderBy(desc(clientOnboardingSessionsTable.lastActivityAt));
+}

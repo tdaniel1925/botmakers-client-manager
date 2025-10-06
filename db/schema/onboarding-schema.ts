@@ -139,6 +139,16 @@ export const clientOnboardingSessionsTable = pgTable("client_onboarding_sessions
   todosApprovedAt: timestamp("todos_approved_at"),
   todosApprovedBy: text("todos_approved_by"),
   
+  // Manual onboarding tracking
+  completionMode: text("completion_mode").default("client"), // 'client', 'manual', 'hybrid'
+  completedBySections: jsonb("completed_by_sections"), // Track who completed each section
+  manuallyCompletedBy: text("manually_completed_by"), // Admin user ID who manually completed
+  manuallyCompletedAt: timestamp("manually_completed_at"),
+  finalizedByAdmin: boolean("finalized_by_admin").default(false),
+  clientReviewRequestedAt: timestamp("client_review_requested_at"),
+  clientReviewedAt: timestamp("client_reviewed_at"),
+  clientReviewNotes: text("client_review_notes"),
+  
   // Timestamps
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
