@@ -53,6 +53,10 @@ export const projectsTable = pgTable("projects", {
   createdBy: text("created_by").notNull(), // Platform admin user ID
   assignedTo: text("assigned_to"), // Organization user ID responsible for project
   
+  // Client information (for onboarding)
+  clientName: text("client_name"),
+  clientEmail: text("client_email"),
+  
   // Optional relationships
   contactId: uuid("contact_id").references(() => contactsTable.id, { onDelete: "set null" }),
   dealId: uuid("deal_id").references(() => dealsTable.id, { onDelete: "set null" }),

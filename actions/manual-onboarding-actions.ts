@@ -66,6 +66,23 @@ export async function startManualOnboardingAction(
         metadata: { mode, projectId },
       });
     } else {
+      // ✅ FIX #1: Check for existing session before creating
+      const existingSession = await getOnboardingSessionByProjectId(projectId);
+      if (existingSession) {
+        // Reuse existing session, just convert it to manual
+        await updateSessionCompletionMode(existingSession.id, mode, userId);
+        
+        await logAudit({
+          userId,
+          action: 'onboarding_reused_and_converted',
+          resourceType: 'onboarding_session',
+          resourceId: existingSession.id,
+          metadata: { mode, projectId, templateId },
+        });
+        
+        return { success: true, sessionId: existingSession.id };
+      }
+
       // Create new manual session
       const project = await getProjectById(projectId);
       if (!project) {
@@ -178,6 +195,12 @@ export async function submitManualOnboardingAction(
       return { success: false, error: 'Session not found' };
     }
 
+    // ✅ FIX #2: Get project with client info
+    const project = await getProjectById(session.projectId);
+    if (!project) {
+      return { success: false, error: 'Project not found' };
+    }
+
     if (finalizeNow) {
       // Mark as finalized by admin, skip client review
       await markSessionFinalized(sessionId, true, false);
@@ -207,22 +230,27 @@ export async function submitManualOnboardingAction(
       // Send for client review
       await markSessionFinalized(sessionId, false, true);
 
-      // Send notification email to client
-      const project = await getProjectById(session.projectId);
-      if (project && project.clientEmail) {
-        const completedBySections = (session.completedBySections as Record<string, any>) || {};
-        const adminFilledSections = Object.keys(completedBySections).filter(
-          (key) => completedBySections[key].completed_by === userId
-        );
+      // ✅ FIX #2: Validate client email exists
+      const clientEmail = project.clientEmail;
+      const clientName = project.clientName || 'Client';
 
-        await sendClientReviewNotificationEmail(
-          project.clientEmail,
-          project.clientName || 'Client',
-          sessionId,
-          session.accessToken,
-          adminFilledSections
-        );
+      if (!clientEmail) {
+        return { success: false, error: 'No client email found. Please add client email to the project first.' };
       }
+
+      // Send notification email to client
+      const completedBySections = (session.completedBySections as Record<string, any>) || {};
+      const adminFilledSections = Object.keys(completedBySections).filter(
+        (key) => completedBySections[key].completed_by === userId
+      );
+
+      await sendClientReviewNotificationEmail(
+        clientEmail,
+        clientName,
+        sessionId,
+        session.accessToken,
+        adminFilledSections
+      );
 
       await logAudit({
         userId,

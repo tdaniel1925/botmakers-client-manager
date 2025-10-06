@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createOnboardingSession } from '@/db/queries/onboarding-queries';
+import { createOnboardingSession, getOnboardingSessionByProjectId } from '@/db/queries/onboarding-queries';
 import { getTemplateById } from '@/db/queries/onboarding-templates-queries';
 import { getProjectById } from '@/db/queries/projects-queries';
 import { sendOnboardingInvitation } from '@/lib/email-service';
@@ -23,6 +23,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
+      );
+    }
+
+    // ✅ FIX #1: Check for existing session to prevent duplicates
+    const existingSession = await getOnboardingSessionByProjectId(projectId);
+    if (existingSession) {
+      return NextResponse.json(
+        { error: 'Onboarding session already exists for this project', sessionId: existingSession.id },
+        { status: 409 }
       );
     }
 
