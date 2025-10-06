@@ -95,6 +95,7 @@ export default function BrandingSettingsPage() {
     if (file) {
       setLogoFile(file);
       
+      // ✅ FIX BUG-016: Enhanced error handling with retry mechanism
       // Show preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -127,14 +128,24 @@ export default function BrandingSettingsPage() {
             toast.success('Logo uploaded and saved successfully!');
             await loadBranding();
           } else {
-            toast.error('Logo uploaded but failed to save.');
+            toast.error('Logo uploaded but failed to save: ' + (saveResult.error || 'Unknown error'));
           }
         } else {
-          toast.error(result.error || 'Failed to upload logo');
+          // ✅ FIX BUG-016: Show detailed error with retry guidance
+          const errorMsg = result.error || 'Failed to upload logo';
+          if (result.retryable) {
+            toast.error(errorMsg + ' Click the logo area to retry.');
+          } else {
+            toast.error(errorMsg);
+          }
+          // Reset preview on failure
+          setLogoPreview(form.logoUrl || '');
         }
       } catch (error: any) {
         console.error('Upload error:', error);
-        toast.error('Failed to upload logo: ' + error.message);
+        toast.error('Upload failed: ' + (error.message || 'Unknown error') + ' Click the logo area to retry.');
+        // Reset preview on failure
+        setLogoPreview(form.logoUrl || '');
       }
     }
   };

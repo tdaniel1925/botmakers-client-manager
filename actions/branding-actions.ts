@@ -60,46 +60,106 @@ export async function updateBrandingAction(data: any, orgId?: string) {
 }
 
 /**
- * Upload logo to Vercel Blob
+ * Upload logo to UploadThing with enhanced error handling
+ * ✅ FIX BUG-016: Properly handle and report upload failures
  */
 export async function uploadLogoAction(formData: FormData) {
   const { userId } = await auth();
   if (!userId) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', retryable: false };
   }
 
   try {
     const file = formData.get('logo') as File;
     if (!file) {
-      return { success: false, error: 'No file provided' };
+      return { success: false, error: 'No file provided', retryable: false };
     }
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      return { success: false, error: 'File must be an image' };
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return { 
+        success: false, 
+        error: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, GIF, SVG, WebP`, 
+        retryable: false 
+      };
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      return { success: false, error: 'File size must be under 2MB' };
+      return { 
+        success: false, 
+        error: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds limit of 2MB`, 
+        retryable: false 
+      };
     }
 
-    // Upload using UploadThing
-    const response = await utapi.uploadFiles([file]);
+    // Validate file dimensions (optional but recommended)
+    // Note: Can't validate dimensions server-side without reading the file
+    console.log(`[branding-actions] Uploading logo: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
+
+    // Upload using UploadThing with timeout handling
+    const uploadPromise = utapi.uploadFiles([file]);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+    );
     
-    if (!response || response.length === 0 || response[0].error) {
-      const errorMessage = response?.[0]?.error?.message || 'Upload failed';
-      console.error('UploadThing error:', errorMessage);
-      return { success: false, error: errorMessage };
+    const response = await Promise.race([uploadPromise, timeoutPromise]) as any;
+    
+    if (!response || response.length === 0) {
+      console.error('[branding-actions] UploadThing returned empty response');
+      return { 
+        success: false, 
+        error: 'Upload service returned empty response. Please try again.', 
+        retryable: true 
+      };
+    }
+
+    if (response[0].error) {
+      const errorMessage = response[0].error.message || 'Upload failed';
+      console.error('[branding-actions] UploadThing error:', errorMessage, response[0].error);
+      
+      // Check if it's a network/timeout error (retryable)
+      const isRetryable = errorMessage.toLowerCase().includes('timeout') || 
+                          errorMessage.toLowerCase().includes('network') ||
+                          errorMessage.toLowerCase().includes('fetch failed');
+      
+      return { 
+        success: false, 
+        error: `Upload failed: ${errorMessage}`, 
+        retryable: isRetryable 
+      };
+    }
+
+    if (!response[0].data || !response[0].data.url) {
+      console.error('[branding-actions] UploadThing response missing data.url:', response[0]);
+      return { 
+        success: false, 
+        error: 'Upload completed but no URL returned. Please try again.', 
+        retryable: true 
+      };
     }
 
     const uploadedFile = response[0].data;
-    console.log('✅ Logo uploaded successfully via UploadThing:', uploadedFile.url);
+    console.log('✅ Logo uploaded successfully:', uploadedFile.url);
 
-    return { success: true, url: uploadedFile.url };
+    return { success: true, url: uploadedFile.url, retryable: false };
   } catch (error: any) {
-    console.error('Upload logo error:', error);
-    return { success: false, error: error.message };
+    console.error('[branding-actions] Upload logo error:', error);
+    
+    // Determine if error is retryable
+    const isRetryable = error.message?.toLowerCase().includes('timeout') || 
+                        error.message?.toLowerCase().includes('network') ||
+                        error.message?.toLowerCase().includes('fetch') ||
+                        error.name === 'AbortError';
+    
+    const errorMessage = error.message || 'Unknown error occurred during upload';
+    
+    return { 
+      success: false, 
+      error: isRetryable ? `${errorMessage}. Please check your connection and try again.` : errorMessage, 
+      retryable: isRetryable 
+    };
   }
 }
 
