@@ -1,6 +1,7 @@
 import { getProfileByUserIdAction } from "@/actions/profiles-actions";
 import { PaymentStatusAlert } from "@/components/payment/payment-status-alert";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "sonner";
 import { Providers } from "@/components/utilities/providers";
 import LayoutWrapper from "@/components/layout-wrapper";
 import { ErrorBoundary } from "@/components/error-boundary"; // ✅ FIX BUG-006
@@ -20,46 +21,6 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { userId } = await auth();
-
-  if (userId) {
-    try {
-      // First check if the user already has a profile
-      const res = await getProfileByUserIdAction(userId);
-      
-      if (!res.data) {
-        // No profile exists for this user, so we might need to create one
-        const user = await currentUser();
-        const email = user?.emailAddresses?.[0]?.emailAddress;
-        
-        if (email) {
-          // Check if there's a pending profile with this email
-          console.log(`Checking for pending profile with email ${email} for user ${userId}`);
-          
-          // Try to claim any pending profile first
-          const claimResult = await claimPendingProfile(userId, email);
-          
-          if (!claimResult.success) {
-            // Only create a new profile if we couldn't claim a pending one
-            console.log(`No pending profile found, creating new profile for user ${userId} with email ${email}`);
-            await createProfileAction({ 
-              userId,
-              email
-            });
-          } else {
-            console.log(`Successfully claimed pending profile for user ${userId} with email ${email}`);
-          }
-        } else {
-          // No email available, create a basic profile
-          console.log(`Creating basic profile for user ${userId} with no email`);
-          await createProfileAction({ userId });
-        }
-      }
-    } catch (error) {
-      console.error("Error checking/creating user profile:", error);
-    }
-  }
-
   return (
     <ClerkProvider>
       <html lang="en">
@@ -72,10 +33,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               disableTransitionOnChange
             >
               <LayoutWrapper>
-                {userId && <PaymentStatusAlert />}
                 {children}
               </LayoutWrapper>
               <Toaster />
+              <Sonner 
+                position="bottom-center"
+                expand={false}
+                richColors={false}
+                closeButton={false}
+                toastOptions={{
+                  unstyled: true,
+                  classNames: {
+                    toast: "w-full max-w-2xl",
+                  },
+                }}
+              />
             </Providers>
           </ErrorBoundary>
         </body>

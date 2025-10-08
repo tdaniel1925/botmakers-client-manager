@@ -16,8 +16,14 @@ import { checkPaymentFailedAction } from "@/actions/profiles-actions";
 export function PaymentStatusAlert() {
   const [hasPaymentFailed, setHasPaymentFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const { userId } = useAuth();
+  
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   // Don't show on pricing page to avoid redundancy
   const isVisible = pathname !== "/pricing";
@@ -47,6 +53,11 @@ export function PaymentStatusAlert() {
     
     return () => clearInterval(intervalId);
   }, [userId, isVisible]);
+  
+  // Prevent hydration mismatch - don't render until mounted on client
+  if (!isMounted) {
+    return null;
+  }
   
   // Show nothing while loading or if no payment issues
   if (isLoading || !hasPaymentFailed || !isVisible) {

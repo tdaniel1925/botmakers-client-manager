@@ -285,6 +285,76 @@ export async function deleteProjectAction(projectId: string): Promise<ActionResu
 }
 
 /**
+ * Bulk delete projects (platform admin only)
+ */
+export async function bulkDeleteProjectsAction(projectIds: string[]): Promise<ActionResult<void>> {
+  try {
+    await requirePlatformAdmin();
+
+    if (!projectIds || projectIds.length === 0) {
+      return {
+        isSuccess: false,
+        message: "No projects selected",
+      };
+    }
+
+    // Delete all projects
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const projectId of projectIds) {
+      try {
+        const project = await getProjectById(projectId);
+        if (project) {
+          await deleteProject(projectId);
+          
+          // Log audit
+          await logAudit({
+            organizationId: project.organizationId,
+            action: "delete",
+            entityType: "project",
+            entityId: projectId,
+            changes: { name: project.name },
+          });
+          
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (error) {
+        console.error(`Error deleting project ${projectId}:`, error);
+        failedCount++;
+      }
+    }
+
+    revalidatePath("/platform/projects");
+
+    if (failedCount === 0) {
+      return {
+        isSuccess: true,
+        message: `Successfully deleted ${successCount} project(s)`,
+      };
+    } else if (successCount > 0) {
+      return {
+        isSuccess: true,
+        message: `Deleted ${successCount} project(s), ${failedCount} failed`,
+      };
+    } else {
+      return {
+        isSuccess: false,
+        message: "Failed to delete projects",
+      };
+    }
+  } catch (error) {
+    console.error("Error bulk deleting projects:", error);
+    return {
+      isSuccess: false,
+      message: "Failed to delete projects",
+    };
+  }
+}
+
+/**
  * Get project tasks
  */
 export async function getProjectTasksAction(projectId: string): Promise<ActionResult<any[]>> {

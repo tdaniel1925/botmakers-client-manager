@@ -13,38 +13,65 @@ import {
   buildTestEmail,
 } from './email-html-builder';
 import { renderTemplate } from './template-service';
-
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { getResendCredentials } from './messaging/credential-manager';
 
 // Email configuration
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const FROM_NAME = 'ClientFlow';
-const REPLY_TO = process.env.RESEND_REPLY_TO || FROM_EMAIL;
 
 interface SendEmailOptions {
   to: string | string[];
   subject: string;
   html: string;
   replyTo?: string;
+  organizationId?: string; // Optional: use org-specific credentials
 }
 
 /**
  * Send an email using Resend
+ * If organizationId is provided, will use org-specific credentials if configured,
+ * otherwise falls back to platform credentials
  */
-export async function sendEmail({ to, subject, html, replyTo }: SendEmailOptions) {
+export async function sendEmail({ to, subject, html, replyTo, organizationId }: SendEmailOptions) {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is not set');
-      return { isSuccess: false, message: 'Email service not configured - RESEND_API_KEY missing' };
+    let resendClient: Resend;
+    let fromEmail: string;
+    let replyToEmail: string;
+
+    if (organizationId) {
+      // Try to use organization-specific credentials
+      const orgCredentials = await getResendCredentials(organizationId);
+      
+      if (orgCredentials) {
+        resendClient = orgCredentials.client;
+        fromEmail = orgCredentials.fromEmail;
+        replyToEmail = replyTo || orgCredentials.fromEmail;
+      } else {
+        // Fall back to platform credentials
+        if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+          console.error('Email service not configured for organization or platform');
+          return { isSuccess: false, message: 'Email service not configured' };
+        }
+        resendClient = new Resend(process.env.RESEND_API_KEY);
+        fromEmail = process.env.RESEND_FROM_EMAIL;
+        replyToEmail = replyTo || process.env.RESEND_REPLY_TO || fromEmail;
+      }
+    } else {
+      // Use platform credentials
+      if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+        console.error('RESEND_API_KEY or RESEND_FROM_EMAIL is not set');
+        return { isSuccess: false, message: 'Email service not configured - platform credentials missing' };
+      }
+      resendClient = new Resend(process.env.RESEND_API_KEY);
+      fromEmail = process.env.RESEND_FROM_EMAIL;
+      replyToEmail = replyTo || process.env.RESEND_REPLY_TO || fromEmail;
     }
 
-    const { data, error } = await resend.emails.send({
-      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    const { data, error } = await resendClient.emails.send({
+      from: `${FROM_NAME} <${fromEmail}>`,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
-      replyTo: replyTo || REPLY_TO,
+      replyTo: replyToEmail,
     });
 
     if (error) {

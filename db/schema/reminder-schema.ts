@@ -4,7 +4,7 @@
  */
 
 import { pgTable, uuid, text, timestamp, integer, boolean, jsonb, pgEnum } from "drizzle-orm/pg-core";
-import { clientOnboardingSessionsTable } from "./onboarding-schema";
+import { clientOnboardingSessionsTable, reminderScheduleEnum } from "./onboarding-schema";
 
 // Reminder type enum
 export const reminderTypeEnum = pgEnum("reminder_type", [
@@ -21,14 +21,6 @@ export const reminderStatusEnum = pgEnum("reminder_status", [
   "sent",
   "failed",
   "cancelled"
-]);
-
-// Reminder schedule enum
-export const reminderScheduleEnum = pgEnum("reminder_schedule", [
-  "standard",
-  "aggressive",
-  "gentle",
-  "custom"
 ]);
 
 // Onboarding reminders table

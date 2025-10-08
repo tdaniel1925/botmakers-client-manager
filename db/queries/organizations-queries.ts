@@ -52,7 +52,15 @@ export async function getUserOrganizations(userId: string) {
         )
       );
     
-    return result;
+    // Remove duplicates if user has multiple roles in same org
+    const uniqueOrgs = result.reduce((acc, org) => {
+      if (!acc.find(o => o.id === org.id)) {
+        acc.push(org);
+      }
+      return acc;
+    }, [] as typeof result);
+    
+    return uniqueOrgs;
   } catch (error) {
     console.error("Error getting user organizations:", error);
     return [];
@@ -131,6 +139,75 @@ export async function addUserToOrganization(
     .returning();
   
   return result[0];
+}
+
+/**
+ * Get all members of an organization
+ */
+export async function getOrganizationMembers(organizationId: string) {
+  try {
+    const result = await db
+      .select()
+      .from(userRolesTable)
+      .where(eq(userRolesTable.organizationId, organizationId));
+    
+    return result;
+  } catch (error) {
+    console.error("Error getting organization members:", error);
+    return [];
+  }
+}
+
+/**
+ * Update user role in organization
+ */
+export async function updateUserRole(
+  userId: string,
+  organizationId: string,
+  newRole: "admin" | "manager" | "sales_rep"
+) {
+  try {
+    const result = await db
+      .update(userRolesTable)
+      .set({ role: newRole, updatedAt: new Date() })
+      .where(
+        and(
+          eq(userRolesTable.userId, userId),
+          eq(userRolesTable.organizationId, organizationId)
+        )
+      )
+      .returning();
+    
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    return null;
+  }
+}
+
+/**
+ * Remove user from organization
+ */
+export async function removeUserFromOrganization(
+  userId: string,
+  organizationId: string
+) {
+  try {
+    const result = await db
+      .delete(userRolesTable)
+      .where(
+        and(
+          eq(userRolesTable.userId, userId),
+          eq(userRolesTable.organizationId, organizationId)
+        )
+      )
+      .returning();
+    
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error removing user from organization:", error);
+    return null;
+  }
 }
 
 /**

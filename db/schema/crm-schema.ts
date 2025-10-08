@@ -23,12 +23,33 @@ export const organizationsTable = pgTable("organizations", {
   // Billing (moved from profiles - org-level billing)
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  currentSubscriptionId: uuid("current_subscription_id"), // Reference to active subscription (no FK to avoid circular dep)
   
   // Limits & Settings
   maxUsers: integer("max_users").default(5),
   maxStorageGb: integer("max_storage_gb").default(10),
   settings: text("settings").default('{}'), // JSONB stored as text
   featureFlags: text("feature_flags").default('{}'), // JSONB stored as text
+  
+  // Profile & Contact Information
+  description: text("description"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  addressLine1: text("address_line_1"),
+  addressLine2: text("address_line_2"),
+  city: text("city"),
+  state: text("state"),
+  postalCode: text("postal_code"),
+  country: text("country").default("United States"),
+  logoUrl: text("logo_url"),
+  
+  // Temporary login credentials
+  tempUsername: text("temp_username"),
+  tempPassword: text("temp_password"),
+  credentialsSentAt: timestamp("credentials_sent_at"),
+  credentialsUsedAt: timestamp("credentials_used_at"),
+  credentialsExpiresAt: timestamp("credentials_expires_at"),
   
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),

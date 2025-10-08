@@ -15,6 +15,8 @@ import {
 import { ActionResult } from "@/types";
 import { clerkClient } from "@clerk/nextjs/server";
 import { logOrganizationChange, logPlatformAction } from "@/lib/audit-logger";
+import { generateTempUsername, generateTempPassword, generateCredentialsExpiration } from "@/lib/credentials-generator";
+import { sendNotification } from "@/lib/notification-service";
 
 /**
  * Require platform admin access
@@ -55,6 +57,10 @@ export async function createOrganizationAction(data: {
       };
     }
 
+    // Generate temporary password for owner
+    const tempPassword = generateTempPassword();
+    const credentialsExpiresAt = generateCredentialsExpiration();
+
     // Create organization
     const organization = await createOrganization({
       name: data.name,
@@ -63,7 +69,57 @@ export async function createOrganizationAction(data: {
       status: "active",
       maxUsers: data.plan === "pro" ? 25 : data.plan === "enterprise" ? 999 : 5,
       maxStorageGb: data.plan === "pro" ? 100 : data.plan === "enterprise" ? 500 : 10,
+      tempUsername: data.adminEmail, // Use email as username
+      tempPassword,
+      credentialsExpiresAt,
+      credentialsSentAt: new Date(),
     });
+
+    // ✨ CREATE CLERK USER ACCOUNT FOR ORGANIZATION OWNER
+    let ownerUserId: string | undefined;
+    try {
+      const clerk = await clerkClient();
+      
+      // Split name for Clerk
+      const nameParts = (data.adminName || '').trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      const newUser = await clerk.users.createUser({
+        emailAddress: [data.adminEmail],
+        password: tempPassword,
+        skipPasswordRequirement: false,
+        firstName,
+        lastName,
+      });
+      
+      ownerUserId = newUser.id;
+      
+      // ✨ ADD OWNER TO USER_ROLES TABLE
+      await addUserToOrganization(organization.id, ownerUserId, "owner");
+      
+      console.log(`✅ Organization owner account created and linked: ${data.adminEmail} → ${organization.name}`);
+    } catch (userError: any) {
+      console.error("Error creating owner user account:", userError);
+      
+      // If user already exists, try to find them and add to org
+      if (userError.message?.includes("already exists") || 
+          userError.errors?.[0]?.code === "form_identifier_exists") {
+        try {
+          const clerk = await clerkClient();
+          const users = await clerk.users.getUserList({ emailAddress: [data.adminEmail] });
+          
+          if (users.data.length > 0) {
+            ownerUserId = users.data[0].id;
+            await addUserToOrganization(organization.id, ownerUserId, "owner");
+            console.log(`✅ Existing user ${data.adminEmail} added as owner to ${organization.name}`);
+          }
+        } catch (findError) {
+          console.error("Error finding/adding existing user:", findError);
+          // Continue anyway - organization was created
+        }
+      }
+    }
 
     // Log audit
     await logOrganizationChange("create", organization.id, {
@@ -71,24 +127,32 @@ export async function createOrganizationAction(data: {
       slug: data.slug,
       plan: data.plan || "free",
       adminEmail: data.adminEmail,
+      ownerUserId,
     });
 
-    // Invite admin user via Clerk
+    // Send temporary credentials email
     try {
-      const client = await clerkClient();
-      const invitation = await client.invitations.createInvitation({
-        emailAddress: data.adminEmail,
-        publicMetadata: {
-          organizationId: organization.id,
-          role: "admin",
+      await sendNotification({
+        recipientEmail: data.adminEmail,
+        channel: 'email',
+        templateCategory: 'org_credentials',
+        variables: {
+          organizationName: data.name,
+          tempUsername: data.adminEmail, // Email IS the username
+          tempPassword,
+          loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/sign-in`,
+          expiresAt: credentialsExpiresAt.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          }),
         },
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard`,
       });
 
-      console.log(`Invitation sent to ${data.adminEmail} for organization ${organization.name}`);
-    } catch (inviteError) {
-      console.error("Error sending invitation:", inviteError);
-      // Continue anyway - organization was created
+      console.log(`📧 Credentials email sent to ${data.adminEmail} for ${organization.name}`);
+    } catch (emailError) {
+      console.error("Error sending credentials email:", emailError);
+      // Continue anyway - organization was created and user account exists
     }
 
     revalidatePath("/platform/organizations");
@@ -96,8 +160,13 @@ export async function createOrganizationAction(data: {
 
     return {
       isSuccess: true,
-      message: `Organization "${data.name}" created successfully`,
-      data: organization,
+      message: `Organization "${data.name}" created successfully. Credentials email sent to ${data.adminEmail}.`,
+      data: { 
+        organization,
+        credentialsSent: true,
+        credentialsEmail: data.adminEmail,
+        ownerUserId,
+      },
     };
   } catch (error) {
     console.error("Error creating organization:", error);
@@ -236,4 +305,3 @@ export async function checkSlugAvailabilityAction(slug: string, excludeOrgId?: s
     };
   }
 }
-

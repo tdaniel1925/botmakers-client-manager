@@ -66,20 +66,30 @@ export async function getAllPlatformAdmins(): Promise<SelectPlatformAdmin[]> {
  * Get all organizations with stats
  */
 export async function getAllOrganizations(): Promise<(SelectOrganization & { userCount: number })[]> {
+  // First get all organizations
   const orgs = await db
-    .select({
-      ...organizationsTable,
-      userCount: count(userRolesTable.id),
-    })
+    .select()
     .from(organizationsTable)
-    .leftJoin(userRolesTable, eq(organizationsTable.id, userRolesTable.organizationId))
-    .groupBy(organizationsTable.id)
     .orderBy(desc(organizationsTable.createdAt));
   
-  return orgs.map(org => ({
-    ...org,
-    userCount: Number(org.userCount) || 0,
-  }));
+  // Then get user counts for each organization
+  const orgsWithCounts = await Promise.all(
+    orgs.map(async (org) => {
+      const userCountResult = await db
+        .select({ count: count() })
+        .from(userRolesTable)
+        .where(eq(userRolesTable.organizationId, org.id));
+      
+      const userCount = Number(userCountResult[0]?.count) || 0;
+      
+      return {
+        ...org,
+        userCount,
+      };
+    })
+  );
+  
+  return orgsWithCounts;
 }
 
 /**

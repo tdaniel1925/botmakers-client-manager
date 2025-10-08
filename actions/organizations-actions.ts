@@ -113,6 +113,51 @@ export async function updateOrganizationAction(
   }
 }
 
+export async function updateOrganizationProfileAction(
+  organizationId: string,
+  data: {
+    name?: string;
+    description?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+    logoUrl?: string;
+  }
+): Promise<ActionResult<SelectOrganization>> {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" };
+    }
+    
+    const userRole = await getUserRole(userId, organizationId);
+    
+    if (!userRole || userRole.role !== "admin") {
+      return { isSuccess: false, message: "Only organization admins can update profile information" };
+    }
+    
+    const updatedOrganization = await updateOrganization(organizationId, data);
+    
+    if (!updatedOrganization) {
+      return { isSuccess: false, message: "Failed to update organization profile" };
+    }
+    
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    return { isSuccess: true, message: "Organization profile updated successfully", data: updatedOrganization };
+  } catch (error) {
+    console.error("Error updating organization profile:", error);
+    return { isSuccess: false, message: "Failed to update organization profile" };
+  }
+}
+
 export async function inviteUserToOrganizationAction(
   email: string,
   organizationId: string,

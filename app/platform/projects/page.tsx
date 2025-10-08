@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FolderKanban, Plus, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
 import { getAllProjectsAction, getPlatformProjectStatsAction } from "@/actions/projects-actions";
+import { ProjectsListEnhanced } from "@/components/platform/projects-list-enhanced";
 import Link from "next/link";
 
 export default async function PlatformProjectsPage() {
@@ -99,59 +99,10 @@ export default async function PlatformProjectsPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {projects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={`/platform/projects/${project.id}`}
-                  className="block border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <FolderKanban className="h-4 w-4 text-gray-400" />
-                        <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {project.organizationName}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={
-                        project.status === "active" ? "default" :
-                        project.status === "completed" ? "secondary" :
-                        project.status === "planning" ? "outline" :
-                        "destructive"
-                      }>
-                        {project.status}
-                      </Badge>
-                      <Badge variant={
-                        project.priority === "critical" ? "destructive" :
-                        project.priority === "high" ? "destructive" :
-                        project.priority === "medium" ? "default" :
-                        "secondary"
-                      }>
-                        {project.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-2">
-                    {project.description}
-                  </p>
-                  
-                  <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <span>Created {new Date(project.createdAt).toLocaleDateString()}</span>
-                    {project.startDate && (
-                      <span>Start: {new Date(project.startDate).toLocaleDateString()}</span>
-                    )}
-                    {project.budget && (
-                      <span>Budget: ${Number(project.budget).toLocaleString()}</span>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <ProjectsListEnhanced 
+              projects={projects} 
+              basePath="/platform/projects"
+            />
           )}
         </CardContent>
       </Card>

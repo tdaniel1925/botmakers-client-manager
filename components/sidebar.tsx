@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { Home, Settings, Database, Target, Users, Sparkles, CreditCard, LayoutDashboard, UserCircle, Briefcase, CheckSquare, BarChart3, Shield, FolderKanban } from "lucide-react";
+import { Home, Settings, Database, Target, Users, Sparkles, CreditCard, LayoutDashboard, CheckSquare, BarChart3, Shield, FolderKanban, UserCircle, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { SelectProfile } from "@/db/schema/profiles-schema";
 import { CreditUsageDisplay } from "@/components/credit-usage-display";
 import UpgradePlanPopup from "@/components/upgrade-plan-popup";
+import { GlassSidebarContainer } from "@/components/ui/glass-sidebar-container";
 import { useState, useEffect, useCallback } from "react";
 
 interface SidebarProps {
@@ -43,11 +44,11 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
   
   const navItems = [
     { href: "/dashboard", icon: <LayoutDashboard size={16} />, label: "Dashboard" },
-    { href: "/dashboard/contacts", icon: <UserCircle size={16} />, label: "Contacts" },
-    { href: "/dashboard/deals", icon: <Briefcase size={16} />, label: "Deals" },
     { href: "/dashboard/projects", icon: <FolderKanban size={16} />, label: "Projects" },
     { href: "/dashboard/activities", icon: <CheckSquare size={16} />, label: "Activities" },
     { href: "/dashboard/analytics", icon: <BarChart3 size={16} />, label: "Analytics" },
+    { href: "/dashboard/team", icon: <Users size={16} />, label: "Team" },
+    { href: "/dashboard/help", icon: <HelpCircle size={16} />, label: "Help" },
     { href: "/dashboard/settings", icon: <Settings size={16} />, label: "Settings" },
   ];
 
@@ -80,10 +81,10 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
         />
       )}
       
-      <div className="h-screen w-[60px] md:w-[220px] bg-white/60 backdrop-blur-xl border-r border-white/40 flex flex-col justify-between py-5 relative overflow-hidden">
-        {/* Glassmorphism effects */}
+      <GlassSidebarContainer width="w-[60px] md:w-[220px]" className="justify-between py-5">
+        {/* Animated glassmorphism overlay - unique to dashboard */}
         <motion.div 
-          className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-primary/5 pointer-events-none"
+          className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-primary/5 pointer-events-none z-0"
           animate={{ 
             opacity: [0.4, 0.6, 0.4],
             background: [
@@ -94,12 +95,6 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
           }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
-        
-        {/* Enhanced edge highlights for 3D effect */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-80" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gray-300/50 to-transparent" />
-        <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-white to-transparent opacity-80" />
-        <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white to-transparent opacity-80" />
 
         {/* Logo */}
         <div className="px-3 mb-8 relative z-10">
@@ -120,7 +115,7 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-3 relative z-10">
+        <nav className="flex-1 px-3 relative z-10 overflow-y-auto">
           <div className="space-y-1.5">
             {navItems.map((item) => (
               <Link 
@@ -290,7 +285,7 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
             </span>
           </motion.div>
         </div>
-      </div>
+      </GlassSidebarContainer>
     </>
   );
 } 

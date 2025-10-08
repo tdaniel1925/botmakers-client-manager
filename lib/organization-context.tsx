@@ -9,6 +9,7 @@ interface OrganizationContextType {
   organizations: (SelectOrganization & { role: string })[];
   userRole: SelectUserRole | null;
   isLoading: boolean;
+  organizationId: string | null; // Convenience property
   setCurrentOrganization: (org: SelectOrganization & { role: string }) => void;
   refreshOrganizations: () => Promise<void>;
 }
@@ -71,6 +72,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         organizations,
         userRole,
         isLoading,
+        organizationId: currentOrganization?.id || null,
         setCurrentOrganization: handleSetCurrentOrganization,
         refreshOrganizations,
       }}
@@ -87,6 +89,9 @@ export function useOrganization() {
   }
   return context;
 }
+
+// Alias for convenience
+export const useOrganizationContext = useOrganization;
 
 
 

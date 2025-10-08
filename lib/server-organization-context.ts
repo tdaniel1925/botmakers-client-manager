@@ -69,6 +69,14 @@ export async function requireOrganizationContext(): Promise<OrganizationContext>
 }
 
 /**
+ * Get just the organization ID (convenience function)
+ */
+export async function getServerOrganizationId(): Promise<string | null> {
+  const context = await getOrganizationContext();
+  return context?.organizationId || null;
+}
+
+/**
  * Check if user has access to a specific organization
  */
 export async function hasOrganizationAccess(organizationId: string): Promise<boolean> {

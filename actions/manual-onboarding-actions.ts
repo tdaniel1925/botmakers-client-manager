@@ -20,8 +20,8 @@ import { getTemplateById } from '@/db/queries/onboarding-templates-queries';
 import { getProjectById } from '@/db/queries/projects-queries';
 import { logAudit } from '@/lib/audit-logger';
 import { sendClientReviewNotificationEmail } from '@/lib/email-service';
-import { analyzeOnboardingCompletion } from '@/lib/ai-onboarding-completion-analyzer';
-import { generateTodos } from '@/lib/ai-todo-generator';
+import { analyzeCompletedOnboarding } from '@/lib/ai-onboarding-completion-analyzer';
+import { generateTodosFromOnboarding } from '@/lib/ai-todo-generator';
 
 export interface ManualOnboardingResult {
   success: boolean;
@@ -60,11 +60,10 @@ export async function startManualOnboardingAction(
       await updateSessionCompletionMode(sessionId, mode, userId);
       
       await logAudit({
-        userId,
         action: 'onboarding_converted_to_manual',
-        resourceType: 'onboarding_session',
-        resourceId: sessionId,
-        metadata: { mode, projectId },
+        entityType: 'onboarding_session',
+        entityId: sessionId,
+        changes: { mode, projectId },
       });
     } else {
       // ✅ FIX #1: Check for existing session before creating
@@ -74,11 +73,10 @@ export async function startManualOnboardingAction(
         await updateSessionCompletionMode(existingSession.id, mode, userId);
         
         await logAudit({
-          userId,
           action: 'onboarding_reused_and_converted',
-          resourceType: 'onboarding_session',
-          resourceId: existingSession.id,
-          metadata: { mode, projectId, templateId },
+          entityType: 'onboarding_session',
+          entityId: existingSession.id,
+          changes: { mode, projectId, templateId },
         });
         
         return { success: true, sessionId: existingSession.id };
@@ -97,7 +95,7 @@ export async function startManualOnboardingAction(
 
       session = await createOnboardingSession({
         projectId,
-        organizationId: project.organizationId,
+        organizationId: (project as any).organizationId,
         templateLibraryId: templateId,
         onboardingType: template.projectType as any,
         steps: template.questions,
@@ -109,11 +107,10 @@ export async function startManualOnboardingAction(
       });
 
       await logAudit({
-        userId,
         action: 'manual_onboarding_started',
-        resourceType: 'onboarding_session',
-        resourceId: session.id,
-        metadata: { mode, projectId, templateId },
+        entityType: 'onboarding_session',
+        entityId: session.id,
+        changes: { mode, projectId, templateId },
       });
     }
 
@@ -162,11 +159,10 @@ export async function saveManualSectionAction(
     }
 
     await logAudit({
-      userId,
       action: 'manual_onboarding_section_saved',
-      resourceType: 'onboarding_session',
-      resourceId: sessionId,
-      metadata: { sectionId, delegated: delegateToClient },
+      entityType: 'onboarding_session',
+      entityId: sessionId,
+      changes: { sectionId, delegated: delegateToClient },
     });
 
     return { success: true, sessionId };
@@ -207,7 +203,10 @@ export async function submitManualOnboardingAction(
       await markSessionFinalized(sessionId, true, false);
       
       // Trigger AI analysis and todo generation
-      const analysis = await analyzeOnboardingCompletion(sessionId);
+      const analysis = await analyzeCompletedOnboarding(
+        session.onboardingType || 'general',
+        session.responses || {}
+      );
       
       if (analysis) {
         await updateOnboardingSession(sessionId, {
@@ -217,23 +216,26 @@ export async function submitManualOnboardingAction(
         });
 
         // Generate todos
-        await generateTodos(sessionId);
+        await generateTodosFromOnboarding(
+          sessionId,
+          session.onboardingType || 'general',
+          session.responses || {}
+        );
       }
 
       await logAudit({
-        userId,
         action: 'manual_onboarding_finalized',
-        resourceType: 'onboarding_session',
-        resourceId: sessionId,
-        metadata: { skipClientReview: true },
+        entityType: 'onboarding_session',
+        entityId: sessionId,
+        changes: { skipClientReview: true },
       });
     } else {
       // Send for client review
       await markSessionFinalized(sessionId, false, true);
 
       // ✅ FIX #2: Validate client email exists
-      const clientEmail = project.clientEmail;
-      const clientName = project.clientName || 'Client';
+      const clientEmail = (project as any).clientEmail;
+      const clientName = (project as any).clientName || 'Client';
 
       if (!clientEmail) {
         return { success: false, error: 'No client email found. Please add client email to the project first.' };
@@ -254,10 +256,9 @@ export async function submitManualOnboardingAction(
       );
 
       await logAudit({
-        userId,
         action: 'manual_onboarding_sent_for_review',
-        resourceType: 'onboarding_session',
-        resourceId: sessionId,
+        entityType: 'onboarding_session',
+        entityId: sessionId,
       });
     }
 
@@ -296,11 +297,14 @@ export async function submitClientReviewAction(
 
       // Build a map of valid field IDs from template
       const validFieldIds = new Set<string>();
-      template.questions.forEach((section: any) => {
-        section.fields?.forEach((field: any) => {
-          validFieldIds.add(field.id);
+      const questions = template.questions as any[];
+      if (Array.isArray(questions)) {
+        questions.forEach((section: any) => {
+          section.fields?.forEach((field: any) => {
+            validFieldIds.add(field.id);
+          });
         });
-      });
+      }
 
       // Validate each response
       const validatedResponses: Record<string, any> = {};
@@ -354,7 +358,10 @@ export async function submitClientReviewAction(
     await markSessionReviewedByClient(session.id, sanitizedNotes);
 
     // Trigger AI analysis and todo generation
-    const analysis = await analyzeOnboardingCompletion(session.id);
+    const analysis = await analyzeCompletedOnboarding(
+      session.onboardingType || 'general',
+      session.responses || {}
+    );
     
     if (analysis) {
       await updateOnboardingSession(session.id, {
@@ -362,7 +369,11 @@ export async function submitClientReviewAction(
       });
 
       // Generate todos
-      await generateTodos(session.id);
+      await generateTodosFromOnboarding(
+        session.id,
+        session.onboardingType || 'general',
+        session.responses || {}
+      );
     }
 
     return { success: true, sessionId: session.id };
@@ -410,15 +421,14 @@ export async function convertToManualOnboardingAction(
     await updateSessionCompletionMode(sessionId, newMode, userId);
 
     await logAudit({
-      userId,
       action: 'onboarding_converted_to_manual',
-      resourceType: 'onboarding_session',
-      resourceId: sessionId,
-      metadata: { 
+      entityType: 'onboarding_session',
+      entityId: sessionId,
+      changes: { 
         previousMode: session.completionMode || 'client',
         newMode,
         hadClientResponses: hasClientResponses,
-        responseCount: hasClientResponses ? Object.keys(session.responses).length : 0
+        responseCount: hasClientResponses ? Object.keys(session.responses as Record<string, any>).length : 0
       },
     });
 

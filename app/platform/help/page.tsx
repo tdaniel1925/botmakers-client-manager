@@ -1,362 +1,153 @@
-'use client';
+"use client";
 
-/**
- * Admin Help Center - Dynamic Onboarding System Guide
- */
-
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Search,
   BookOpen,
-  Rocket,
-  Library,
-  Sparkles,
+  Users,
+  FolderKanban,
+  Phone,
+  MessageSquare,
+  ClipboardList,
+  Database,
+  LifeBuoy,
   Settings,
-  CheckCircle2,
-  UserCheck,
-  Activity,
+  CreditCard,
   AlertCircle,
-  FileText,
-  Video,
-  ExternalLink,
-  ChevronRight,
-} from 'lucide-react';
+  CheckCircle2,
+  TrendingUp,
+  Zap,
+  Shield,
+  Mail,
+} from "lucide-react";
 
-export default function HelpCenterPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<string>('overview');
+export default function PlatformHelpPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSection, setActiveSection] = useState("overview");
 
-  // Help content sections
   const sections = [
     {
-      id: 'overview',
-      title: 'System Overview',
+      id: "overview",
+      title: "System Overview",
       icon: BookOpen,
-      color: 'blue',
+      color: "blue",
       subsections: [
         {
-          id: 'what-is',
-          title: 'What is the Dynamic Onboarding System?',
+          id: "what-is-clientflow",
+          title: "What is ClientFlow?",
           content: (
             <div className="space-y-4">
               <p className="text-gray-700">
-                The Dynamic Onboarding System is an intelligent client intake solution that:
+                ClientFlow is a comprehensive multi-tenant SaaS platform designed for agencies and service providers to manage multiple client organizations.
               </p>
-              <ul className="space-y-2 ml-6">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span><strong>Collects comprehensive project information</strong> through structured questionnaires</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span><strong>Adapts questions in real-time</strong> based on client responses</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span><strong>Provides AI-powered feedback</strong> to ensure quality responses</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span><strong>Automatically generates actionable to-do lists</strong> for both your team and clients</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span><strong>Tracks completion progress</strong> and sends automated notifications</span>
-                </li>
-              </ul>
-            </div>
-          ),
-        },
-        {
-          id: 'benefits',
-          title: 'Key Benefits',
-          content: (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="pt-6">
-                  <div className="text-3xl font-bold text-blue-600">75%</div>
-                  <div className="text-sm text-gray-700 mt-1">Faster onboarding setup</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="pt-6">
-                  <div className="text-3xl font-bold text-green-600">90%</div>
-                  <div className="text-sm text-gray-700 mt-1">Reduction in missing information</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-purple-50 border-purple-200">
-                <CardContent className="pt-6">
-                  <div className="text-3xl font-bold text-purple-600">60%</div>
-                  <div className="text-sm text-gray-700 mt-1">Higher client task completion</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-orange-50 border-orange-200">
-                <CardContent className="pt-6">
-                  <div className="text-3xl font-bold text-orange-600">100%</div>
-                  <div className="text-sm text-gray-700 mt-1">Complete project context</div>
-                </CardContent>
-              </Card>
-            </div>
-          ),
-        },
-        {
-          id: 'workflow',
-          title: 'Quick Start Workflow',
-          content: (
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">1</div>
-                <div>
-                  <h4 className="font-semibold">Navigate to Platform → Projects → Create New Project</h4>
-                  <p className="text-sm text-gray-600">Start by creating a new project in the platform</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">2</div>
-                <div>
-                  <h4 className="font-semibold">Fill in basic project details</h4>
-                  <p className="text-sm text-gray-600">Add project name, organization, and description</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">3</div>
-                <div>
-                  <h4 className="font-semibold">Select "Set up client onboarding"</h4>
-                  <p className="text-sm text-gray-600">Enable the onboarding feature for this project</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">4</div>
-                <div>
-                  <h4 className="font-semibold">Choose a template or create a custom one</h4>
-                  <p className="text-sm text-gray-600">Select from 7 pre-built templates or generate a custom template with AI</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">5</div>
-                <div>
-                  <h4 className="font-semibold">Send invitation to client</h4>
-                  <p className="text-sm text-gray-600">Client receives email with unique access link</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">6</div>
-                <div>
-                  <h4 className="font-semibold">Review responses when complete</h4>
-                  <p className="text-sm text-gray-600">Access comprehensive AI analysis and insights</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">7</div>
-                <div>
-                  <h4 className="font-semibold">Approve AI-generated to-do lists</h4>
-                  <p className="text-sm text-gray-600">Review, edit, and approve tasks for both your team and the client</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold flex-shrink-0">8</div>
-                <div>
-                  <h4 className="font-semibold">Monitor client task completion</h4>
-                  <p className="text-sm text-gray-600">Track progress and receive real-time notifications</p>
-                </div>
-              </div>
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      id: 'templates',
-      title: 'Template Library',
-      icon: Library,
-      color: 'purple',
-      subsections: [
-        {
-          id: 'pre-built',
-          title: 'Pre-Built Templates',
-          content: (
-            <div className="space-y-6">
-              <p className="text-gray-700">The system includes 7 comprehensive, industry-specific templates:</p>
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">1. Outbound Calling Campaign</CardTitle>
-                  <CardDescription>For cold calling, lead generation, appointment setting</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 10 steps</span>
-                    <span>•</span>
-                    <span>❓ 45+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~30 min</span>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Campaign goals, target audience, call scripts, compliance, list details, CRM integration
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Users className="h-4 w-4 text-blue-600" />
+                      Organization Management
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">Create and manage client organizations with custom plans and features</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">2. Inbound Call Center Setup</CardTitle>
-                  <CardDescription>For customer support lines, sales hotlines, help desks</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 11 steps</span>
-                    <span>•</span>
-                    <span>❓ 50+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~35 min</span>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Call flow, IVR, agent training, reporting requirements, integrations
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FolderKanban className="h-4 w-4 text-purple-600" />
+                      Project Management
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">Track projects across all clients with tasks and milestones</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">3. Web Design/Development</CardTitle>
-                  <CardDescription>For websites, web applications, landing pages</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 8 steps</span>
-                    <span>•</span>
-                    <span>❓ 35+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~25 min</span>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Design preferences, functionality, integrations, content, hosting
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-green-600" />
+                      Voice Campaigns
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">AI-powered phone agents for inbound and outbound calling</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">4. AI Voice Agent</CardTitle>
-                  <CardDescription>For AI receptionists, automated support, voice bots</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 9 steps</span>
-                    <span>•</span>
-                    <span>❓ 40+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~28 min</span>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Use case, conversation flow, voice personality, integrations, testing
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-orange-600" />
+                      Campaign Messaging
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">Automated SMS and email follow-ups based on call outcomes</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">5. Software Development</CardTitle>
-                  <CardDescription>For custom software, mobile apps, SaaS products</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 10 steps</span>
-                    <span>•</span>
-                    <span>❓ 45+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~32 min</span>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 mb-2">Your Role as Platform Admin</h4>
+                <div className="space-y-1 text-sm text-blue-800">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Access to all organizations and their data</span>
                   </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Requirements, tech stack, integrations, timeline, team structure
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Platform-wide analytics and reporting</span>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">6. Marketing Campaign</CardTitle>
-                  <CardDescription>For digital marketing, social media, email campaigns</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 8 steps</span>
-                    <span>•</span>
-                    <span>❓ 35+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~24 min</span>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Voice campaign management</span>
                   </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Campaign goals, target audience, channels, budget, content assets
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Platform settings and integrations</span>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">7. CRM Implementation</CardTitle>
-                  <CardDescription>For CRM setup, data migration, customization</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>📋 9 steps</span>
-                    <span>•</span>
-                    <span>❓ 40+ questions</span>
-                    <span>•</span>
-                    <span>⏱️ ~29 min</span>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-700">
-                    <strong>Covers:</strong> Current system, migration needs, custom fields, workflows, training
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           ),
         },
         {
-          id: 'template-actions',
-          title: 'Managing Templates',
+          id: "quick-start",
+          title: "Quick Start Workflow",
           content: (
             <div className="space-y-4">
-              <p className="text-gray-700">Access the template library at: <strong>Platform → Onboarding Templates</strong></p>
+              <p className="text-gray-700">Get started with these essential workflows:</p>
               
               <div className="space-y-3">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Preview Template
-                  </h4>
-                  <p className="text-sm text-gray-600 mt-1">View all questions, conditional logic, and estimated completion time</p>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Edit Template
-                  </h4>
-                  <p className="text-sm text-gray-600 mt-1">Modify questions, add/remove fields, adjust conditional logic</p>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Duplicate Template
-                  </h4>
-                  <p className="text-sm text-gray-600 mt-1">Create a copy to customize for specific use cases</p>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    View Statistics
-                  </h4>
-                  <p className="text-sm text-gray-600 mt-1">See usage count, average completion time, and completion rate</p>
-                </div>
+                {[
+                  { num: 1, title: "Create Organization", desc: "Platform → Organizations → + New Organization" },
+                  { num: 2, title: "Configure Plan & Features", desc: "Set subscription plan and feature flags" },
+                  { num: 3, title: "Create Project", desc: "Platform → Projects → New Project" },
+                  { num: 4, title: "Set Up Voice Campaign", desc: "Platform → Voice Campaigns → New Campaign" },
+                  { num: 5, title: "Configure Messaging", desc: "Add SMS/Email templates for follow-ups" },
+                  { num: 6, title: "Launch Campaign", desc: "Review settings and click Launch" },
+                  { num: 7, title: "Monitor Activity", desc: "Track calls, messages, and analytics" },
+                  { num: 8, title: "Manage Support", desc: "Respond to tickets and user questions" },
+                ].map((step) => (
+                  <div key={step.num} className="flex gap-4 items-start">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-semibold text-sm">
+                      {step.num}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{step.title}</h4>
+                      <p className="text-sm text-gray-600">{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ),
@@ -364,457 +155,634 @@ export default function HelpCenterPage() {
       ],
     },
     {
-      id: 'ai-templates',
-      title: 'AI Template Generator',
-      icon: Sparkles,
-      color: 'yellow',
+      id: "organizations",
+      title: "Organization Management",
+      icon: Users,
+      color: "purple",
       subsections: [
         {
-          id: 'when-create',
-          title: 'When to Create Custom Templates',
+          id: "create-org",
+          title: "Creating Organizations",
           content: (
             <div className="space-y-4">
-              <p className="text-gray-700">Create a custom template when:</p>
-              <ul className="space-y-2 ml-6">
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <span>Your service type isn't covered by pre-built templates</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <span>You need industry-specific questions</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <span>Client has unique requirements</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <span>You want to experiment with new workflows</span>
-                </li>
-              </ul>
+              <p className="text-gray-700">Create and configure new client organizations:</p>
+              
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <h4 className="font-semibold">Steps to Create:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                  <li>Navigate to <strong>Platform → Organizations</strong></li>
+                  <li>Click <strong>+ New Organization</strong></li>
+                  <li>Fill in required fields:
+                    <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                      <li>Organization Name</li>
+                      <li>Slug (URL-friendly identifier)</li>
+                      <li>Plan (Free, Pro, Enterprise)</li>
+                      <li>Status (Trial, Active, Suspended)</li>
+                    </ul>
+                  </li>
+                  <li>Configure optional settings:
+                    <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                      <li>Contact information</li>
+                      <li>Custom branding (logo, colors)</li>
+                      <li>Feature flags</li>
+                    </ul>
+                  </li>
+                  <li>Click <strong>Create Organization</strong></li>
+                </ol>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Plan Types</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="font-medium">Free</span>
+                    <span className="text-sm text-gray-600">Trial/freemium tier</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="font-medium">Pro</span>
+                    <span className="text-sm text-gray-600">Standard paid plan</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="font-medium">Enterprise</span>
+                    <span className="text-sm text-gray-600">Premium features</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ),
         },
         {
-          id: 'create-custom',
-          title: 'Creating Custom Templates with AI',
+          id: "manage-org",
+          title: "Managing Organizations",
           content: (
-            <div className="space-y-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-4">
+              <p className="text-gray-700">Key management actions for organizations:</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Suspend Organization</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-600 space-y-2">
+                    <p>Temporarily disable access while preserving data:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Open organization details</li>
+                      <li>Click Actions → Suspend</li>
+                      <li>Provide reason</li>
+                      <li>Confirm suspension</li>
+                    </ol>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Restore Organization</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-600 space-y-2">
+                    <p>Reactivate a suspended organization:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Open suspended organization</li>
+                      <li>Click Restore Organization</li>
+                      <li>Status changes to Active</li>
+                      <li>Users regain access</li>
+                    </ol>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-semibold text-yellow-900">Pro Tip</h4>
-                    <p className="text-sm text-yellow-800 mt-1">
-                      The more detailed your description, the better the AI-generated questions will be. Include typical project scope, duration, and unique aspects.
+                    <h4 className="font-semibold text-red-900">Deleting Organizations</h4>
+                    <p className="text-sm text-red-800 mt-1">
+                      Deletion is permanent and cannot be undone. All data including users, projects, campaigns, and files will be permanently deleted.
                     </p>
                   </div>
                 </div>
               </div>
+            </div>
+          ),
+        },
+      ],
+    },
+    {
+      id: "voice-campaigns",
+      title: "Voice Campaigns",
+      icon: Phone,
+      color: "green",
+      subsections: [
+        {
+          id: "campaign-overview",
+          title: "Campaign Overview",
+          content: (
+            <div className="space-y-4">
+              <p className="text-gray-700">Voice Campaigns deploy AI-powered phone agents for:</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="border-green-200 bg-green-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-green-600" />
+                      Inbound Campaigns
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-700">
+                    <p>Handle incoming calls with AI agents that can:</p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Answer questions</li>
+                      <li>Collect information</li>
+                      <li>Route calls</li>
+                      <li>Schedule appointments</li>
+                    </ul>
+                  </CardContent>
+                </Card>
 
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 font-bold flex-shrink-0">1</div>
-                  <div>
-                    <h4 className="font-semibold">Initiate Template Generator</h4>
-                    <p className="text-sm text-gray-600 mt-1">Click "Create Custom Template" in the template library</p>
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                      Outbound Campaigns
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-700">
+                    <p>Make automated calls with smart scheduling:</p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Lead generation</li>
+                      <li>Appointment setting</li>
+                      <li>Follow-up calls</li>
+                      <li>Surveys and feedback</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">AI Agent Capabilities</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {["Natural Language", "Data Collection", "Sentiment Analysis", "Call Routing"].map((capability) => (
+                      <div key={capability} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <span>{capability}</span>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            </div>
+          ),
+        },
+        {
+          id: "create-campaign",
+          title: "Creating Campaigns",
+          content: (
+            <div className="space-y-4">
+              <p className="text-gray-700">Step-by-step guide to creating voice campaigns:</p>
+              
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Step 1: Campaign Basics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="text-gray-600">Navigate to Platform → Voice Campaigns → New Campaign</p>
+                    <ul className="list-disc list-inside space-y-1 text-gray-700">
+                      <li>Campaign Name (internal reference)</li>
+                      <li>Project (link to existing project)</li>
+                      <li>Campaign Type (Inbound or Outbound)</li>
+                      <li>Campaign Goal (what you want to achieve)</li>
+                    </ul>
+                  </CardContent>
+                </Card>
 
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 font-bold flex-shrink-0">2</div>
-                  <div>
-                    <h4 className="font-semibold">Provide Details</h4>
-                    <p className="text-sm text-gray-600 mt-1">Enter project type name and detailed description</p>
-                    <div className="mt-2 p-3 bg-gray-50 rounded text-sm">
-                      <strong>Example:</strong> "Video production services for corporate training videos. Includes scriptwriting, filming, editing, and final delivery. Typical projects range from 2-10 minute videos with professional voiceover and graphics."
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Step 2: AI Agent Configuration</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-3">
+                    <div>
+                      <p className="font-medium text-gray-900">System Prompt</p>
+                      <p className="text-gray-600">Core instructions defining the AI's personality and role</p>
+                      <div className="bg-gray-50 p-2 rounded mt-1 font-mono text-xs">
+                        "You are a friendly receptionist for ABC Company..."
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">First Message</p>
+                      <p className="text-gray-600">What the AI says first (outbound) or as greeting (inbound)</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Must Collect Fields</p>
+                      <p className="text-gray-600">Information AI must gather before ending call</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Step 3: Phone Number Setup</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <div className="bg-green-50 border border-green-200 rounded p-3">
+                      <p className="font-medium text-green-900">Recommended: Auto-Buy</p>
+                      <p className="text-green-700 text-xs mt-1">
+                        System automatically provisions a number, configured and ready to use immediately
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                      <p className="font-medium text-blue-900">Alternative: Use Twilio Number</p>
+                      <p className="text-blue-700 text-xs mt-1">
+                        Enter your existing Twilio number, system configures webhooks automatically
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ),
+        },
+      ],
+    },
+    {
+      id: "messaging",
+      title: "Campaign Messaging",
+      icon: MessageSquare,
+      color: "orange",
+      subsections: [
+        {
+          id: "messaging-overview",
+          title: "Messaging Overview",
+          content: (
+            <div className="space-y-4">
+              <p className="text-gray-700">
+                Campaign Messaging allows automated SMS and email follow-ups based on call outcomes.
+              </p>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">How It Works</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      1
+                    </div>
+                    <p className="text-gray-700">Call completes and data is analyzed</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      2
+                    </div>
+                    <p className="text-gray-700">System checks templates for matching triggers</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      3
+                    </div>
+                    <p className="text-gray-700">If trigger matches, message is sent automatically</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      4
+                    </div>
+                    <p className="text-gray-700">Message is personalized with call variables</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      5
+                    </div>
+                    <p className="text-gray-700">Delivery is logged and tracked</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Templates</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs text-gray-600">
+                    Create SMS and email templates with triggers and personalization
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Configuration</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs text-gray-600">
+                    Campaign-level settings for rate limits and defaults
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Delivery Log</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs text-gray-600">
+                    Track all sent messages with status and analytics
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ),
+        },
+        {
+          id: "create-templates",
+          title: "Creating Message Templates",
+          content: (
+            <div className="space-y-4">
+              <p className="text-gray-700">Create personalized message templates with smart triggers:</p>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Template Variables</CardTitle>
+                  <CardDescription>Insert dynamic data from calls</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {[
+                      { var: "{{contact_name}}", desc: "Contact's name" },
+                      { var: "{{contact_phone}}", desc: "Contact's phone" },
+                      { var: "{{call_summary}}", desc: "AI summary of call" },
+                      { var: "{{call_sentiment}}", desc: "Detected sentiment" },
+                      { var: "{{agent_name}}", desc: "AI agent's name" },
+                      { var: "{{campaign_name}}", desc: "Campaign name" },
+                    ].map((item) => (
+                      <div key={item.var} className="flex flex-col gap-1">
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{item.var}</code>
+                        <span className="text-xs text-gray-600">{item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Trigger Conditions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Call Completed Successfully</p>
+                        <p className="text-xs text-gray-600">Send thank you or next steps</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-yellow-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Voicemail Left</p>
+                        <p className="text-xs text-gray-600">Follow up with alternative contact method</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Specific Sentiment</p>
+                        <p className="text-xs text-gray-600">Based on positive, neutral, or negative sentiment</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Custom Condition</p>
+                        <p className="text-xs text-gray-600">Based on specific call variables</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            </div>
+          ),
+        },
+        {
+          id: "byok-credentials",
+          title: "BYOK Messaging Credentials",
+          content: (
+            <div className="space-y-4">
+              <p className="text-gray-700">
+                By default, messages use platform-wide credentials. Organizations can configure their own credentials (BYOK - Bring Your Own Keys).
+              </p>
 
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 font-bold flex-shrink-0">3</div>
-                  <div>
-                    <h4 className="font-semibold">AI Generation (30-60 seconds)</h4>
-                    <p className="text-sm text-gray-600 mt-1">AI analyzes your input and generates:</p>
-                    <ul className="text-sm text-gray-600 ml-4 mt-1 space-y-1">
-                      <li>• Structured questions in logical groups (8-12 steps)</li>
-                      <li>• Conditional logic rules</li>
-                      <li>• Industry-specific compliance questions</li>
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-base text-blue-900">Platform-Wide Credentials</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-blue-800">Configure in Platform → Settings → Messaging:</p>
+                  <div className="space-y-2">
+                    <div className="bg-white rounded p-3">
+                      <p className="font-medium text-sm">Twilio (SMS)</p>
+                      <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                        <li>• Account SID</li>
+                        <li>• Auth Token</li>
+                        <li>• Phone Number</li>
+                      </ul>
+                    </div>
+                    <div className="bg-white rounded p-3">
+                      <p className="font-medium text-sm">Resend (Email)</p>
+                      <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                        <li>• API Key</li>
+                        <li>• From Email</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-base text-green-900">Organization BYOK</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-green-800">Organizations can configure their own credentials for:</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {["Dedicated rate limits", "Cost control", "Full transparency", "Compliance"].map((benefit) => (
+                      <div key={benefit} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <span className="text-green-800">{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-white rounded p-3 mt-3">
+                    <p className="text-xs text-gray-600">
+                      Organizations access this in Settings → Messaging tab. See Organization User Help for setup instructions.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ),
+        },
+      ],
+    },
+    {
+      id: "settings",
+      title: "Platform Settings",
+      icon: Settings,
+      color: "gray",
+      subsections: [
+        {
+          id: "integrations",
+          title: "Integrations",
+          content: (
+            <div className="space-y-4">
+              <p className="text-gray-700">Configure external services and API keys:</p>
+              
+              <div className="space-y-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-purple-600" />
+                      OpenAI
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="text-gray-600">Required for AI features:</p>
+                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-1">
+                      <li>AI template generation</li>
+                      <li>To-do list generation</li>
+                      <li>Call analysis</li>
+                      <li>Smart project suggestions</li>
                     </ul>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 font-bold flex-shrink-0">4</div>
-                  <div>
-                    <h4 className="font-semibold">Review & Customize</h4>
-                    <p className="text-sm text-gray-600 mt-1">Add, remove, or reorder questions as needed</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 font-bold flex-shrink-0">5</div>
-                  <div>
-                    <h4 className="font-semibold">Save to Library</h4>
-                    <p className="text-sm text-gray-600 mt-1">Template becomes available for all projects</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      id: 'todos',
-      title: 'To-Do Management',
-      icon: CheckCircle2,
-      color: 'green',
-      subsections: [
-        {
-          id: 'how-todos-work',
-          title: 'How To-Do Generation Works',
-          content: (
-            <div className="space-y-4">
-              <p className="text-gray-700">When a client completes onboarding, the AI automatically:</p>
-              
-              <div className="space-y-3">
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="font-semibold text-green-900 mb-2">1. Analyzes all responses</div>
-                  <p className="text-sm text-green-800">Reviews requirements, missing info, and mentioned tools</p>
-                </div>
-
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="font-semibold text-green-900 mb-2">2. Generates two separate task lists</div>
-                  <ul className="text-sm text-green-800 space-y-1">
-                    <li>• <strong>Admin Tasks:</strong> For your team (setup, configuration, development)</li>
-                    <li>• <strong>Client Tasks:</strong> For the client (provide assets, access, approvals)</li>
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="font-semibold text-green-900 mb-2">3. Categorizes and prioritizes</div>
-                  <p className="text-sm text-green-800">Each task gets a category, priority level, and time estimate</p>
-                </div>
-
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="font-semibold text-green-900 mb-2">4. Detects dependencies</div>
-                  <p className="text-sm text-green-800">Identifies tasks that depend on other tasks being completed first</p>
-                </div>
-              </div>
-            </div>
-          ),
-        },
-        {
-          id: 'review-todos',
-          title: 'Reviewing & Editing To-Dos',
-          content: (
-            <div className="space-y-4">
-              <p className="text-gray-700">Access the to-do review panel in the session detail page:</p>
-              
-              <Card className="bg-gray-50">
-                <CardHeader>
-                  <CardTitle className="text-base">Admin Tasks Tab</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div><strong>✏️ Inline Edit:</strong> Click title or description to modify</div>
-                  <div><strong>🎯 Change Priority:</strong> Select High/Medium/Low</div>
-                  <div><strong>👤 Assign Tasks:</strong> Select team member from dropdown</div>
-                  <div><strong>📝 Reorder:</strong> Drag and drop to change order</div>
-                  <div><strong>❌ Delete:</strong> Remove irrelevant AI-generated tasks</div>
-                  <div><strong>➕ Add Custom:</strong> Create manual tasks AI missed</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-50">
-                <CardHeader>
-                  <CardTitle className="text-base">Client Tasks Tab</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="text-red-600 font-semibold">⚠️ Important: Client cannot see these until you approve</div>
-                  <div>Same editing capabilities as admin tasks</div>
-                  <div>Review from client's perspective for clarity</div>
-                  <div>Remove any sensitive internal tasks</div>
-                </CardContent>
-              </Card>
-            </div>
-          ),
-        },
-        {
-          id: 'approve-todos',
-          title: 'Approving Client Tasks',
-          content: (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Why Admin Approval is Required</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>✅ Ensures tasks are accurate and relevant</li>
-                  <li>✅ Prevents sensitive internal tasks from leaking to client</li>
-                  <li>✅ Confirms tasks are clearly worded for non-technical users</li>
-                  <li>✅ Allows you to set appropriate priorities</li>
-                </ul>
-              </div>
-
-              <div className="space-y-3">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="font-semibold mb-1">Step 1: Review</div>
-                  <p className="text-sm text-gray-600">Read each task from client's perspective</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="font-semibold mb-1">Step 2: Edit</div>
-                  <p className="text-sm text-gray-600">Clarify wording, remove internal tasks, add missing items</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="font-semibold mb-1">Step 3: Approve</div>
-                  <p className="text-sm text-gray-600">Click "Approve & Send to Client" - client receives email notification</p>
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                  <div className="text-sm text-yellow-800">
-                    <strong>Tip:</strong> Get tasks right before initial approval to avoid confusion. You can edit after approval, but client will be notified of changes.
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      id: 'monitoring',
-      title: 'Monitoring Progress',
-      icon: Activity,
-      color: 'indigo',
-      subsections: [
-        {
-          id: 'notifications',
-          title: 'Real-Time Notifications',
-          content: (
-            <div className="space-y-4">
-              <p className="text-gray-700">You receive automatic notifications when:</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-green-50 border-green-200">
-                  <CardContent className="pt-6">
-                    <CheckCircle2 className="h-8 w-8 text-green-600 mb-2" />
-                    <div className="font-semibold">Task Completed</div>
-                    <p className="text-sm text-gray-600 mt-1">Client finishes a task</p>
+                    <div className="bg-gray-50 p-2 rounded text-xs">
+                      <strong>Setup:</strong> API Key, Model (GPT-4o), Temperature
+                    </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-purple-50 border-purple-200">
-                  <CardContent className="pt-6">
-                    <Activity className="h-8 w-8 text-purple-600 mb-2" />
-                    <div className="font-semibold">All Complete</div>
-                    <p className="text-sm text-gray-600 mt-1">Client finishes all tasks</p>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-green-600" />
+                      Voice Provider (Vapi)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="text-gray-600">Required for voice campaigns:</p>
+                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-1">
+                      <li>AI phone agent creation</li>
+                      <li>Call management</li>
+                      <li>Phone number provisioning</li>
+                      <li>Real-time call handling</li>
+                    </ul>
+                    <div className="bg-gray-50 p-2 rounded text-xs">
+                      <strong>Setup:</strong> API Key, Webhook Secret
+                    </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-orange-50 border-orange-200">
-                  <CardContent className="pt-6">
-                    <AlertCircle className="h-8 w-8 text-orange-600 mb-2" />
-                    <div className="font-semibold">Reminder</div>
-                    <p className="text-sm text-gray-600 mt-1">Client hasn't started (48hrs)</p>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-blue-600" />
+                      Messaging Providers
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="text-gray-600">Platform-wide credentials for SMS and Email:</p>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="bg-gray-50 p-2 rounded text-xs">
+                        <strong>Twilio:</strong> Account SID, Auth Token, Phone Number
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded text-xs">
+                        <strong>Resend:</strong> API Key, From Email
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
             </div>
           ),
         },
+      ],
+    },
+    {
+      id: "troubleshooting",
+      title: "Troubleshooting",
+      icon: LifeBuoy,
+      color: "red",
+      subsections: [
         {
-          id: 'tracking',
-          title: 'Tracking Client Progress',
+          id: "campaign-issues",
+          title: "Campaign Issues",
           content: (
             <div className="space-y-4">
-              <p className="text-gray-700">Monitor progress from <strong>Platform → Onboarding → Sessions</strong></p>
-              
               <div className="space-y-3">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold">Session List View</h4>
-                  <p className="text-sm text-gray-600 mt-1">See completion status: Onboarding complete, X of Y to-dos done</p>
-                </div>
+                <Card className="border-red-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      Campaign Won't Launch
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="font-medium text-gray-900">Possible Causes:</p>
+                    <ul className="list-disc list-inside text-xs text-gray-600 space-y-1">
+                      <li>Missing required fields</li>
+                      <li>No contact list (outbound)</li>
+                      <li>No phone number configured (inbound)</li>
+                      <li>AI agent not created</li>
+                    </ul>
+                    <p className="font-medium text-gray-900 mt-3">Solutions:</p>
+                    <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
+                      <li>Check campaign status (must be "Pending")</li>
+                      <li>Review all tabs for validation errors</li>
+                      <li>Verify phone number is active</li>
+                      <li>Check provider API keys in Settings</li>
+                    </ol>
+                  </CardContent>
+                </Card>
 
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold">Session Detail View</h4>
-                  <p className="text-sm text-gray-600 mt-1">View which tasks are complete, what client submitted, timestamps</p>
-                </div>
+                <Card className="border-yellow-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      Inbound Calls Not Connecting
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="font-medium text-gray-900">Solutions:</p>
+                    <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
+                      <li>Open campaign settings → Advanced tab</li>
+                      <li>Click "Verify & Fix Phone Webhook"</li>
+                      <li>If using Twilio, check webhook points to correct URL</li>
+                      <li>Test by calling the number</li>
+                    </ol>
+                  </CardContent>
+                </Card>
 
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold">Task Completion</h4>
-                  <p className="text-sm text-gray-600 mt-1">See uploaded files and client notes for each completed task</p>
-                </div>
+                <Card className="border-blue-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                      Messages Not Sending
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <p className="font-medium text-gray-900">For SMS:</p>
+                    <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
+                      <li>Go to Settings → Messaging</li>
+                      <li>Click "Test Connection" for Twilio</li>
+                      <li>Check Twilio account balance</li>
+                      <li>Verify phone number has SMS capability</li>
+                    </ol>
+                    <p className="font-medium text-gray-900 mt-3">For Email:</p>
+                    <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
+                      <li>Go to Settings → Messaging</li>
+                      <li>Click "Test Connection" for Resend</li>
+                      <li>Verify domain is active in Resend</li>
+                      <li>Check "From Email" matches verified domain</li>
+                    </ol>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      id: 'best-practices',
-      title: 'Best Practices',
-      icon: Rocket,
-      color: 'pink',
-      subsections: [
-        {
-          id: 'tips',
-          title: 'Tips for Success',
-          content: (
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-semibold mb-3">Template Selection</h4>
-                <div className="space-y-2 ml-4">
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Use pre-built templates when possible - they're optimized</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Test custom templates before sending to clients</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Archive unused templates to keep library clean</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-3">Client Communication</h4>
-                <div className="space-y-2 ml-4">
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Send invites immediately after kickoff call</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Set expectations: onboarding takes ~30 minutes</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Be available for questions during onboarding</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Acknowledge completion within 24 hours</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-3">To-Do Management</h4>
-                <div className="space-y-2 ml-4">
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Review AI tasks thoroughly - AI is smart but not perfect</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Use clear, non-technical language for client tasks</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Break large tasks into 15-30 minute chunks</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Set realistic priorities (not everything can be High)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      id: 'troubleshooting',
-      title: 'Troubleshooting',
-      icon: AlertCircle,
-      color: 'red',
-      subsections: [
-        {
-          id: 'common-issues',
-          title: 'Common Issues & Solutions',
-          content: (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Client Can't Access Onboarding Link</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  <div><strong>Possible Causes:</strong></div>
-                  <ul className="ml-4 space-y-1 text-gray-600">
-                    <li>• Link expired (after 30 days)</li>
-                    <li>• Email went to spam folder</li>
-                    <li>• Link was forwarded (some are user-specific)</li>
-                  </ul>
-                  <div className="mt-3"><strong>Solutions:</strong></div>
-                  <ul className="ml-4 space-y-1 text-gray-600">
-                    <li>• Click "Resend Invitation" in session detail page</li>
-                    <li>• Ask client to check spam folder</li>
-                    <li>• Click "Reset Session" to generate new link if still failing</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">AI Generated Irrelevant Tasks</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  <div><strong>Why This Happens:</strong></div>
-                  <p className="text-gray-600 ml-4">AI misinterpreted responses or template wasn't ideal for this project</p>
-                  <div className="mt-3"><strong>Solutions:</strong></div>
-                  <ul className="ml-4 space-y-1 text-gray-600">
-                    <li>• Simply delete irrelevant tasks before approving</li>
-                    <li>• Edit tasks to be more accurate</li>
-                    <li>• Add custom tasks that AI missed</li>
-                    <li>• Consider creating custom template for similar future projects</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">No To-Dos Generated After Onboarding</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  <div><strong>Possible Causes:</strong></div>
-                  <p className="text-gray-600 ml-4">OpenAI API error, rate limiting, or timeout</p>
-                  <div className="mt-3"><strong>Solutions:</strong></div>
-                  <ul className="ml-4 space-y-1 text-gray-600">
-                    <li>• Click "Generate To-Dos" button manually in session detail</li>
-                    <li>• Wait 30 seconds for generation to complete</li>
-                    <li>• If fails again, verify OpenAI API key in Platform → Settings</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Template Has Too Many Questions</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  <div><strong>Why This Happens:</strong></div>
-                  <p className="text-gray-600 ml-4">Template too comprehensive for project scope or too many optional fields shown</p>
-                  <div className="mt-3"><strong>Short-term Solution:</strong></div>
-                  <ul className="ml-4 space-y-1 text-gray-600">
-                    <li>• Customize template for this specific client</li>
-                    <li>• Remove optional questions</li>
-                    <li>• Combine similar questions</li>
-                    <li>• Resend invitation</li>
-                  </ul>
-                  <div className="mt-3"><strong>Long-term Solution:</strong></div>
-                  <ul className="ml-4 space-y-1 text-gray-600">
-                    <li>• Edit the template itself</li>
-                    <li>• Mark more fields as optional</li>
-                    <li>• Add conditional logic to hide fields</li>
-                    <li>• Break into multiple shorter sessions</li>
-                  </ul>
-                </CardContent>
-              </Card>
             </div>
           ),
         },
@@ -822,129 +790,138 @@ export default function HelpCenterPage() {
     },
   ];
 
-  // Search filtering
   const filteredSections = searchQuery
-    ? sections
-        .map((section) => ({
-          ...section,
-          subsections: section.subsections.filter(
-            (sub) =>
-              sub.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              section.title.toLowerCase().includes(searchQuery.toLowerCase())
-          ),
-        }))
-        .filter((section) => section.subsections.length > 0)
+    ? sections.filter((section) =>
+        section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        section.subsections.some((sub) =>
+          sub.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      )
     : sections;
 
-  const activeSubsections = sections
-    .find((s) => s.id === activeSection)
-    ?.subsections || [];
+  const activeData = sections.find((s) => s.id === activeSection);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="flex items-center gap-3 mb-4">
-            <BookOpen className="h-10 w-10" />
-            <h1 className="text-4xl font-bold">Help Center</h1>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-8 px-6 md:px-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-3 mb-3">
+            <BookOpen className="h-8 w-8" />
+            <h1 className="text-3xl font-bold">Platform Admin Help Center</h1>
           </div>
-          <p className="text-blue-100 text-lg max-w-2xl">
-            Complete guide to the Dynamic Onboarding System with AI Templates & To-Do Lists
+          <p className="text-blue-100">
+            Comprehensive guide to managing your ClientFlow platform
           </p>
-          
+
           {/* Search */}
           <div className="mt-6 max-w-2xl">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
-                placeholder="Search help articles..."
+                type="search"
+                placeholder="Search help topics..."
+                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 py-6 text-lg bg-white"
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6 space-y-2">
-              {filteredSections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
-                    activeSection === section.id
-                      ? 'bg-blue-100 text-blue-700 font-semibold'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <section.icon className="h-5 w-5 flex-shrink-0" />
-                  <span>{section.title}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <Tabs
-              value={activeSubsections[0]?.id}
-              className="w-full"
-            >
-              <TabsList className="w-full justify-start flex-wrap h-auto gap-2 bg-transparent p-0 mb-6">
-                {activeSubsections.map((subsection) => (
-                  <TabsTrigger
-                    key={subsection.id}
-                    value={subsection.id}
-                    className="data-[state=active]:bg-white data-[state=active]:shadow"
-                  >
-                    {subsection.title}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-
-              {activeSubsections.map((subsection) => (
-                <TabsContent key={subsection.id} value={subsection.id}>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-2xl">{subsection.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>{subsection.content}</CardContent>
-                  </Card>
-                </TabsContent>
-              ))}
-            </Tabs>
-
-            {/* Additional Resources */}
-            <Card className="mt-8 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ExternalLink className="h-5 w-5" />
-                  Additional Resources
-                </CardTitle>
+                <CardTitle className="text-base">Help Sections</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <a href="mailto:usecodespring@gmail.com">
-                    📧 Email Support: usecodespring@gmail.com
-                  </a>
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Video className="h-4 w-4 mr-2" />
-                  Watch Video Tutorials (Coming Soon)
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Download PDF Guide
-                </Button>
+              <CardContent className="p-0">
+                <div className="space-y-1">
+                  {filteredSections.map((section) => {
+                    const Icon = section.icon;
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => setActiveSection(section.id)}
+                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+                          activeSection === section.id
+                            ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600"
+                            : "hover:bg-gray-50 text-gray-700"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5 flex-shrink-0" />
+                        <span className="text-sm font-medium">{section.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
+
+            {/* Quick Links */}
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-sm">Additional Resources</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <a
+                  href="mailto:usecodespring@gmail.com"
+                  className="flex items-center gap-2 text-blue-600 hover:underline"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Support
+                </a>
+                <a
+                  href="/platform/help/pdf"
+                  className="flex items-center gap-2 text-blue-600 hover:underline"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Download PDF Guide
+                </a>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Content Area */}
+          <div className="lg:col-span-3">
+            {activeData && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg bg-${activeData.color}-100`}>
+                      <activeData.icon className={`h-6 w-6 text-${activeData.color}-600`} />
+                    </div>
+                    <div>
+                      <CardTitle>{activeData.title}</CardTitle>
+                      <CardDescription>
+                        {activeData.subsections.length} topics
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue={activeData.subsections[0]?.id}>
+                    <TabsList className="w-full justify-start flex-wrap h-auto">
+                      {activeData.subsections.map((sub) => (
+                        <TabsTrigger key={sub.id} value={sub.id} className="text-sm">
+                          {sub.title}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
+                    {activeData.subsections.map((sub) => (
+                      <TabsContent key={sub.id} value={sub.id} className="mt-6">
+                        {sub.content}
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

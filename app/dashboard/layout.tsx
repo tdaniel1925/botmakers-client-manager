@@ -13,6 +13,12 @@ import CancellationPopup from "@/components/cancellation-popup";
 import WelcomeMessagePopup from "@/components/welcome-message-popup";
 import PaymentSuccessPopup from "@/components/payment-success-popup";
 import { isPlatformAdmin } from "@/lib/platform-admin";
+import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
+import { ViewSwitcher } from "@/components/view-switcher";
+import { getViewSwitcherDataAction } from "@/actions/view-switcher-actions";
+import { ImpersonationBanner } from "@/components/impersonation/impersonation-banner";
+import { createProfileAction } from "@/actions/profiles-actions";
+import { claimPendingProfile } from "@/actions/whop-actions";
 
 /**
  * Check if a free user with an expired billing cycle needs their credits downgraded
@@ -73,7 +79,34 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let profile = await getProfileByUserId(userId);
 
   if (!profile) {
-    return redirect("/signup");
+    // No profile exists, try to create one
+    try {
+      const user = await currentUser();
+      const email = user?.emailAddresses?.[0]?.emailAddress;
+      
+      if (email) {
+        // Try to claim any pending profile first
+        const claimResult = await claimPendingProfile(userId, email);
+        
+        if (!claimResult.success) {
+          // Only create a new profile if we couldn't claim a pending one
+          await createProfileAction({ userId, email });
+        }
+      } else {
+        // No email available, create a basic profile
+        await createProfileAction({ userId });
+      }
+      
+      // Fetch the newly created profile
+      profile = await getProfileByUserId(userId);
+      
+      if (!profile) {
+        return redirect("/signup");
+      }
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      return redirect("/signup");
+    }
   }
 
   // Run just-in-time credit check for expired subscriptions
@@ -91,6 +124,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Check if user is a platform admin
   const isPlatformAdminUser = await isPlatformAdmin();
   
+  // Get view switcher data
+  const viewSwitcherData = await getViewSwitcherDataAction();
+  
   // Log profile details for debugging
   console.log('Dashboard profile:', {
     userId: profile.userId,
@@ -101,17 +137,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   });
 
   return (
-    <div className="flex h-screen bg-gray-50 relative overflow-hidden">
-      {/* Show welcome message popup - component handles visibility logic */}
-      <WelcomeMessagePopup profile={profile} />
+    <>
+      {/* Impersonation Banner */}
+      <ImpersonationBanner />
       
-      {/* Show payment success popup - component handles visibility logic */}
-      <PaymentSuccessPopup profile={profile} />
-      
-      {/* Show cancellation popup directly if status is canceled */}
-      {profile.status === "canceled" && (
-        <CancellationPopup profile={profile} />
-      )}
+      <div className="flex h-screen bg-gray-50 relative overflow-hidden">
+        {/* Show welcome message popup - component handles visibility logic */}
+        <WelcomeMessagePopup profile={profile} />
+        
+        {/* Show payment success popup - component handles visibility logic */}
+        <PaymentSuccessPopup profile={profile} />
+        
+        {/* Show cancellation popup directly if status is canceled */}
+        {profile.status === "canceled" && (
+          <CancellationPopup profile={profile} />
+        )}
       
       {/* Sidebar component with profile data and user email */}
       <Sidebar 
@@ -122,10 +162,25 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         isPlatformAdmin={isPlatformAdminUser}
       />
       
-      {/* Main content area */}
-      <div className="flex-1 overflow-auto relative">
-        {children}
+      {/* Main content area wrapped with client-side organization context */}
+      <div className="flex-1 overflow-auto relative flex flex-col">
+        {/* View Switcher Header */}
+        <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-end">
+          <ViewSwitcher
+            currentView={viewSwitcherData.currentView}
+            availableOrganizations={viewSwitcherData.availableOrganizations}
+            isPlatformAdmin={viewSwitcherData.isPlatformAdmin}
+          />
+        </div>
+        
+        {/* Main content */}
+        <div className="flex-1 overflow-auto">
+          <DashboardClientWrapper>
+            {children}
+          </DashboardClientWrapper>
+        </div>
       </div>
     </div>
+    </>
   );
 } 
