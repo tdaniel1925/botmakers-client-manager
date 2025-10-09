@@ -6,9 +6,11 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
+import { revalidatePath } from 'next/cache';
 import { db } from '@/db/db';
 import { emailAccountsTable } from '@/db/schema/email-schema';
 import { encrypt } from '@/lib/email-encryption';
+import { syncImapAccount } from '@/lib/email-sync/imap-sync';
 
 interface ConnectImapAccountParams {
   emailAddress: string;
@@ -82,9 +84,24 @@ export async function connectImapAccountAction(
       updatedAt: new Date(),
     }).returning();
 
+    // Trigger initial sync in the background
+    console.log('Starting initial email sync...');
+    syncImapAccount(newAccount.id, userId).then((result) => {
+      if (result.success) {
+        console.log(`Initial sync complete: ${result.emailsFetched} emails fetched`);
+      } else {
+        console.error(`Initial sync failed: ${result.error}`);
+      }
+    }).catch((error) => {
+      console.error('Initial sync error:', error);
+    });
+
+    revalidatePath('/dashboard/emails');
+    revalidatePath('/platform/emails');
+
     return {
       success: true,
-      message: 'Email account connected successfully! Sync will start shortly.',
+      message: 'Email account connected successfully! Syncing emails now...',
       accountId: newAccount.id,
     };
   } catch (error) {

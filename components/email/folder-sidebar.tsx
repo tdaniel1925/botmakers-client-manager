@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AddEmailAccountDialog } from './add-email-account-dialog';
+import { syncEmailAccountAction } from '@/actions/email-sync-actions';
 
 interface FolderSidebarProps {
   accounts: SelectEmailAccount[];
@@ -48,9 +49,22 @@ export function FolderSidebar({
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const handleRefresh = async () => {
+    if (!selectedAccount) return;
+    
     setRefreshing(true);
-    await onRefresh();
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      const result = await syncEmailAccountAction(selectedAccount.id);
+      if (result.success) {
+        console.log(result.message);
+        await onRefresh(); // Reload the accounts and emails
+      } else {
+        console.error('Sync failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+    } finally {
+      setTimeout(() => setRefreshing(false), 1000);
+    }
   };
 
   const handleAddSuccess = () => {
