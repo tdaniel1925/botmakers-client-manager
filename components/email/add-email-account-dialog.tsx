@@ -10,7 +10,7 @@ import { X, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { connectImapAccountAction } from '@/actions/email-account-actions';
+import { connectImapAccountAction } from '@/actions/email-imap-connection-actions';
 
 interface AddEmailAccountDialogProps {
   onClose: () => void;
@@ -56,7 +56,7 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
     }
   };
 
-  const handleQuickSetup = (provider: 'gmail' | 'outlook' | 'yahoo') => {
+  const handleQuickSetup = (provider: 'gmail' | 'outlook' | 'yahoo' | 'fastmail') => {
     if (provider === 'gmail') {
       setImapHost('imap.gmail.com');
       setImapPort('993');
@@ -71,6 +71,11 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
       setImapHost('imap.mail.yahoo.com');
       setImapPort('993');
       setSmtpHost('smtp.mail.yahoo.com');
+      setSmtpPort('587');
+    } else if (provider === 'fastmail') {
+      setImapHost('imap.fastmail.com');
+      setImapPort('993');
+      setSmtpHost('smtp.fastmail.com'); // Fixed: was imap.fastmail.com
       setSmtpPort('587');
     }
   };
@@ -97,12 +102,11 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
           {/* Quick Setup */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Quick Setup</Label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="flex-1"
                 onClick={() => handleQuickSetup('gmail')}
               >
                 Gmail
@@ -111,7 +115,6 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
                 type="button"
                 variant="outline"
                 size="sm"
-                className="flex-1"
                 onClick={() => handleQuickSetup('outlook')}
               >
                 Outlook
@@ -120,10 +123,17 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
                 type="button"
                 variant="outline"
                 size="sm"
-                className="flex-1"
                 onClick={() => handleQuickSetup('yahoo')}
               >
                 Yahoo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickSetup('fastmail')}
+              >
+                Fastmail
               </Button>
             </div>
           </div>
