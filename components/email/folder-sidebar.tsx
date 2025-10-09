@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AddEmailAccountDialog } from './add-email-account-dialog';
 
 interface FolderSidebarProps {
   accounts: SelectEmailAccount[];
@@ -44,11 +45,16 @@ export function FolderSidebar({
   onRefresh,
 }: FolderSidebarProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await onRefresh();
     setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleAddSuccess = () => {
+    onRefresh(); // Reload accounts after adding new one
   };
 
   return (
@@ -99,6 +105,7 @@ export function FolderSidebar({
             variant="outline"
             size="sm"
             className="flex-1"
+            onClick={() => setShowAddDialog(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add
@@ -181,6 +188,14 @@ export function FolderSidebar({
           </div>
         )}
       </div>
+
+      {/* Add Email Account Dialog */}
+      {showAddDialog && (
+        <AddEmailAccountDialog
+          onClose={() => setShowAddDialog(false)}
+          onSuccess={handleAddSuccess}
+        />
+      )}
     </div>
   );
 }
