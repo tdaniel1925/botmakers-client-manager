@@ -1,396 +1,372 @@
 /**
  * Email Operations Server Actions
- * Server-side API for email management (read, move, delete, etc.)
+ * Core email management operations (read, delete, archive, etc.)
  */
 
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import {
-  getEmailsByAccountId,
-  getEmailById,
-  getEmailsByUserId,
-  markEmailAsRead,
-  markEmailsAsRead,
-  starEmail,
-  archiveEmail,
-  moveEmailToTrash,
-  moveEmailsToTrash,
-  deleteEmail,
-  deleteEmails,
-  getUnreadEmails,
-  getEmailsByFolder,
-} from '@/db/queries/email-queries';
-import { syncAccount } from '@/lib/email-sync/sync-engine';
+import { db } from '@/db';
+import { emails, emailAccounts, emailLabels, emailThreads } from '@/db/schema/email-schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import type { SelectEmail } from '@/db/schema/email-schema';
 
-// ============================================================================
-// Get Emails
-// ============================================================================
-
-export async function getEmailsAction(accountId?: string): Promise<{
+interface ActionResult<T = void> {
   success: boolean;
-  emails?: SelectEmail[];
+  message?: string;
+  data?: T;
   error?: string;
-}> {
+}
+
+/**
+ * Get all emails for a specific account
+ */
+export async function getEmailsAction(accountId: string): Promise<ActionResult<{ emails: SelectEmail[] }>> {
   try {
     const { userId } = await auth();
-
     if (!userId) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const emails = accountId
-      ? await getEmailsByAccountId(accountId)
-      : await getEmailsByUserId(userId);
+    // Verify account ownership
+    const account = await db.query.emailAccounts.findFirst({
+      where: and(
+        eq(emailAccounts.id, accountId),
+        eq(emailAccounts.userId, userId)
+      ),
+    });
 
-    return { success: true, emails };
+    if (!account) {
+      return { success: false, error: 'Account not found' };
+    }
+
+    // Fetch emails with pagination (limit to 100 most recent)
+    const emailList = await db.query.emails.findMany({
+      where: eq(emails.accountId, accountId),
+      orderBy: [desc(emails.receivedAt)],
+      limit: 100,
+      with: {
+        thread: true,
+      },
+    });
+
+    return {
+      success: true,
+      data: { emails: emailList },
+    };
   } catch (error) {
     console.error('Error fetching emails:', error);
-    return { success: false, error: 'Failed to fetch emails' };
-  }
-}
-
-export async function getEmailByIdAction(emailId: string): Promise<{
-  success: boolean;
-  email?: SelectEmail;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const email = await getEmailById(emailId);
-
-    if (!email || email.userId !== userId) {
-      return { success: false, error: 'Email not found or access denied' };
-    }
-
-    return { success: true, email };
-  } catch (error) {
-    console.error('Error fetching email:', error);
-    return { success: false, error: 'Failed to fetch email' };
-  }
-}
-
-export async function getUnreadEmailsAction(accountId: string): Promise<{
-  success: boolean;
-  emails?: SelectEmail[];
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const emails = await getUnreadEmails(accountId);
-
-    return { success: true, emails };
-  } catch (error) {
-    console.error('Error fetching unread emails:', error);
-    return { success: false, error: 'Failed to fetch unread emails' };
-  }
-}
-
-export async function getEmailsByFolderAction(
-  accountId: string,
-  folderName: string
-): Promise<{
-  success: boolean;
-  emails?: SelectEmail[];
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const emails = await getEmailsByFolder(accountId, folderName);
-
-    return { success: true, emails };
-  } catch (error) {
-    console.error('Error fetching emails by folder:', error);
-    return { success: false, error: 'Failed to fetch emails' };
-  }
-}
-
-// ============================================================================
-// Email Actions
-// ============================================================================
-
-export async function markAsReadAction(
-  emailId: string,
-  isRead: boolean = true
-): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const email = await getEmailById(emailId);
-
-    if (!email || email.userId !== userId) {
-      return { success: false, error: 'Email not found or access denied' };
-    }
-
-    await markEmailAsRead(emailId, isRead);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error marking email as read:', error);
-    return { success: false, error: 'Failed to mark email as read' };
-  }
-}
-
-export async function markMultipleAsReadAction(
-  emailIds: string[],
-  isRead: boolean = true
-): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    await markEmailsAsRead(emailIds, isRead);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error marking emails as read:', error);
-    return { success: false, error: 'Failed to mark emails as read' };
-  }
-}
-
-export async function starEmailAction(
-  emailId: string,
-  starred: boolean = true
-): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const email = await getEmailById(emailId);
-
-    if (!email || email.userId !== userId) {
-      return { success: false, error: 'Email not found or access denied' };
-    }
-
-    await starEmail(emailId, starred);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error starring email:', error);
-    return { success: false, error: 'Failed to star email' };
-  }
-}
-
-export async function archiveEmailAction(emailId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const email = await getEmailById(emailId);
-
-    if (!email || email.userId !== userId) {
-      return { success: false, error: 'Email not found or access denied' };
-    }
-
-    await archiveEmail(emailId);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error archiving email:', error);
-    return { success: false, error: 'Failed to archive email' };
-  }
-}
-
-export async function trashEmailAction(emailId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const email = await getEmailById(emailId);
-
-    if (!email || email.userId !== userId) {
-      return { success: false, error: 'Email not found or access denied' };
-    }
-
-    await moveEmailToTrash(emailId);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error moving email to trash:', error);
-    return { success: false, error: 'Failed to move email to trash' };
-  }
-}
-
-export async function trashMultipleEmailsAction(emailIds: string[]): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    await moveEmailsToTrash(emailIds);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error moving emails to trash:', error);
-    return { success: false, error: 'Failed to move emails to trash' };
-  }
-}
-
-export async function deleteEmailAction(emailId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const email = await getEmailById(emailId);
-
-    if (!email || email.userId !== userId) {
-      return { success: false, error: 'Email not found or access denied' };
-    }
-
-    await deleteEmail(emailId);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting email:', error);
-    return { success: false, error: 'Failed to delete email' };
-  }
-}
-
-export async function deleteMultipleEmailsAction(emailIds: string[]): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    await deleteEmails(emailIds);
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting emails:', error);
-    return { success: false, error: 'Failed to delete emails' };
-  }
-}
-
-// ============================================================================
-// Sync Actions
-// ============================================================================
-
-export async function syncEmailsAction(accountId: string): Promise<{
-  success: boolean;
-  stats?: {
-    emailsFetched: number;
-    emailsProcessed: number;
-    emailsSkipped: number;
-    emailsFailed: number;
-  };
-  error?: string;
-}> {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const result = await syncAccount(accountId, userId, { maxEmails: 50 });
-
-    revalidatePath('/platform/emails');
-    revalidatePath('/dashboard/emails');
-
-    return {
-      success: result.success,
-      stats: {
-        emailsFetched: result.emailsFetched,
-        emailsProcessed: result.emailsProcessed,
-        emailsSkipped: result.emailsSkipped,
-        emailsFailed: result.emailsFailed,
-      },
-      error: result.error,
-    };
-  } catch (error) {
-    console.error('Error syncing emails:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to sync emails',
+      error: 'Failed to fetch emails',
     };
   }
 }
 
+/**
+ * Get a single email by ID
+ */
+export async function getEmailAction(emailId: string): Promise<ActionResult<{ email: SelectEmail }>> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const email = await db.query.emails.findFirst({
+      where: eq(emails.id, emailId),
+      with: {
+        account: true,
+        thread: true,
+        attachments: true,
+      },
+    });
+
+    if (!email) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    // Verify ownership through account
+    if (email.account.userId !== userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    return {
+      success: true,
+      data: { email },
+    };
+  } catch (error) {
+    console.error('Error fetching email:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch email',
+    };
+  }
+}
+
+/**
+ * Mark email as read/unread
+ */
+export async function markEmailReadAction(
+  emailId: string,
+  isRead: boolean
+): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Verify ownership
+    const email = await db.query.emails.findFirst({
+      where: eq(emails.id, emailId),
+      with: { account: true },
+    });
+
+    if (!email || email.account.userId !== userId) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    await db
+      .update(emails)
+      .set({ 
+        isRead,
+        updatedAt: new Date(),
+      })
+      .where(eq(emails.id, emailId));
+
+    revalidatePath('/platform/emails');
+    revalidatePath('/dashboard/emails');
+
+    return {
+      success: true,
+      message: `Email marked as ${isRead ? 'read' : 'unread'}`,
+    };
+  } catch (error) {
+    console.error('Error updating email:', error);
+    return {
+      success: false,
+      error: 'Failed to update email',
+    };
+  }
+}
+
+/**
+ * Star/unstar an email
+ */
+export async function toggleStarEmailAction(emailId: string): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const email = await db.query.emails.findFirst({
+      where: eq(emails.id, emailId),
+      with: { account: true },
+    });
+
+    if (!email || email.account.userId !== userId) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    await db
+      .update(emails)
+      .set({ 
+        isStarred: !email.isStarred,
+        updatedAt: new Date(),
+      })
+      .where(eq(emails.id, emailId));
+
+    revalidatePath('/platform/emails');
+    revalidatePath('/dashboard/emails');
+
+    return {
+      success: true,
+      message: email.isStarred ? 'Removed star' : 'Starred email',
+    };
+  } catch (error) {
+    console.error('Error toggling star:', error);
+    return {
+      success: false,
+      error: 'Failed to toggle star',
+    };
+  }
+}
+
+/**
+ * Archive an email
+ */
+export async function archiveEmailAction(emailId: string): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const email = await db.query.emails.findFirst({
+      where: eq(emails.id, emailId),
+      with: { account: true },
+    });
+
+    if (!email || email.account.userId !== userId) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    await db
+      .update(emails)
+      .set({ 
+        folder: 'ARCHIVE',
+        updatedAt: new Date(),
+      })
+      .where(eq(emails.id, emailId));
+
+    revalidatePath('/platform/emails');
+    revalidatePath('/dashboard/emails');
+
+    return {
+      success: true,
+      message: 'Email archived',
+    };
+  } catch (error) {
+    console.error('Error archiving email:', error);
+    return {
+      success: false,
+      error: 'Failed to archive email',
+    };
+  }
+}
+
+/**
+ * Delete an email (move to trash)
+ */
+export async function deleteEmailAction(emailId: string): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const email = await db.query.emails.findFirst({
+      where: eq(emails.id, emailId),
+      with: { account: true },
+    });
+
+    if (!email || email.account.userId !== userId) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    if (email.folder === 'TRASH') {
+      // Permanently delete if already in trash
+      await db.delete(emails).where(eq(emails.id, emailId));
+    } else {
+      // Move to trash
+      await db
+        .update(emails)
+        .set({ 
+          folder: 'TRASH',
+          updatedAt: new Date(),
+        })
+        .where(eq(emails.id, emailId));
+    }
+
+    revalidatePath('/platform/emails');
+    revalidatePath('/dashboard/emails');
+
+    return {
+      success: true,
+      message: email.folder === 'TRASH' ? 'Email deleted permanently' : 'Email moved to trash',
+    };
+  } catch (error) {
+    console.error('Error deleting email:', error);
+    return {
+      success: false,
+      error: 'Failed to delete email',
+    };
+  }
+}
+
+/**
+ * Bulk operations on multiple emails
+ */
+export async function bulkEmailOperationAction(
+  emailIds: string[],
+  operation: 'read' | 'unread' | 'archive' | 'delete' | 'star' | 'unstar'
+): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Verify all emails belong to user
+    const emailList = await db.query.emails.findMany({
+      where: sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`,
+      with: { account: true },
+    });
+
+    if (emailList.some((email) => email.account.userId !== userId)) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Perform operation
+    switch (operation) {
+      case 'read':
+        await db
+          .update(emails)
+          .set({ isRead: true, updatedAt: new Date() })
+          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+        break;
+      
+      case 'unread':
+        await db
+          .update(emails)
+          .set({ isRead: false, updatedAt: new Date() })
+          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+        break;
+      
+      case 'archive':
+        await db
+          .update(emails)
+          .set({ folder: 'ARCHIVE', updatedAt: new Date() })
+          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+        break;
+      
+      case 'delete':
+        await db
+          .update(emails)
+          .set({ folder: 'TRASH', updatedAt: new Date() })
+          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+        break;
+      
+      case 'star':
+        await db
+          .update(emails)
+          .set({ isStarred: true, updatedAt: new Date() })
+          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+        break;
+      
+      case 'unstar':
+        await db
+          .update(emails)
+          .set({ isStarred: false, updatedAt: new Date() })
+          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+        break;
+    }
+
+    revalidatePath('/platform/emails');
+    revalidatePath('/dashboard/emails');
+
+    return {
+      success: true,
+      message: `${emailIds.length} emails updated`,
+    };
+  } catch (error) {
+    console.error('Error in bulk operation:', error);
+    return {
+      success: false,
+      error: 'Failed to perform bulk operation',
+    };
+  }
+}
