@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { Bot, TrendingUp, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import type { SelectEmail } from '@/db/schema/email-schema';
-import { quickSummary } from '@/lib/ai-email-summarizer';
+import { getEmailSummaryAction } from '@/actions/email-summary-actions';
 
 interface EmailSummaryPopupProps {
   email: SelectEmail;
@@ -27,11 +27,11 @@ export function EmailSummaryPopup({ email, position, onClose }: EmailSummaryPopu
   async function loadSummary() {
     try {
       setLoading(true);
-      const summaryText = await quickSummary(email);
-      setSummary(summaryText);
+      const result = await getEmailSummaryAction(email);
+      setSummary(result.summary || email.snippet || email.subject || 'No summary available');
     } catch (error) {
       console.error('Error loading summary:', error);
-      setSummary(email.snippet || email.subject);
+      setSummary(email.snippet || email.subject || 'No summary available');
     } finally {
       setLoading(false);
     }
