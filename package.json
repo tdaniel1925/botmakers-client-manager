@@ -85,6 +85,7 @@
     "react-hook-form": "^7.64.0",
     "react-joyride": "^2.9.3",
     "react-resizable-panels": "^3.0.6",
+    "react-window": "^2.2.0",
     "recharts": "^3.2.1",
     "remotion": "^4.0.136",
     "resend": "^3.2.0",

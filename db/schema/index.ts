@@ -20,3 +20,5 @@ export * from "./quickagent-industries-schema";
 export * from "./billing-schema";
 export * from "./impersonation-schema";
 export * from "./email-schema";
+export * from "./scheduled-emails-schema";
+export * from "./email-templates-schema";
