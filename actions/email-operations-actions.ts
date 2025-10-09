@@ -8,7 +8,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/db/db';
-import { emails, emailAccounts, emailLabels, emailThreads } from '@/db/schema/email-schema';
+import { emailsTable, emailAccountsTable, emailLabelsTable, emailThreadsTable } from '@/db/schema/email-schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { SelectEmail } from '@/db/schema/email-schema';
 
@@ -30,10 +30,10 @@ export async function getEmailsAction(accountId: string): Promise<ActionResult<{
     }
 
     // Verify account ownership
-    const account = await db.query.emailAccounts.findFirst({
+    const account = await db.query.emailAccountsTable.findFirst({
       where: and(
-        eq(emailAccounts.id, accountId),
-        eq(emailAccounts.userId, userId)
+        eq(emailAccountsTable.id, accountId),
+        eq(emailAccountsTable.userId, userId)
       ),
     });
 
@@ -42,13 +42,10 @@ export async function getEmailsAction(accountId: string): Promise<ActionResult<{
     }
 
     // Fetch emails with pagination (limit to 100 most recent)
-    const emailList = await db.query.emails.findMany({
-      where: eq(emails.accountId, accountId),
-      orderBy: [desc(emails.receivedAt)],
+    const emailList = await db.query.emailsTableTable.findMany({
+      where: eq(emailsTable.accountId, accountId),
+      orderBy: [desc(emailsTable.receivedAt)],
       limit: 100,
-      with: {
-        thread: true,
-      },
     });
 
     return {
@@ -74,8 +71,8 @@ export async function getEmailAction(emailId: string): Promise<ActionResult<{ em
       return { success: false, error: 'Unauthorized' };
     }
 
-    const email = await db.query.emails.findFirst({
-      where: eq(emails.id, emailId),
+    const email = await db.query.emailsTable.findFirst({
+      where: eq(emailsTable.id, emailId),
       with: {
         account: true,
         thread: true,
@@ -119,8 +116,8 @@ export async function markEmailReadAction(
     }
 
     // Verify ownership
-    const email = await db.query.emails.findFirst({
-      where: eq(emails.id, emailId),
+    const email = await db.query.emailsTable.findFirst({
+      where: eq(emailsTable.id, emailId),
       with: { account: true },
     });
 
@@ -129,12 +126,12 @@ export async function markEmailReadAction(
     }
 
     await db
-      .update(emails)
+      .update(emailsTable)
       .set({ 
         isRead,
         updatedAt: new Date(),
       })
-      .where(eq(emails.id, emailId));
+      .where(eq(emailsTable.id, emailId));
 
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
@@ -162,8 +159,8 @@ export async function toggleStarEmailAction(emailId: string): Promise<ActionResu
       return { success: false, error: 'Unauthorized' };
     }
 
-    const email = await db.query.emails.findFirst({
-      where: eq(emails.id, emailId),
+    const email = await db.query.emailsTable.findFirst({
+      where: eq(emailsTable.id, emailId),
       with: { account: true },
     });
 
@@ -172,12 +169,12 @@ export async function toggleStarEmailAction(emailId: string): Promise<ActionResu
     }
 
     await db
-      .update(emails)
+      .update(emailsTable)
       .set({ 
         isStarred: !email.isStarred,
         updatedAt: new Date(),
       })
-      .where(eq(emails.id, emailId));
+      .where(eq(emailsTable.id, emailId));
 
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
@@ -205,8 +202,8 @@ export async function archiveEmailAction(emailId: string): Promise<ActionResult>
       return { success: false, error: 'Unauthorized' };
     }
 
-    const email = await db.query.emails.findFirst({
-      where: eq(emails.id, emailId),
+    const email = await db.query.emailsTable.findFirst({
+      where: eq(emailsTable.id, emailId),
       with: { account: true },
     });
 
@@ -215,12 +212,12 @@ export async function archiveEmailAction(emailId: string): Promise<ActionResult>
     }
 
     await db
-      .update(emails)
+      .update(emailsTable)
       .set({ 
         folder: 'ARCHIVE',
         updatedAt: new Date(),
       })
-      .where(eq(emails.id, emailId));
+      .where(eq(emailsTable.id, emailId));
 
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
@@ -248,8 +245,8 @@ export async function deleteEmailAction(emailId: string): Promise<ActionResult> 
       return { success: false, error: 'Unauthorized' };
     }
 
-    const email = await db.query.emails.findFirst({
-      where: eq(emails.id, emailId),
+    const email = await db.query.emailsTable.findFirst({
+      where: eq(emailsTable.id, emailId),
       with: { account: true },
     });
 
@@ -259,16 +256,16 @@ export async function deleteEmailAction(emailId: string): Promise<ActionResult> 
 
     if (email.folder === 'TRASH') {
       // Permanently delete if already in trash
-      await db.delete(emails).where(eq(emails.id, emailId));
+      await db.delete(emailsTable).where(eq(emailsTable.id, emailId));
     } else {
       // Move to trash
       await db
-        .update(emails)
+        .update(emailsTable)
         .set({ 
           folder: 'TRASH',
           updatedAt: new Date(),
         })
-        .where(eq(emails.id, emailId));
+        .where(eq(emailsTable.id, emailId));
     }
 
     revalidatePath('/platform/emails');
@@ -301,8 +298,8 @@ export async function bulkEmailOperationAction(
     }
 
     // Verify all emails belong to user
-    const emailList = await db.query.emails.findMany({
-      where: sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`,
+    const emailList = await db.query.emailsTable.findMany({
+      where: sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`,
       with: { account: true },
     });
 
@@ -314,44 +311,44 @@ export async function bulkEmailOperationAction(
     switch (operation) {
       case 'read':
         await db
-          .update(emails)
+          .update(emailsTable)
           .set({ isRead: true, updatedAt: new Date() })
-          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+          .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
         break;
       
       case 'unread':
         await db
-          .update(emails)
+          .update(emailsTable)
           .set({ isRead: false, updatedAt: new Date() })
-          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+          .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
         break;
       
       case 'archive':
         await db
-          .update(emails)
+          .update(emailsTable)
           .set({ folder: 'ARCHIVE', updatedAt: new Date() })
-          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+          .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
         break;
       
       case 'delete':
         await db
-          .update(emails)
+          .update(emailsTable)
           .set({ folder: 'TRASH', updatedAt: new Date() })
-          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+          .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
         break;
       
       case 'star':
         await db
-          .update(emails)
+          .update(emailsTable)
           .set({ isStarred: true, updatedAt: new Date() })
-          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+          .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
         break;
       
       case 'unstar':
         await db
-          .update(emails)
+          .update(emailsTable)
           .set({ isStarred: false, updatedAt: new Date() })
-          .where(sql`${emails.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
+          .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
         break;
     }
 
