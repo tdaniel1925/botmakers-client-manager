@@ -19,3 +19,4 @@ export * from "./organization-credentials-schema";
 export * from "./quickagent-industries-schema";
 export * from "./billing-schema";
 export * from "./impersonation-schema";
+export * from "./email-schema";

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@azure/msal-node": "^3.8.0",
     "@clerk/nextjs": "^5.0.0",
     "@clerk/themes": "^2.4.25",
     "@dnd-kit/core": "^6.3.1",
@@ -63,6 +64,8 @@
     "drizzle-orm": "^0.44.6",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^11.0.8",
+    "google-auth-library": "^10.4.0",
+    "googleapis": "^161.0.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.545.0",
     "nanoid": "^5.0.6",
