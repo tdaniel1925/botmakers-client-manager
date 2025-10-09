@@ -1,0 +1,43 @@
+CREATE TABLE "scheduled_emails" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"account_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
+	"organization_id" uuid,
+	"to" jsonb NOT NULL,
+	"cc" jsonb,
+	"bcc" jsonb,
+	"subject" text NOT NULL,
+	"body" text NOT NULL,
+	"html_body" text,
+	"attachments" jsonb,
+	"scheduled_at" timestamp with time zone NOT NULL,
+	"timezone" text DEFAULT 'UTC',
+	"status" text DEFAULT 'pending' NOT NULL,
+	"sent_at" timestamp with time zone,
+	"error" text,
+	"is_draft" boolean DEFAULT false,
+	"reply_to_email_id" uuid,
+	"thread_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "email_templates" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"organization_id" uuid,
+	"is_global" boolean DEFAULT false,
+	"name" text NOT NULL,
+	"description" text,
+	"category" text,
+	"subject" text,
+	"body" text NOT NULL,
+	"html_body" text,
+	"variables" jsonb,
+	"usage_count" text DEFAULT '0',
+	"last_used_at" timestamp with time zone,
+	"is_favorite" boolean DEFAULT false,
+	"tags" jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
