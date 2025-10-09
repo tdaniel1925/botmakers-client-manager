@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { FolderSidebar } from './folder-sidebar';
 import { EmailCardList } from './email-card-list';
 import { EmailCopilotPanel } from './email-copilot-panel';
+import { AddEmailAccountDialog } from './add-email-account-dialog';
 import { getEmailAccountsAction } from '@/actions/email-account-actions';
 import { getEmailsAction } from '@/actions/email-operations-actions';
 import type { SelectEmailAccount } from '@/db/schema/email-schema';
@@ -22,6 +23,7 @@ export function EmailLayout() {
   const [selectedEmail, setSelectedEmail] = useState<SelectEmail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copilotOpen, setCopilotOpen] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Load email accounts on mount
   useEffect(() => {
@@ -104,18 +106,34 @@ export function EmailLayout() {
 
   if (accounts.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-6xl mb-4">📧</div>
-          <h2 className="text-2xl font-bold">No Email Accounts Connected</h2>
-          <p className="text-muted-foreground">
-            Connect your email account to start managing your inbox with AI-powered intelligence.
-          </p>
-          <button className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-            Connect Email Account
-          </button>
+      <>
+        <div className="h-full flex items-center justify-center">
+          <div className="text-center space-y-4 max-w-md">
+            <div className="text-6xl mb-4">📧</div>
+            <h2 className="text-2xl font-bold">No Email Accounts Connected</h2>
+            <p className="text-muted-foreground">
+              Connect your email account to start managing your inbox with AI-powered intelligence.
+            </p>
+            <button 
+              onClick={() => setShowAddDialog(true)}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Connect Email Account
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Add Email Account Dialog */}
+        {showAddDialog && (
+          <AddEmailAccountDialog
+            onClose={() => setShowAddDialog(false)}
+            onSuccess={() => {
+              setShowAddDialog(false);
+              loadAccounts();
+            }}
+          />
+        )}
+      </>
     );
   }
 
