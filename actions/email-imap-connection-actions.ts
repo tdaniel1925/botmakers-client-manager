@@ -7,7 +7,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db/db';
-import { emailAccounts } from '@/db/schema/email-schema';
+import { emailAccountsTable } from '@/db/schema/email-schema';
 import { encrypt } from '@/lib/email-encryption';
 import { nanoid } from 'nanoid';
 
@@ -66,7 +66,7 @@ export async function connectImapAccountAction(
     // Create the account record
     const accountId = nanoid();
     
-    await db.insert(emailAccounts).values({
+    await db.insert(emailAccountsTable).values({
       id: accountId,
       userId,
       emailAddress: params.emailAddress,
