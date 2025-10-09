@@ -60,8 +60,8 @@ export async function connectImapAccountAction(
       };
     }
 
-    // Encrypt the password
-    const encryptedPassword = encrypt(params.password);
+    // Encrypt the password with userId
+    const encryptedPassword = encrypt(params.password, userId);
 
     // Create the account record
     const accountId = nanoid();
