@@ -52,17 +52,31 @@ export async function syncImapAccount(accountId: string, userId: string): Promis
     await client.connect();
 
     // Open INBOX
-    await client.mailboxOpen('INBOX');
+    const mailbox = await client.mailboxOpen('INBOX');
+    
+    console.log(`Mailbox has ${mailbox.exists} messages`);
 
-    // Fetch last 50 emails
+    // Fetch the NEWEST 50 emails (or all if less than 50)
+    const totalMessages = mailbox.exists;
+    const startUid = Math.max(1, totalMessages - 49); // Get last 50 messages
+    const endUid = totalMessages;
+    
     const messages = [];
-    for await (const message of client.fetch('1:50', { 
-      envelope: true, 
-      bodyStructure: true,
-      source: true 
-    })) {
-      messages.push(message);
+    
+    if (totalMessages > 0) {
+      console.log(`Fetching emails ${startUid}:${endUid}`);
+      for await (const message of client.fetch(`${startUid}:${endUid}`, { 
+        envelope: true, 
+        bodyStructure: true,
+        source: true,
+        uid: true,
+      })) {
+        messages.push(message);
+      }
     }
+    
+    // Reverse to process newest first
+    messages.reverse();
 
     console.log(`Fetched ${messages.length} messages from IMAP`);
 
@@ -122,6 +136,8 @@ export async function syncImapAccount(accountId: string, userId: string): Promis
       .where(eq(emailAccountsTable.id, accountId));
 
     await client.logout();
+
+    console.log(`✅ Sync complete: ${savedCount} new emails saved (${messages.length} total fetched)`);
 
     return {
       success: true,
