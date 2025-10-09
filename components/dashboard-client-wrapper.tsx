@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { OrganizationProvider } from "@/lib/organization-context";
+import { KeyboardShortcutsProvider } from "@/components/providers/keyboard-shortcuts-provider";
 
 interface DashboardClientWrapperProps {
   children: ReactNode;
@@ -10,7 +11,9 @@ interface DashboardClientWrapperProps {
 export function DashboardClientWrapper({ children }: DashboardClientWrapperProps) {
   return (
     <OrganizationProvider>
-      {children}
+      <KeyboardShortcutsProvider>
+        {children}
+      </KeyboardShortcutsProvider>
     </OrganizationProvider>
   );
 }

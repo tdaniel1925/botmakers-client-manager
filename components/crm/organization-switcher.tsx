@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useOrganization } from "@/lib/organization-context";
 import {
   Select,
@@ -11,6 +12,7 @@ import {
 import { Building2 } from "lucide-react";
 
 export function OrganizationSwitcher() {
+  const router = useRouter();
   const { currentOrganization, organizations, setCurrentOrganization, isLoading } = useOrganization();
 
   if (isLoading || organizations.length === 0) {
@@ -33,7 +35,7 @@ export function OrganizationSwitcher() {
         const org = organizations.find((o) => o.id === value);
         if (org) {
           setCurrentOrganization(org);
-          window.location.reload(); // Reload to fetch new org data
+          router.refresh(); // Refresh to fetch new org data
         }
       }}
     >

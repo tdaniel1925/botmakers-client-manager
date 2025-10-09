@@ -6,6 +6,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ export function OnboardingSessionOverview({
   session,
   project,
 }: OnboardingSessionOverviewProps) {
+  const router = useRouter();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [resetAndSendDialogOpen, setResetAndSendDialogOpen] = useState(false);
   const [clientEmail, setClientEmail] = useState("");
@@ -87,8 +89,8 @@ export function OnboardingSessionOverview({
     setRegenerating(false);
 
     if (result.isSuccess) {
-      toast.success("Access token regenerated! Page will reload.");
-      window.location.reload();
+      toast.success("Access token regenerated!");
+      router.refresh();
     } else {
       toast.error(result.message || "Failed to regenerate token");
     }
@@ -100,8 +102,8 @@ export function OnboardingSessionOverview({
     setResetting(false);
 
     if (result.isSuccess) {
-      toast.success("Onboarding session reset successfully! Page will reload.");
-      setTimeout(() => window.location.reload(), 1000);
+      toast.success("Onboarding session reset successfully!");
+      setTimeout(() => router.refresh(), 1000);
     } else {
       toast.error(result.message || "Failed to reset onboarding session");
     }
@@ -134,15 +136,15 @@ export function OnboardingSessionOverview({
     setResetting(false);
 
     if (sendResult.isSuccess) {
-      toast.success("Onboarding reset and invitation sent! Page will reload.");
+      toast.success("Onboarding reset and invitation sent!");
       setResetAndSendDialogOpen(false);
       setClientEmail("");
       setClientName("");
-      setTimeout(() => window.location.reload(), 1000);
+      setTimeout(() => router.refresh(), 1000);
     } else {
       toast.error(sendResult.message || "Failed to send invitation");
-      // Still reload to show the reset session
-      setTimeout(() => window.location.reload(), 1000);
+      // Still refresh to show the reset session
+      setTimeout(() => router.refresh(), 1000);
     }
   };
 

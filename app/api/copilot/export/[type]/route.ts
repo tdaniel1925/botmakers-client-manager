@@ -1,0 +1,128 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/db';
+import { contacts, deals, activities, projects } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+// Export data handlers for different types
+const exportHandlers = {
+  contacts: async (userId: string, orgId: string) => {
+    const data = await db.query.contacts.findMany({
+      where: eq(contacts.organizationId, orgId),
+      limit: 1000, // Reasonable limit for CSV export
+    });
+
+    const headers = ['id', 'name', 'email', 'phone', 'company', 'status', 'createdAt'];
+    const items = data.map(contact => ({
+      id: contact.id,
+      name: contact.name,
+      email: contact.email || '',
+      phone: contact.phone || '',
+      company: contact.company || '',
+      status: contact.status || 'active',
+      createdAt: contact.createdAt?.toISOString() || '',
+    }));
+
+    return { headers, items };
+  },
+
+  deals: async (userId: string, orgId: string) => {
+    const data = await db.query.deals.findMany({
+      where: eq(deals.organizationId, orgId),
+      limit: 1000,
+    });
+
+    const headers = ['id', 'title', 'value', 'stage', 'contactName', 'createdAt', 'closedAt'];
+    const items = data.map(deal => ({
+      id: deal.id,
+      title: deal.title,
+      value: deal.value || 0,
+      stage: deal.stage || '',
+      contactName: deal.contactName || '',
+      createdAt: deal.createdAt?.toISOString() || '',
+      closedAt: deal.closedAt?.toISOString() || '',
+    }));
+
+    return { headers, items };
+  },
+
+  activities: async (userId: string, orgId: string) => {
+    const data = await db.query.activities.findMany({
+      where: eq(activities.organizationId, orgId),
+      limit: 1000,
+    });
+
+    const headers = ['id', 'type', 'title', 'description', 'status', 'dueDate', 'createdAt'];
+    const items = data.map(activity => ({
+      id: activity.id,
+      type: activity.type || '',
+      title: activity.title || '',
+      description: activity.description || '',
+      status: activity.status || '',
+      dueDate: activity.dueDate?.toISOString() || '',
+      createdAt: activity.createdAt?.toISOString() || '',
+    }));
+
+    return { headers, items };
+  },
+
+  projects: async (userId: string, orgId: string) => {
+    const data = await db.query.projects.findMany({
+      where: eq(projects.organizationId, orgId),
+      limit: 1000,
+    });
+
+    const headers = ['id', 'name', 'description', 'status', 'startDate', 'endDate', 'createdAt'];
+    const items = data.map(project => ({
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      status: project.status || '',
+      startDate: project.startDate?.toISOString() || '',
+      endDate: project.endDate?.toISOString() || '',
+      createdAt: project.createdAt?.toISOString() || '',
+    }));
+
+    return { headers, items };
+  },
+};
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ type: string }> }
+) {
+  try {
+    // Check authentication
+    const { userId, orgId } = await auth();
+    if (!userId || !orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const params = await context.params;
+    const { type } = params;
+
+    // Validate export type
+    if (!exportHandlers[type as keyof typeof exportHandlers]) {
+      return NextResponse.json(
+        { error: 'Invalid export type' },
+        { status: 400 }
+      );
+    }
+
+    // Get the appropriate handler
+    const handler = exportHandlers[type as keyof typeof exportHandlers];
+    const data = await handler(userId, orgId);
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Export error:', error);
+    return NextResponse.json(
+      { error: 'Failed to export data' },
+      { status: 500 }
+    );
+  }
+}
+

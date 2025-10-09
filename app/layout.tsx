@@ -12,6 +12,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { createProfileAction } from "@/actions/profiles-actions";
 import { claimPendingProfile } from "@/actions/whop-actions";
+import { CopilotProvider } from "@/lib/ai-copilot-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,28 +28,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <body className={inter.className}>
           {/* ✅ FIX BUG-006: Wrap entire app in error boundary */}
           <ErrorBoundary>
-            <Providers
-              attribute="class"
-              defaultTheme="light"
-              disableTransitionOnChange
-            >
-              <LayoutWrapper>
-                {children}
-              </LayoutWrapper>
-              <Toaster />
-              <Sonner 
-                position="bottom-center"
-                expand={false}
-                richColors={false}
-                closeButton={false}
-                toastOptions={{
-                  unstyled: true,
-                  classNames: {
-                    toast: "w-full max-w-2xl",
-                  },
-                }}
-              />
-            </Providers>
+            <CopilotProvider>
+              <Providers
+                attribute="class"
+                defaultTheme="light"
+                disableTransitionOnChange
+              >
+                <LayoutWrapper>
+                  {children}
+                </LayoutWrapper>
+                <Toaster />
+                <Sonner 
+                  position="bottom-center"
+                  expand={false}
+                  richColors={false}
+                  closeButton={false}
+                  toastOptions={{
+                    unstyled: true,
+                    classNames: {
+                      toast: "w-full max-w-2xl",
+                    },
+                  }}
+                />
+              </Providers>
+            </CopilotProvider>
           </ErrorBoundary>
         </body>
       </html>

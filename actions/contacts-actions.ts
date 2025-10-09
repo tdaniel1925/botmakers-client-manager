@@ -313,6 +313,56 @@ export const getContactCountByStatusAction = withSelfHealing(
 { source: 'getContactCountByStatusAction', category: 'database' }
 );
 
-
-
-
+export const quickUpdateContactFieldAction = withSelfHealing(
+  async function quickUpdateContactFieldAction(
+  contactId: string,
+  organizationId: string,
+  field: string,
+  value: string
+): Promise<ActionResult<SelectContact>> {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" };
+    }
+    
+    const userRole = await getUserRole(userId, organizationId);
+    
+    if (!userRole) {
+      return { isSuccess: false, message: "User not found in organization" };
+    }
+    
+    const contact = await getContactById(contactId);
+    
+    if (!contact) {
+      return { isSuccess: false, message: "Contact not found" };
+    }
+    
+    const hasEditPermission = await canEditResource(
+      userId,
+      organizationId,
+      userRole.role,
+      contact.ownerId
+    );
+    
+    if (!hasEditPermission) {
+      return { isSuccess: false, message: "Permission denied" };
+    }
+    
+    // Only allow updating specific fields
+    const allowedFields = ['company', 'email', 'phone', 'title'];
+    if (!allowedFields.includes(field)) {
+      return { isSuccess: false, message: "Field not editable" };
+    }
+    
+    const updatedContact = await updateContact(contactId, { [field]: value });
+    revalidatePath("/dashboard/contacts");
+    return { isSuccess: true, message: "Contact updated successfully", data: updatedContact };
+  } catch (error) {
+    console.error("Error updating contact field:", error);
+    return { isSuccess: false, message: "Failed to update contact" };
+  }
+},
+{ source: 'quickUpdateContactFieldAction', category: 'database' }
+);

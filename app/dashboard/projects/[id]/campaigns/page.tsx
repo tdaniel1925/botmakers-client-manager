@@ -4,8 +4,9 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getProjectById } from "@/db/queries/projects-queries";
 import { CampaignsList } from "@/components/voice-campaigns/campaigns-list";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, Lock, FolderKanban, Phone } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -28,15 +29,15 @@ export default async function DashboardCampaignsPage({
   
   return (
     <div className="container mx-auto py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/dashboard/projects/${params.id}`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Project
-          </Button>
-        </Link>
-      </div>
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="h-3.5 w-3.5" /> },
+          { label: project.name, href: `/dashboard/projects/${params.id}` },
+          { label: "Voice Campaigns", icon: <Phone className="h-3.5 w-3.5" /> }
+        ]}
+        className="mb-6"
+      />
       
       <div>
         <h1 className="text-3xl font-bold mb-2">Voice Campaigns</h1>

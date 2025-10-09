@@ -45,8 +45,10 @@ import {
   updateTeamMemberRoleAction,
   removeTeamMemberAction,
 } from "@/actions/team-actions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function TeamPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const { organizationId } = useOrganization();
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,9 +133,14 @@ export default function TeamPage() {
   const handleRemoveMember = async (userId: string, userName: string) => {
     if (!organizationId) return;
     
-    if (!confirm(`Are you sure you want to remove ${userName} from the team?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Remove Team Member?",
+      description: `Are you sure you want to remove ${userName} from the team? They will lose access to this organization.`,
+      confirmText: "Remove Member",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     const result = await removeTeamMemberAction(organizationId, userId);
     
@@ -394,6 +401,7 @@ export default function TeamPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

@@ -39,6 +39,7 @@ import {
 } from "@/lib/task-utils";
 import { toast } from "sonner";
 import { deleteProjectTaskAction } from "@/actions/projects-actions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface ProjectTasksListProps {
   tasks: SelectProjectTask[];
@@ -55,6 +56,7 @@ export function ProjectTasksList({
   onTasksChanged,
   isPlatformAdmin = false,
 }: ProjectTasksListProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "todo" | "in_progress" | "done">("all");
@@ -92,7 +94,14 @@ export function ProjectTasksList({
   const handleBulkDelete = async () => {
     if (selectedTasks.size === 0) return;
 
-    if (!confirm(`Delete ${selectedTasks.size} task(s)?`)) return;
+    const confirmed = await confirm({
+      title: "Delete Tasks?",
+      description: `Are you sure you want to delete ${selectedTasks.size} task(s)? This action cannot be undone.`,
+      confirmText: "Delete Tasks",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     let successCount = 0;
     for (const taskId of selectedTasks) {
@@ -260,6 +269,7 @@ export function ProjectTasksList({
           </Table>
         </div>
       </CardContent>
+      <ConfirmDialog />
     </Card>
   );
 }

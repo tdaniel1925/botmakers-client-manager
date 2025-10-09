@@ -6,6 +6,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProjectProgressMeter } from "./project-progress-meter";
 import { ProjectNotesTimeline } from "./project-notes-timeline";
 import { AddProjectNoteDialog } from "./add-project-note-dialog";
@@ -41,17 +42,18 @@ export function ProjectProgressAndNotesSection({
   notes,
   isPlatformAdmin = false,
 }: ProjectProgressAndNotesSectionProps) {
+  const router = useRouter();
   const [addNoteDialogOpen, setAddNoteDialogOpen] = useState(false);
   const [overrideProgressDialogOpen, setOverrideProgressDialogOpen] = useState(false);
 
   const handleNoteAdded = () => {
     // Refresh the page to show new note
-    window.location.reload();
+    router.refresh();
   };
 
   const handleProgressUpdated = () => {
     // Refresh the page to show updated progress
-    window.location.reload();
+    router.refresh();
   };
 
   return (

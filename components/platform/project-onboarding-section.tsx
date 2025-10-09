@@ -74,7 +74,7 @@ export function ProjectOnboardingSection({
     if (result.isSuccess) {
       toast.success("Onboarding session created successfully!");
       setCreateDialogOpen(false);
-      window.location.reload(); // Refresh to show new session
+      router.refresh(); // Refresh to show new session
     } else {
       toast.error(result.message || "Failed to create onboarding session");
     }
@@ -112,7 +112,7 @@ export function ProjectOnboardingSection({
     if (result.isSuccess) {
       toast.success("Onboarding session reset successfully! A new session has been created.");
       setResetDialogOpen(false);
-      window.location.reload(); // Refresh to show new session
+      router.refresh(); // Refresh to show new session
     } else {
       toast.error(result.message || "Failed to reset onboarding session");
     }

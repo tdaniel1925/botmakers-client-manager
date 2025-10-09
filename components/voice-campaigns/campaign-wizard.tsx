@@ -13,6 +13,7 @@ import { PhoneNumberSelector, PhoneNumberSelection } from "./phone-number-select
 import { GenerationPreview } from "./generation-preview";
 import { CampaignTestWidget } from "./campaign-test-widget";
 import { ScheduleConfigForm, type ScheduleConfig } from "./schedule-config-form";
+import { CampaignPreviewStep } from "./campaign-preview-step";
 import { createVoiceCampaignAction } from "@/actions/voice-campaign-actions";
 import { validateAllAnswers } from "@/types/campaign-setup-questions";
 import {
@@ -29,7 +30,7 @@ interface CampaignWizardProps {
   onCancel?: () => void;
 }
 
-type WizardStep = "questions" | "generating" | "testing" | "complete";
+type WizardStep = "questions" | "preview" | "generating" | "testing" | "complete";
 
 export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWizardProps) {
   const [isPending, startTransition] = useTransition();
@@ -92,6 +93,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   
   const steps = [
     { id: "questions", label: "Setup Campaign", description: "Configure your AI agent" },
+    { id: "preview", label: "Review & Confirm", description: "Preview your configuration" },
     { id: "generating", label: "AI Generation", description: "Creating your agent" },
     { id: "testing", label: "Test & Deploy", description: "Test and activate" },
   ];
@@ -118,7 +120,12 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
       return;
     }
     
-    // All valid, generate campaign
+    // All valid, go to preview step
+    setCurrentStep("preview");
+  };
+
+  const handleNextFromPreview = () => {
+    // Generate campaign after preview
     handleGenerateCampaign();
   };
   
@@ -191,7 +198,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   };
   
   const handleBack = () => {
-    const stepOrder: WizardStep[] = ["questions", "generating", "testing"];
+    const stepOrder: WizardStep[] = ["questions", "preview", "generating", "testing"];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
@@ -310,6 +317,22 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
             </div>
           )}
           
+          {currentStep === "preview" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Review Your Configuration</h3>
+                <p className="text-sm text-gray-600">
+                  Please review the details below before creating your voice agent
+                </p>
+              </div>
+              <CampaignPreviewStep
+                answers={answers}
+                phoneSelection={phoneSelection}
+                scheduleConfig={scheduleConfig}
+              />
+            </div>
+          )}
+          
           {currentStep === "generating" && (
             <div className="text-center py-12 space-y-4">
               <Loader2 className="h-16 w-16 animate-spin text-blue-500 mx-auto" />
@@ -382,6 +405,13 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
         <div className="space-x-2">
           {currentStep === "questions" && (
             <Button onClick={handleNextFromQuestions} disabled={isPending}>
+              Next: Review
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+          
+          {currentStep === "preview" && (
+            <Button onClick={handleNextFromPreview} disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -12,186 +12,146 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Copy, Info, Phone } from "lucide-react";
-import { toast } from "sonner";
-import { duplicateCampaignAction } from "@/actions/voice-campaign-actions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Copy } from "lucide-react";
 import type { SelectVoiceCampaign } from "@/db/schema";
 
 interface DuplicateCampaignDialogProps {
-  campaign: SelectVoiceCampaign | null;
   open: boolean;
-  onClose: () => void;
-  onSuccess?: (newCampaignId: string) => void;
+  onOpenChange: (open: boolean) => void;
+  campaign: SelectVoiceCampaign;
+  onDuplicate: (newName: string, provisionNewPhone: boolean) => Promise<void>;
 }
 
 export function DuplicateCampaignDialog({
-  campaign,
   open,
-  onClose,
-  onSuccess,
+  onOpenChange,
+  campaign,
+  onDuplicate,
 }: DuplicateCampaignDialogProps) {
-  const [newName, setNewName] = useState("");
-  const [phoneOption, setPhoneOption] = useState<"new" | "existing">("new");
-  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [newName, setNewName] = useState(`${campaign.name} (Copy)`);
+  const [provisionNewPhone, setProvisionNewPhone] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when dialog opens
-  const handleOpenChange = (open: boolean) => {
-    if (open && campaign) {
-      setNewName(`${campaign.name} (Copy)`);
-      setPhoneOption("new");
-    } else {
-      setNewName("");
-      setPhoneOption("new");
-    }
-    if (!open) {
-      onClose();
-    }
-  };
-
-  const handleDuplicate = async () => {
-    if (!campaign) return;
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!newName.trim()) {
-      toast.error("Please enter a name for the duplicated campaign");
       return;
     }
 
-    setIsDuplicating(true);
-
+    setIsSubmitting(true);
     try {
-      const result = await duplicateCampaignAction(campaign.id, {
-        newName: newName.trim(),
-        provisionNewPhoneNumber: phoneOption === "new",
-      });
-
-      if (result.error) {
-        toast.error(result.error);
-      } else if (result.campaign) {
-        toast.success("Campaign duplicated successfully!");
-        onSuccess?.(result.campaign.id);
-        onClose();
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to duplicate campaign");
+      await onDuplicate(newName.trim(), provisionNewPhone);
+      onOpenChange(false);
+      setNewName(`${campaign.name} (Copy)`);
+      setProvisionNewPhone(false);
+    } catch (error) {
+      console.error("Duplication error:", error);
     } finally {
-      setIsDuplicating(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (!campaign) return null;
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Copy className="h-5 w-5" />
             Duplicate Campaign
           </DialogTitle>
           <DialogDescription>
-            Create a copy of "{campaign.name}" with the same configuration
+            Create a copy of "{campaign.name}" with the same configuration.
           </DialogDescription>
         </DialogHeader>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="campaignName">New Campaign Name</Label>
+              <Input
+                id="campaignName"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Enter campaign name"
+                disabled={isSubmitting}
+                required
+              />
+              <p className="text-xs text-gray-500">
+                The duplicated campaign will start in "Draft" status
+              </p>
+            </div>
 
-        <div className="space-y-6 py-4">
-          {/* New Campaign Name */}
-          <div className="space-y-2">
-            <Label htmlFor="new-name">New Campaign Name *</Label>
-            <Input
-              id="new-name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Enter name for duplicated campaign"
-              autoFocus
-            />
-          </div>
-
-          {/* Phone Number Option */}
-          <div className="space-y-3">
-            <Label>Phone Number</Label>
-            <RadioGroup value={phoneOption} onValueChange={(v) => setPhoneOption(v as any)}>
-              <div className="flex items-start space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="new" id="phone-new" className="mt-0.5" />
-                <div className="flex-1">
-                  <Label htmlFor="phone-new" className="font-medium cursor-pointer">
-                    Provision New Number
-                  </Label>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Get a new phone number from {campaign.provider.toUpperCase()}. 
-                    Recommended for production use.
-                  </p>
+            {campaign.phoneNumber && campaign.phoneNumber !== "pending" && (
+              <div className="space-y-3 p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="provisionPhone"
+                    checked={provisionNewPhone}
+                    onCheckedChange={(checked) => setProvisionNewPhone(checked as boolean)}
+                    disabled={isSubmitting}
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="provisionPhone"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Provision new phone number
+                    </Label>
+                    <p className="text-xs text-gray-600">
+                      {provisionNewPhone ? (
+                        <>A new phone number will be provisioned for this campaign (additional cost may apply)</>
+                      ) : (
+                        <>The duplicated campaign will share the existing phone number: <span className="font-mono">{campaign.phoneNumber}</span></>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-start space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="existing" id="phone-existing" className="mt-0.5" />
-                <div className="flex-1">
-                  <Label htmlFor="phone-existing" className="font-medium cursor-pointer">
-                    Share Existing Number
-                  </Label>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Use the same number as the original campaign ({campaign.phoneNumber}). 
-                    Both campaigns will receive calls to this number.
-                  </p>
-                </div>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Info Alert */}
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <strong>What will be copied:</strong>
-              <ul className="list-disc pl-4 mt-2 space-y-1">
-                <li>System prompt and messages</li>
-                <li>Agent personality and settings</li>
-                <li>Data collection configuration</li>
-                <li>Voice preferences</li>
-                <li>Campaign goal and type</li>
-              </ul>
-              <div className="mt-3">
-                <strong>What won't be copied:</strong>
-                <ul className="list-disc pl-4 mt-2 space-y-1">
-                  <li>Call history and analytics</li>
-                  <li>Campaign status (starts as draft)</li>
-                </ul>
-              </div>
-            </AlertDescription>
-          </Alert>
-
-          {/* Cost Warning for New Number */}
-          {phoneOption === "new" && (
-            <Alert className="bg-amber-50 border-amber-200">
-              <Phone className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-sm text-amber-900">
-                Provisioning a new phone number may incur additional costs from your provider.
-                Check your {campaign.provider.toUpperCase()} pricing for phone number fees.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isDuplicating}>
-            Cancel
-          </Button>
-          <Button onClick={handleDuplicate} disabled={isDuplicating || !newName.trim()}>
-            {isDuplicating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Duplicating...
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate Campaign
-              </>
             )}
-          </Button>
-        </DialogFooter>
+
+            <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-semibold text-blue-900">What will be copied:</h4>
+              <ul className="text-xs text-blue-700 space-y-1 ml-4 list-disc">
+                <li>System prompt and first message</li>
+                <li>Agent personality and voice settings</li>
+                <li>Campaign configuration and goals</li>
+                <li>Voicemail message settings</li>
+              </ul>
+              <p className="text-xs text-blue-600 mt-2 font-medium">
+                ⚠️ Call history and analytics will NOT be copied
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !newName.trim()}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Duplicating...
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate Campaign
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

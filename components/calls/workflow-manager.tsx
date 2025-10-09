@@ -28,12 +28,14 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Trash2, Settings, Edit, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface WorkflowManagerProps {
   projectId: string;
 }
 
 export function WorkflowManager({ projectId }: WorkflowManagerProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [workflows, setWorkflows] = useState<SelectCallWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -64,9 +66,14 @@ export function WorkflowManager({ projectId }: WorkflowManagerProps) {
   }
   
   async function handleDelete(workflowId: string) {
-    if (!confirm("Are you sure you want to delete this workflow?")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Delete Workflow?",
+      description: "This will permanently delete this workflow and all its configured actions. This action cannot be undone.",
+      confirmText: "Delete Workflow",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
     
     const result = await deleteWorkflowAction(workflowId);
     if (result.error) {
@@ -202,6 +209,7 @@ export function WorkflowManager({ projectId }: WorkflowManagerProps) {
           onClose={() => setPreviewWorkflow(null)}
         />
       )}
+      <ConfirmDialog />
     </Card>
   );
 }

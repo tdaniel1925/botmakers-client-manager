@@ -20,6 +20,7 @@ import {
   deleteCampaignAction,
   launchCampaignAction,
   verifyPhoneWebhookAction,
+  duplicateCampaignAction,
 } from "@/actions/voice-campaign-actions";
 import type { SelectVoiceCampaign, SelectCallRecord } from "@/db/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +28,7 @@ import { ContactListUpload } from "../contact-list-upload";
 import { CampaignSummary } from "../campaign-summary";
 import { LaunchCampaignDialog } from "../launch-campaign-dialog";
 import { CampaignMessagingManager } from "../messaging/campaign-messaging-manager";
+import { DuplicateCampaignDialog } from "../duplicate-campaign-dialog";
 
 interface CampaignDetailPageClientProps {
   campaign: SelectVoiceCampaign;
@@ -48,6 +50,7 @@ export function CampaignDetailPageClient({
   const [selectedCall, setSelectedCall] = useState<SelectCallRecord | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch analytics
@@ -140,8 +143,32 @@ export function CampaignDetailPageClient({
   };
 
   const handleDuplicate = () => {
-    toast.info("Campaign duplication coming soon!");
-    // TODO: Implement duplication
+    setShowDuplicateDialog(true);
+  };
+
+  const handleDuplicateSubmit = async (newName: string, provisionNewPhone: boolean) => {
+    try {
+      const result = await duplicateCampaignAction(campaign.id, {
+        newName,
+        provisionNewPhoneNumber: provisionNewPhone,
+      });
+      
+      if (result.error) {
+        toast.error(result.error);
+        throw new Error(result.error);
+      } else if (result.campaign) {
+        toast.success(`Campaign "${newName}" created successfully!`);
+        // Redirect to the new campaign
+        router.push(
+          isPlatformAdmin
+            ? `/platform/projects/${projectId}/campaigns/${result.campaign.id}`
+            : `/dashboard/projects/${projectId}/campaigns/${result.campaign.id}`
+        );
+      }
+    } catch (error) {
+      console.error("Duplication error:", error);
+      throw error;
+    }
   };
 
   const handleDelete = async () => {
@@ -302,6 +329,14 @@ export function CampaignDetailPageClient({
         callRecord={selectedCall}
         open={!!selectedCall}
         onOpenChange={(open) => !open && setSelectedCall(null)}
+      />
+
+      {/* Duplicate Dialog */}
+      <DuplicateCampaignDialog
+        open={showDuplicateDialog}
+        onOpenChange={setShowDuplicateDialog}
+        campaign={campaign}
+        onDuplicate={handleDuplicateSubmit}
       />
 
       {/* Edit Dialog */}

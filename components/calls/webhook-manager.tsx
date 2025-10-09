@@ -26,12 +26,14 @@ import {
 import { Copy, Eye, EyeOff, Plus, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface WebhookManagerProps {
   projectId: string;
 }
 
 export function WebhookManager({ projectId }: WebhookManagerProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [webhooks, setWebhooks] = useState<SelectProjectWebhook[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -82,9 +84,14 @@ export function WebhookManager({ projectId }: WebhookManagerProps) {
   }
   
   async function handleDelete(webhookId: string) {
-    if (!confirm("Are you sure you want to delete this webhook? This cannot be undone.")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Delete Webhook?",
+      description: "This will permanently delete this webhook. Any integrations using this webhook URL will stop working. This action cannot be undone.",
+      confirmText: "Delete Webhook",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
     
     const result = await deleteWebhookAction(webhookId);
     if (result.error) {
@@ -96,9 +103,14 @@ export function WebhookManager({ projectId }: WebhookManagerProps) {
   }
   
   async function handleRegenerateApiKey(webhookId: string) {
-    if (!confirm("Are you sure? This will invalidate the current API key.")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Regenerate API Key?",
+      description: "This will invalidate the current API key. Any integrations using the old key will stop working until updated with the new key.",
+      confirmText: "Regenerate Key",
+      variant: "warning",
+    });
+    
+    if (!confirmed) return;
     
     const result = await regenerateApiKeyAction(webhookId);
     if (result.error) {
@@ -233,6 +245,7 @@ export function WebhookManager({ projectId }: WebhookManagerProps) {
         onClose={() => setShowCreateDialog(false)}
         onCreate={handleCreateWebhook}
       />
+      <ConfirmDialog />
     </Card>
   );
 }

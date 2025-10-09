@@ -14,6 +14,7 @@ import { MoreVertical, Shield, Trash2 } from "lucide-react";
 import { SelectUserRole } from "@/db/schema";
 import { removeUserFromOrganizationAction } from "@/actions/organizations-actions";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface MembersTableProps {
   members: (SelectUserRole & { userName?: string; userEmail?: string })[];
@@ -36,12 +37,18 @@ const roleLabels = {
 };
 
 export function MembersTable({ members, currentUserId, currentUserRole, organizationId, onUpdate }: MembersTableProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleRemoveMember = async (userId: string, userName?: string) => {
-    if (!confirm(`Are you sure you want to remove ${userName || "this member"} from the organization?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Remove Member?",
+      description: `Are you sure you want to remove ${userName || "this member"} from the organization? They will lose all access immediately.`,
+      confirmText: "Remove Member",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     setLoading(userId);
     try {
@@ -129,6 +136,7 @@ export function MembersTable({ members, currentUserId, currentUserRole, organiza
           )}
         </TableBody>
       </Table>
+      <ConfirmDialog />
     </div>
   );
 }

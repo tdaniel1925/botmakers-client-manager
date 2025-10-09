@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/db";
+import { db } from "@/db/db";
 import { 
   campaignMessageTemplatesTable,
   campaignMessagingConfigTable,
@@ -20,7 +20,7 @@ export async function createMessageTemplateAction(template: any) {
       return { error: "Unauthorized" };
     }
 
-    const isAdmin = await isPlatformAdmin(userId);
+    const isAdmin = await isPlatformAdmin();
     if (!isAdmin) {
       return { error: "Only platform admins can create message templates" };
     }
@@ -56,7 +56,7 @@ export async function updateMessageTemplateAction(templateId: string, updates: a
       return { error: "Unauthorized" };
     }
 
-    const isAdmin = await isPlatformAdmin(userId);
+    const isAdmin = await isPlatformAdmin();
     if (!isAdmin) {
       return { error: "Only platform admins can update message templates" };
     }
@@ -86,7 +86,7 @@ export async function deleteMessageTemplateAction(templateId: string) {
       return { error: "Unauthorized" };
     }
 
-    const isAdmin = await isPlatformAdmin(userId);
+    const isAdmin = await isPlatformAdmin();
     if (!isAdmin) {
       return { error: "Only platform admins can delete message templates" };
     }
@@ -144,7 +144,7 @@ export async function updateMessagingConfigAction(
       return { error: "Unauthorized" };
     }
 
-    const isAdmin = await isPlatformAdmin(userId);
+    const isAdmin = await isPlatformAdmin();
     if (!isAdmin) {
       return { error: "Only platform admins can update messaging config" };
     }

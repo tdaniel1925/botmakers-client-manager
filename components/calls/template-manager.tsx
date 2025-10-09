@@ -29,6 +29,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, Eye, Mail, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface TemplateManagerProps {
   projectId: string;
@@ -36,6 +37,7 @@ interface TemplateManagerProps {
 }
 
 export function TemplateManager({ projectId, viewType }: TemplateManagerProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [emailTemplates, setEmailTemplates] = useState<SelectWorkflowEmailTemplate[]>([]);
   const [smsTemplates, setSmsTemplates] = useState<SelectWorkflowSmsTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,14 @@ export function TemplateManager({ projectId, viewType }: TemplateManagerProps) {
   }
 
   async function handleDeleteEmail(id: string) {
-    if (!confirm("Are you sure you want to delete this email template?")) return;
+    const confirmed = await confirm({
+      title: "Delete Email Template?",
+      description: "This will permanently delete this email template. Workflows using this template will no longer function correctly.",
+      confirmText: "Delete Template",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     const result = await deleteEmailTemplateAction(id);
     if (result.error) {
@@ -73,7 +82,14 @@ export function TemplateManager({ projectId, viewType }: TemplateManagerProps) {
   }
 
   async function handleDeleteSms(id: string) {
-    if (!confirm("Are you sure you want to delete this SMS template?")) return;
+    const confirmed = await confirm({
+      title: "Delete SMS Template?",
+      description: "This will permanently delete this SMS template. Workflows using this template will no longer function correctly.",
+      confirmText: "Delete Template",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     const result = await deleteSmsTemplateAction(id);
     if (result.error) {
@@ -249,6 +265,7 @@ export function TemplateManager({ projectId, viewType }: TemplateManagerProps) {
           }}
         />
       )}
+      <ConfirmDialog />
     </Card>
   );
 }

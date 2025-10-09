@@ -14,11 +14,11 @@ import WelcomeMessagePopup from "@/components/welcome-message-popup";
 import PaymentSuccessPopup from "@/components/payment-success-popup";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
-import { ViewSwitcher } from "@/components/view-switcher";
 import { getViewSwitcherDataAction } from "@/actions/view-switcher-actions";
 import { ImpersonationBanner } from "@/components/impersonation/impersonation-banner";
 import { createProfileAction } from "@/actions/profiles-actions";
 import { claimPendingProfile } from "@/actions/whop-actions";
+import { BrowserFrame } from "@/components/ui/browser-frame";
 
 /**
  * Check if a free user with an expired billing cycle needs their credits downgraded
@@ -141,46 +141,42 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
-      <div className="flex h-screen bg-gray-50 relative overflow-hidden">
-        {/* Show welcome message popup - component handles visibility logic */}
-        <WelcomeMessagePopup profile={profile} />
+      {/* Browser Frame Wrapper */}
+      <BrowserFrame 
+        url="app.clientflow.ai/dashboard" 
+        className="h-screen"
+      >
+        <div className="flex h-full bg-app-bg relative overflow-hidden">
+          {/* Show welcome message popup - component handles visibility logic */}
+          <WelcomeMessagePopup profile={profile} />
+          
+          {/* Show payment success popup - component handles visibility logic */}
+          <PaymentSuccessPopup profile={profile} />
+          
+          {/* Show cancellation popup directly if status is canceled */}
+          {profile.status === "canceled" && (
+            <CancellationPopup profile={profile} />
+          )}
         
-        {/* Show payment success popup - component handles visibility logic */}
-        <PaymentSuccessPopup profile={profile} />
-        
-        {/* Show cancellation popup directly if status is canceled */}
-        {profile.status === "canceled" && (
-          <CancellationPopup profile={profile} />
-        )}
-      
-      {/* Sidebar component with profile data and user email */}
-      <Sidebar 
-        profile={profile} 
-        userEmail={userEmail} 
-        whopMonthlyPlanId={process.env.WHOP_PLAN_ID_MONTHLY || ''}
-        whopYearlyPlanId={process.env.WHOP_PLAN_ID_YEARLY || ''}
-        isPlatformAdmin={isPlatformAdminUser}
-      />
-      
-      {/* Main content area wrapped with client-side organization context */}
-      <div className="flex-1 overflow-auto relative flex flex-col">
-        {/* View Switcher Header */}
-        <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-end">
-          <ViewSwitcher
+          {/* Sidebar component with profile data and user email */}
+          <Sidebar 
+            profile={profile} 
+            userEmail={userEmail} 
+            whopMonthlyPlanId={process.env.WHOP_PLAN_ID_MONTHLY || ''}
+            whopYearlyPlanId={process.env.WHOP_PLAN_ID_YEARLY || ''}
+            isPlatformAdmin={isPlatformAdminUser}
             currentView={viewSwitcherData.currentView}
             availableOrganizations={viewSwitcherData.availableOrganizations}
-            isPlatformAdmin={viewSwitcherData.isPlatformAdmin}
           />
+          
+          {/* Main content area wrapped with client-side organization context */}
+          <div className="flex-1 overflow-auto relative">
+            <DashboardClientWrapper>
+              {children}
+            </DashboardClientWrapper>
+          </div>
         </div>
-        
-        {/* Main content */}
-        <div className="flex-1 overflow-auto">
-          <DashboardClientWrapper>
-            {children}
-          </DashboardClientWrapper>
-        </div>
-      </div>
-    </div>
+      </BrowserFrame>
     </>
   );
 } 

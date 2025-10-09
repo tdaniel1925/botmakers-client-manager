@@ -14,8 +14,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Database, Trash2, CheckCircle, AlertTriangle, Building2, Users, FolderKanban, UserCircle, Activity } from "lucide-react";
 import { seedMockOrganizationsAction, clearMockOrganizationsAction } from "@/actions/seed-actions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function SeedDataPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [isSeeding, setIsSeeding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [seedResult, setSeedResult] = useState<{
@@ -47,9 +49,16 @@ export default function SeedDataPage() {
   };
 
   const handleClear = async () => {
-    if (!confirm("Are you sure you want to clear all mock organizations? This will delete all associated data (projects, contacts, activities, etc.)")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Clear All Mock Organizations?",
+      description: "This will permanently delete all mock organizations and associated data (projects, contacts, activities, etc.). This action cannot be undone.",
+      confirmText: "Clear All Data",
+      variant: "danger",
+      requireTyping: true,
+      typingConfirmText: "CLEAR",
+    });
+    
+    if (!confirmed) return;
 
     setIsClearing(true);
     setSeedResult(null);
@@ -269,6 +278,7 @@ export default function SeedDataPage() {
           </div>
         </CardContent>
       </Card>
+      <ConfirmDialog />
     </div>
   );
 }

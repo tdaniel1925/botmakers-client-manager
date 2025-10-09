@@ -19,8 +19,10 @@ import { EditOrganizationContactDialog } from "@/components/dashboard/edit-organ
 import { ResendCredentialsDialog } from "@/components/platform/resend-credentials-dialog";
 import { EditOrganizationDialog } from "@/components/platform/edit-organization-dialog";
 import type { SelectOrganizationContact } from "@/db/schema";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function OrganizationDetailPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const params = useParams();
   const router = useRouter();
   const [org, setOrg] = useState<any>(null);
@@ -79,7 +81,14 @@ export default function OrganizationDetailPage() {
   };
 
   const handleDeleteContact = async (contactId: string) => {
-    if (!confirm("Are you sure you want to delete this contact?")) return;
+    const confirmed = await confirm({
+      title: "Delete Contact?",
+      description: "Are you sure you want to delete this contact? This action cannot be undone.",
+      confirmText: "Delete Contact",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     try {
       const result = await deleteOrganizationContactAction(contactId, params.id as string);
@@ -96,7 +105,14 @@ export default function OrganizationDetailPage() {
   };
 
   const handleSuspend = async () => {
-    if (!confirm("Are you sure you want to suspend this organization?")) return;
+    const confirmed = await confirm({
+      title: "Suspend Organization?",
+      description: "This will suspend the organization and prevent all users from accessing the system. You can reactivate it later.",
+      confirmText: "Suspend Organization",
+      variant: "warning",
+    });
+    
+    if (!confirmed) return;
     
     setIsUpdating(true);
     const result = await suspendOrganizationAction(params.id as string);
@@ -568,6 +584,8 @@ export default function OrganizationDetailPage() {
         onOpenChange={setEditOrgDialogOpen}
         onSave={handleUpdateOrganization}
       />
+      
+      <ConfirmDialog />
     </main>
   );
 }

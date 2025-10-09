@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GradientCard, GradientVariant } from "@/components/ui/gradient-card";
 import { FolderKanban, PlayCircle, Clock, CheckCircle2 } from "lucide-react";
 
 interface ProjectSummaryCardsProps {
@@ -16,29 +16,29 @@ export function ProjectSummaryCards({ stats }: ProjectSummaryCardsProps) {
       title: "Total Projects",
       value: stats.total,
       icon: FolderKanban,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      variant: "indigo" as GradientVariant,
+      iconColor: "text-indigo-600",
     },
     {
       title: "Active Projects",
       value: stats.active,
       icon: PlayCircle,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      variant: "teal" as GradientVariant,
+      iconColor: "text-teal-600",
     },
     {
       title: "In Planning",
       value: stats.planning,
       icon: Clock,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
+      variant: "amber" as GradientVariant,
+      iconColor: "text-amber-600",
     },
     {
       title: "Completed",
       value: stats.completed,
       icon: CheckCircle2,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      variant: "violet" as GradientVariant,
+      iconColor: "text-violet-600",
     },
   ];
 
@@ -47,19 +47,13 @@ export function ProjectSummaryCards({ stats }: ProjectSummaryCardsProps) {
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                {card.title}
-              </CardTitle>
-              <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                <Icon className={`h-5 w-5 ${card.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{card.value}</div>
-            </CardContent>
-          </Card>
+          <GradientCard key={card.title} variant={card.variant} className="p-8">
+            <div className="flex items-center gap-3 mb-2">
+              <Icon className={`w-5 h-5 ${card.iconColor}`} />
+              <span className="text-3xl font-semibold">{card.value}</span>
+            </div>
+            <span className="text-sm text-neutral-600">{card.title}</span>
+          </GradientCard>
         );
       })}
     </div>

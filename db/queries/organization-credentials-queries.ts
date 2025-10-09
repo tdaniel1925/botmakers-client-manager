@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { organizationMessagingCredentialsTable } from "@/db/schema";
+import { db } from "../db";
+import { organizationMessagingCredentialsTable } from "../schema";
 import { eq } from "drizzle-orm";
 
 export async function getOrganizationCredentials(organizationId: string) {

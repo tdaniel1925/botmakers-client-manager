@@ -52,11 +52,23 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // New design system colors
+        'app-bg': '#E8F4F8',
+        'gradient-violet-from': '#f5f3ff',
+        'gradient-violet-to': '#faf5ff',
+        'gradient-teal-from': '#f0fdfa',
+        'gradient-teal-to': '#ecfeff',
+        'gradient-amber-from': '#fffbeb',
+        'gradient-amber-to': '#fff7ed',
+        'gradient-indigo-from': '#eef2ff',
+        'gradient-indigo-to': '#eff6ff',
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        '3xl': '1.5rem',
+        '4xl': '2rem',
       },
       keyframes: {
         "accordion-down": {

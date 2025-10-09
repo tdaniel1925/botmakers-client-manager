@@ -282,6 +282,139 @@ export async function deleteDealAction(
   }
 }
 
+export async function bulkDeleteDealsAction(
+  dealIds: string[],
+  organizationId: string
+): Promise<ActionResult<void>> {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" };
+    }
+    
+    if (!dealIds || dealIds.length === 0) {
+      return { isSuccess: false, message: "No deals selected" };
+    }
+    
+    const userRole = await getUserRole(userId, organizationId);
+    
+    if (!userRole) {
+      return { isSuccess: false, message: "User not found in organization" };
+    }
+    
+    // Delete each deal with permission checking
+    let successCount = 0;
+    let failedCount = 0;
+    
+    for (const dealId of dealIds) {
+      try {
+        const deal = await getDealById(dealId, organizationId);
+        
+        if (!deal) {
+          failedCount++;
+          continue;
+        }
+        
+        // Check if user has permission to delete this deal
+        if (!canDeleteResource(userRole.role as any, deal.ownerId, userId)) {
+          failedCount++;
+          continue;
+        }
+        
+        const success = await deleteDeal(dealId, organizationId);
+        if (success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (error) {
+        failedCount++;
+      }
+    }
+    
+    revalidatePath("/dashboard/deals");
+    
+    if (failedCount === 0) {
+      return { isSuccess: true, message: `Successfully deleted ${successCount} deal${successCount !== 1 ? 's' : ''}` };
+    } else if (successCount > 0) {
+      return { isSuccess: true, message: `Deleted ${successCount} deal${successCount !== 1 ? 's' : ''}, ${failedCount} failed` };
+    } else {
+      return { isSuccess: false, message: "Failed to delete deals" };
+    }
+  } catch (error) {
+    console.error("Error bulk deleting deals:", error);
+    return { isSuccess: false, message: "Failed to delete deals" };
+  }
+}
+
+export async function bulkUpdateDealStageAction(
+  dealIds: string[],
+  newStage: string,
+  organizationId: string
+): Promise<ActionResult<void>> {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" };
+    }
+    
+    if (!dealIds || dealIds.length === 0) {
+      return { isSuccess: false, message: "No deals selected" };
+    }
+    
+    const userRole = await getUserRole(userId, organizationId);
+    
+    if (!userRole) {
+      return { isSuccess: false, message: "User not found in organization" };
+    }
+    
+    // Update each deal with permission checking
+    let successCount = 0;
+    let failedCount = 0;
+    
+    for (const dealId of dealIds) {
+      try {
+        const deal = await getDealById(dealId, organizationId);
+        
+        if (!deal) {
+          failedCount++;
+          continue;
+        }
+        
+        // Check if user has permission to edit this deal
+        if (!canEditResource(userRole.role as any, deal.ownerId, userId)) {
+          failedCount++;
+          continue;
+        }
+        
+        const updatedDeal = await updateDeal(dealId, organizationId, { stage: newStage });
+        if (updatedDeal) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (error) {
+        failedCount++;
+      }
+    }
+    
+    revalidatePath("/dashboard/deals");
+    
+    if (failedCount === 0) {
+      return { isSuccess: true, message: `Successfully updated ${successCount} deal${successCount !== 1 ? 's' : ''}` };
+    } else if (successCount > 0) {
+      return { isSuccess: true, message: `Updated ${successCount} deal${successCount !== 1 ? 's' : ''}, ${failedCount} failed` };
+    } else {
+      return { isSuccess: false, message: "Failed to update deals" };
+    }
+  } catch (error) {
+    console.error("Error bulk updating deals:", error);
+    return { isSuccess: false, message: "Failed to update deals" };
+  }
+}
+
 export async function getDealStagesAction(
   organizationId: string
 ): Promise<ActionResult<SelectDealStage[]>> {

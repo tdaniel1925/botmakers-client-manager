@@ -34,6 +34,7 @@ import {
   assignTodoAction,
   approveTodosAction,
 } from '@/actions/onboarding-todos-actions';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface AdminTodoReviewPanelProps {
   sessionId: string;
@@ -58,6 +59,7 @@ export function AdminTodoReviewPanel({
   teamMembers = [],
   onUpdate,
 }: AdminTodoReviewPanelProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [adminTodos, setAdminTodos] = useState(initialAdminTodos);
   const [clientTodos, setClientTodos] = useState(initialClientTodos);
   const [editingTodo, setEditingTodo] = useState<string | null>(null);
@@ -101,7 +103,14 @@ export function AdminTodoReviewPanel({
   };
 
   const handleDeleteTodo = async (todoId: string, type: 'admin' | 'client') => {
-    if (!confirm('Are you sure you want to delete this to-do?')) return;
+    const confirmed = await confirm({
+      title: "Delete To-Do?",
+      description: "Are you sure you want to delete this to-do? This action cannot be undone.",
+      confirmText: "Delete To-Do",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     try {
       const result = await deleteTodoAction(todoId);
@@ -181,9 +190,14 @@ export function AdminTodoReviewPanel({
   };
 
   const handleApproveTodos = async () => {
-    if (!confirm('Are you sure you want to approve these to-dos? They will be sent to the client.')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Approve To-Dos?",
+      description: "Are you sure you want to approve these to-dos? They will be sent to the client and become visible in their onboarding workflow.",
+      confirmText: "Approve & Send",
+      variant: "default",
+    });
+    
+    if (!confirmed) return;
 
     setIsApproving(true);
     try {
@@ -606,6 +620,7 @@ export function AdminTodoReviewPanel({
           </Card>
         </TabsContent>
       </Tabs>
+      <ConfirmDialog />
     </div>
   );
 }

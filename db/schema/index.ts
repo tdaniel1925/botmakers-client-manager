@@ -16,5 +16,6 @@ export * from "./voice-campaigns-schema";
 export * from "./campaign-contacts-schema";
 export * from "./campaign-messaging-schema";
 export * from "./organization-credentials-schema";
+export * from "./quickagent-industries-schema";
 export * from "./billing-schema";
 export * from "./impersonation-schema";

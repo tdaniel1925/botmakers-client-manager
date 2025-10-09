@@ -19,6 +19,7 @@ import {
   deleteTwilioCredentialsAction,
   deleteResendCredentialsAction,
 } from "@/actions/organization-credentials-actions";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface MessagingCredentialsSettingsProps {
   organizationId: string;
@@ -27,6 +28,7 @@ interface MessagingCredentialsSettingsProps {
 export function MessagingCredentialsSettings({
   organizationId,
 }: MessagingCredentialsSettingsProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [testingTwilio, setTestingTwilio] = useState(false);
   const [testingResend, setTestingResend] = useState(false);
@@ -243,9 +245,14 @@ export function MessagingCredentialsSettings({
   }
 
   async function handleRevertTwilio() {
-    if (!confirm("Are you sure you want to revert to platform Twilio credentials?")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Revert to Platform Credentials?",
+      description: "This will remove your custom Twilio credentials and use the platform's default Twilio account instead.",
+      confirmText: "Revert to Platform",
+      variant: "warning",
+    });
+
+    if (!confirmed) return;
 
     try {
       const result = await deleteTwilioCredentialsAction(organizationId);
@@ -275,9 +282,14 @@ export function MessagingCredentialsSettings({
   }
 
   async function handleRevertResend() {
-    if (!confirm("Are you sure you want to revert to platform Resend credentials?")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Revert to Platform Credentials?",
+      description: "This will remove your custom Resend credentials and use the platform's default email service instead.",
+      confirmText: "Revert to Platform",
+      variant: "warning",
+    });
+
+    if (!confirmed) return;
 
     try {
       const result = await deleteResendCredentialsAction(organizationId);
@@ -552,6 +564,7 @@ export function MessagingCredentialsSettings({
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog />
     </div>
   );
 }

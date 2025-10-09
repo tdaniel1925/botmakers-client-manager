@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { OnboardingTemplateLibrary } from '@/db/schema/onboarding-schema';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface AdminTemplateManagerProps {
   templates: OnboardingTemplateLibrary[];
@@ -41,6 +42,7 @@ export function AdminTemplateManager({
   onEdit,
   onPreview,
 }: AdminTemplateManagerProps) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -142,8 +144,15 @@ export function AdminTemplateManager({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                if (confirm('Archive this template?')) {
+              onClick={async () => {
+                const confirmed = await confirm({
+                  title: "Archive Template?",
+                  description: "Are you sure you want to archive this template? It will be hidden from the active list but can be restored later.",
+                  confirmText: "Archive Template",
+                  variant: "warning",
+                });
+                
+                if (confirmed) {
                   toast.success('Template archived');
                 }
               }}
@@ -334,6 +343,7 @@ export function AdminTemplateManager({
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

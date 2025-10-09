@@ -6,6 +6,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,7 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({ session, project, token }: OnboardingWizardProps) {
+  const router = useRouter();
   const steps = session.steps as any[];
   const [currentStep, setCurrentStep] = useState(session.currentStep || 0);
   const [stepData, setStepData] = useState<Record<number, any>>(session.responses || {});
@@ -227,8 +229,8 @@ export function OnboardingWizard({ session, project, token }: OnboardingWizardPr
 
     toast.success("Onboarding completed successfully!");
 
-    // Reload page to show completion state
-    window.location.reload();
+    // Refresh page data to show completion state
+    router.refresh();
   };
 
   const handleSaveAndExit = async () => {

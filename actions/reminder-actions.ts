@@ -38,7 +38,7 @@ export async function scheduleRemindersAction(
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -127,7 +127,7 @@ export async function sendManualReminderAction(
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -210,7 +210,7 @@ export async function cancelRemindersAction(sessionId: string) {
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -248,7 +248,7 @@ export async function getSessionRemindersAction(sessionId: string) {
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -281,7 +281,7 @@ export async function updateReminderScheduleAction(
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -314,7 +314,7 @@ export async function getReminderAnalyticsAction() {
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 

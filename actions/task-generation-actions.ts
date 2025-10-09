@@ -33,7 +33,7 @@ export async function generateTasksFromOnboardingAction(sessionId: string) {
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -126,7 +126,7 @@ export async function createGeneratedTasksAction(
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -257,7 +257,7 @@ export async function regenerateTasksAction(sessionId: string) {
     }
 
     // Verify platform admin
-    if (!(await isPlatformAdmin(userId))) {
+    if (!(await isPlatformAdmin())) {
       return { success: false, error: "Not authorized" };
     }
 

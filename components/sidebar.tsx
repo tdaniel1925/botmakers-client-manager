@@ -16,6 +16,8 @@ import { CreditUsageDisplay } from "@/components/credit-usage-display";
 import UpgradePlanPopup from "@/components/upgrade-plan-popup";
 import { GlassSidebarContainer } from "@/components/ui/glass-sidebar-container";
 import { useState, useEffect, useCallback } from "react";
+import { OrgSwitcherDropdown, OrgSwitcherOrganization } from "@/components/org-switcher-dropdown";
+import { UserMenu } from "@/components/user-menu";
 
 interface SidebarProps {
   profile: SelectProfile | null;
@@ -23,9 +25,24 @@ interface SidebarProps {
   whopMonthlyPlanId: string;
   whopYearlyPlanId: string;
   isPlatformAdmin?: boolean;
+  currentView?: {
+    type: "platform" | "organization";
+    organizationId?: string;
+    organizationName?: string;
+    organizationSlug?: string;
+  };
+  availableOrganizations?: OrgSwitcherOrganization[];
 }
 
-export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlanId, isPlatformAdmin }: SidebarProps) {
+export default function Sidebar({ 
+  profile, 
+  userEmail, 
+  whopMonthlyPlanId, 
+  whopYearlyPlanId, 
+  isPlatformAdmin,
+  currentView,
+  availableOrganizations = []
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
@@ -42,14 +59,37 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
 
   // Plan IDs now come from props, not environment variables
   
-  const navItems = [
-    { href: "/dashboard", icon: <LayoutDashboard size={16} />, label: "Dashboard" },
-    { href: "/dashboard/projects", icon: <FolderKanban size={16} />, label: "Projects" },
-    { href: "/dashboard/activities", icon: <CheckSquare size={16} />, label: "Activities" },
-    { href: "/dashboard/analytics", icon: <BarChart3 size={16} />, label: "Analytics" },
-    { href: "/dashboard/team", icon: <Users size={16} />, label: "Team" },
-    { href: "/dashboard/help", icon: <HelpCircle size={16} />, label: "Help" },
-    { href: "/dashboard/settings", icon: <Settings size={16} />, label: "Settings" },
+  const navSections = [
+    {
+      items: [
+        { href: "/dashboard", icon: <LayoutDashboard size={16} />, label: "Dashboard" },
+        { href: "/dashboard/projects", icon: <FolderKanban size={16} />, label: "Projects" },
+      ]
+    },
+    {
+      label: "CRM",
+      items: [
+        { href: "/dashboard/contacts", icon: <UserCircle size={16} />, label: "Contacts" },
+        { href: "/dashboard/deals", icon: <Target size={16} />, label: "Deals" },
+        { href: "/dashboard/activities", icon: <CheckSquare size={16} />, label: "Activities" },
+      ]
+    },
+    {
+      label: "Insights",
+      items: [
+        { href: "/dashboard/analytics", icon: <BarChart3 size={16} />, label: "Analytics" },
+        { href: "/dashboard/targets", icon: <Target size={16} />, label: "Targets" },
+      ]
+    },
+    {
+      label: "Management",
+      items: [
+        { href: "/dashboard/team", icon: <Users size={16} />, label: "Team" },
+        { href: "/dashboard/data-source", icon: <Database size={16} />, label: "Data Source" },
+        { href: "/dashboard/settings", icon: <Settings size={16} />, label: "Settings" },
+        { href: "/dashboard/help", icon: <HelpCircle size={16} />, label: "Help" },
+      ]
+    },
   ];
 
   // Handle navigation item click
@@ -81,7 +121,7 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
         />
       )}
       
-      <GlassSidebarContainer width="w-[60px] md:w-[220px]" className="justify-between py-5">
+      <GlassSidebarContainer width="w-[60px] md:w-[220px]" className="justify-between py-3">
         {/* Animated glassmorphism overlay - unique to dashboard */}
         <motion.div 
           className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-primary/5 pointer-events-none z-0"
@@ -96,194 +136,85 @@ export default function Sidebar({ profile, userEmail, whopMonthlyPlanId, whopYea
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Logo */}
-        <div className="px-3 mb-8 relative z-10">
-          <Link href="/dashboard">
-            <motion.div 
-              className="flex items-center justify-center md:justify-start"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="hidden md:block">
-                <span className="font-bold text-lg">ClientFlow</span>
-              </div>
-              <div className="block md:hidden text-center">
-                <span className="font-bold text-sm">CF</span>
-              </div>
-            </motion.div>
-          </Link>
-        </div>
+        {/* Organization Switcher */}
+        {currentView && (
+          <div className="px-3 mb-4 relative z-10">
+            <OrgSwitcherDropdown
+              currentView={currentView}
+              availableOrganizations={availableOrganizations}
+              isPlatformAdmin={isPlatformAdmin ?? false}
+            />
+          </div>
+        )}
 
         {/* Navigation Items */}
         <nav className="flex-1 px-3 relative z-10 overflow-y-auto">
-          <div className="space-y-1.5">
-            {navItems.map((item) => (
-              <Link 
-                key={item.href} 
-                href={item.href} 
-                className="block"
-                onClick={(e) => handleNavItemClick(e, item.href)}
-              >
-                <motion.div 
-                  className={`flex items-center py-2 px-3 rounded-lg cursor-pointer transition-all ${
-                    isActive(item.href) 
-                      ? "bg-[#1a1a1a] text-white shadow-sm" 
-                      : "text-gray-600 hover:bg-gray-100/80 hover:border-gray-200/50 hover:shadow-md"
-                  }`}
-                  whileHover={{ 
-                    scale: 1.03, 
-                    x: 4,
-                    transition: { duration: 0.2 }
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="flex items-center justify-center">
-                    {item.icon}
-                  </div>
-                  <span className={`ml-3 hidden md:block text-sm font-medium`}>
-                    {item.label}
-                  </span>
-                </motion.div>
-              </Link>
-            ))}
-            
-            {/* Platform Admin Link - Only show if user is platform admin */}
-            {isPlatformAdmin && (
-              <>
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-3" />
-                <Link href="/platform/dashboard" className="block">
-                  <motion.div 
-                    className="flex items-center py-2 px-3 rounded-lg cursor-pointer transition-all bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 text-blue-700 hover:shadow-md"
-                    whileHover={{ 
-                      scale: 1.03, 
-                      x: 4,
-                      transition: { duration: 0.2 }
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center justify-center">
-                      <Shield size={16} />
-                    </div>
-                    <span className="ml-3 hidden md:block text-sm font-medium">
-                      Platform Admin
+          <div className="space-y-4">
+            {navSections.map((section, sectionIndex) => (
+              <div key={sectionIndex}>
+                {/* Section Label */}
+                {section.label && (
+                  <div className="hidden md:block px-3 mb-2">
+                    <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                      {section.label}
                     </span>
-                  </motion.div>
-                </Link>
-              </>
-            )}
+                  </div>
+                )}
+                
+                {/* Section Items */}
+                <div className="space-y-1.5">
+                  {section.items.map((item) => (
+                    <Link 
+                      key={item.href} 
+                      href={item.href} 
+                      className="block"
+                      onClick={(e) => handleNavItemClick(e, item.href)}
+                    >
+                      <motion.div 
+                        className={`flex items-center py-2 px-3 rounded-full cursor-pointer transition-all ${
+                          isActive(item.href) 
+                            ? "bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-sm" 
+                            : "text-neutral-600 hover:bg-neutral-100/80 hover:shadow-md"
+                        }`}
+                        whileHover={{ 
+                          scale: 1.03, 
+                          x: 4,
+                          transition: { duration: 0.2 }
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="flex items-center justify-center">
+                          {item.icon}
+                        </div>
+                        <span className={`ml-3 hidden md:block text-sm font-medium`}>
+                          {item.label}
+                        </span>
+                      </motion.div>
+                    </Link>
+                  ))}
+                </div>
+                
+                {/* Section Divider */}
+                {sectionIndex < navSections.length - 1 && (
+                  <div className="hidden md:block h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent my-3" />
+                )}
+              </div>
+            ))}
           </div>
         </nav>
 
-        {/* Bottom Section - Account and Subscription Management */}
+        {/* Bottom Section - User Menu */}
         <div className="mt-auto pt-4 relative z-10">
-          {/* Subscription Management Section */}
-          <div className="px-3 mb-4">
-            {/* Subtle section divider */}
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4" />
-            
-            {/* Upgrade Button - Links to pricing page */}
-            <Link href="/pricing">
-              <motion.div
-                whileHover={{ 
-                  scale: 1.03,
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  className="w-full flex items-center justify-center md:justify-start gap-1.5 py-1.5 h-auto transition-colors shadow-sm mb-3 relative overflow-hidden group"
-                >
-                  {/* Button hover effect */}
-                  <span className="absolute inset-0 w-full h-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <Sparkles size={14} className="relative z-10" />
-                  <span className="hidden md:block text-xs font-medium relative z-10">Upgrade</span>
-                </Button>
-              </motion.div>
-            </Link>
-            
-            {/* Billing Button - Only visible for members with whopMembershipId */}
-            {profile?.whopMembershipId && (
-              <Link 
-                href={`http://whop.com/orders/${profile.whopMembershipId}/manage`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <motion.div
-                  whileHover={{ 
-                    scale: 1.03,
-                    transition: { duration: 0.2 }
-                  }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="w-full flex items-center justify-center md:justify-start gap-1.5 border-white/60 bg-white/70 hover:bg-white/90 hover:border-white py-1.5 h-auto transition-all shadow-sm hover:shadow-md"
-                  >
-                    <CreditCard size={14} className="text-gray-600" />
-                    <span className="hidden md:block text-xs">Billing</span>
-                  </Button>
-                </motion.div>
-              </Link>
-            )}
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-3" />
+          <div className="px-3">
+            <UserMenu
+              profile={profile}
+              userEmail={userEmail}
+              whopMonthlyPlanId={whopMonthlyPlanId}
+              whopYearlyPlanId={whopYearlyPlanId}
+            />
           </div>
-          
-          {/* Credit Usage Display */}
-          <div className="px-3 mb-4">
-            <div className="hidden md:block">
-              <CreditUsageDisplay />
-            </div>
-            <div className="block md:hidden text-center">
-              <div className="bg-white/80 py-2 px-1 rounded-lg shadow-sm border border-white/80">
-                <div className="text-[10px] font-medium text-gray-600 mb-1">Credits</div>
-                <div className="flex justify-center">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <svg 
-                      viewBox="0 0 24 24" 
-                      className="w-3.5 h-3.5 text-primary"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* User Profile Section */}
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-          <motion.div 
-            className="flex items-center px-3 py-3 hover:bg-white/50 rounded-lg mx-2 cursor-pointer"
-            whileHover={{ 
-              scale: 1.02,
-              transition: { duration: 0.2 }
-            }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="w-7 h-7 rounded-full overflow-hidden border border-white/80 flex items-center justify-center bg-white/80 shadow-sm">
-              <UserButton 
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox: "w-7 h-7",
-                    userButtonTrigger: "w-7 h-7 rounded-full"
-                  }
-                }} 
-              />
-            </div>
-            <span className="text-xs text-gray-600 hidden md:block ml-3 font-medium truncate max-w-[120px]">
-              {userEmail || "Account"}
-            </span>
-          </motion.div>
         </div>
       </GlassSidebarContainer>
     </>

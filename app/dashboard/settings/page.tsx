@@ -9,9 +9,11 @@ import { MessagingCredentialsSettings } from "@/components/settings/messaging-cr
 import { OrganizationProfileForm } from "@/components/settings/organization-profile-form";
 import { OrganizationContactForm } from "@/components/settings/organization-contact-form";
 import { OrganizationAddressForm } from "@/components/settings/organization-address-form";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { getServerOrganizationId } from "@/lib/server-organization-context";
 import { getOrganizationById } from "@/db/queries/organizations-queries";
 import { redirect } from "next/navigation";
+import { Settings } from "lucide-react";
 
 export default async function SettingsPage() {
   const orgId = await getServerOrganizationId();
@@ -28,6 +30,13 @@ export default async function SettingsPage() {
 
   return (
     <main className="p-6 md:p-10">
+      <Breadcrumbs
+        items={[
+          { label: "Settings", icon: <Settings className="h-3.5 w-3.5" /> }
+        ]}
+        className="mb-6"
+      />
+      
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-gray-600 mt-2">

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { FolderKanban, Calendar, DollarSign, User, AlertCircle, Info, Phone, FileText } from "lucide-react";
 import { getProjectByIdAction, getProjectProgressAction } from "@/actions/projects-actions";
 import { getProjectNotes } from "@/db/queries/project-notes-queries";
@@ -58,14 +59,17 @@ export default async function OrganizationProjectDetailPage({
 
   return (
     <main className="p-6 lg:p-10">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="h-3.5 w-3.5" /> },
+          { label: project.name }
+        ]}
+        className="mb-6"
+      />
+      
       {/* Header */}
       <div className="mb-8">
-        <Link
-          href="/dashboard/projects"
-          className="text-sm text-blue-600 hover:underline mb-4 inline-block"
-        >
-          ← Back to Projects
-        </Link>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="bg-blue-100 p-4 rounded-lg flex-shrink-0">

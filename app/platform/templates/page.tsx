@@ -35,8 +35,10 @@ import {
   Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/hooks/use-confirm';
 
 export default function TemplatesPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [templates, setTemplates] = useState<any[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,9 +101,16 @@ export default function TemplatesPage() {
   };
 
   const handleReseedTemplates = async () => {
-    if (!confirm('This will delete all existing templates and reseed with the default templates. Continue?')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Reseed All Templates?",
+      description: "This will permanently delete all existing templates and reseed with the default templates. This action cannot be undone.",
+      confirmText: "Reseed Templates",
+      variant: "danger",
+      requireTyping: true,
+      typingConfirmText: "RESEED",
+    });
+    
+    if (!confirmed) return;
 
     try {
       setIsLoading(true);
@@ -210,9 +219,14 @@ export default function TemplatesPage() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete "${template.name}"?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Delete Template?",
+      description: `Are you sure you want to delete "${template.name}"? This will affect any workflows using this template.`,
+      confirmText: "Delete Template",
+      variant: "danger",
+    });
+    
+    if (!confirmed) return;
 
     try {
       const result = await deleteTemplateAction(template.id);
@@ -415,6 +429,7 @@ export default function TemplatesPage() {
           </DialogContent>
         </Dialog>
       </div>
+      <ConfirmDialog />
     </main>
   );
 }
