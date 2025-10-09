@@ -3,7 +3,7 @@
  * CRUD operations for email accounts
  */
 
-import { db } from "@/db";
+import { db } from "@/db/db";
 import { emailAccountsTable, type InsertEmailAccount, type SelectEmailAccount } from "@/db/schema/email-schema";
 import { eq, and, desc } from "drizzle-orm";
 

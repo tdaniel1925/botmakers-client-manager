@@ -3,7 +3,7 @@
  * CRUD operations for emails, threads, attachments, labels, and drafts
  */
 
-import { db } from "@/db";
+import { db } from "@/db/db";
 import {
   emailsTable,
   emailThreadsTable,
