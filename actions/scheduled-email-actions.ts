@@ -7,7 +7,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/db';
+import { db } from '@/db/db';
 import { scheduledEmails } from '@/db/schema/scheduled-emails-schema';
 import { eq, and, lte, gte } from 'drizzle-orm';
 import type { InsertScheduledEmail, SelectScheduledEmail } from '@/db/schema/scheduled-emails-schema';

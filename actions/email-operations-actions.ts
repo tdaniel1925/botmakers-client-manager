@@ -7,7 +7,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/db';
+import { db } from '@/db/db';
 import { emails, emailAccounts, emailLabels, emailThreads } from '@/db/schema/email-schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { SelectEmail } from '@/db/schema/email-schema';
