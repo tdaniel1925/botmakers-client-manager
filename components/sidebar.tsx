@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { Home, Settings, Database, Target, Users, Sparkles, CreditCard, LayoutDashboard, CheckSquare, BarChart3, Shield, FolderKanban, UserCircle, HelpCircle } from "lucide-react";
+import { Home, Settings, Database, Target, Users, Sparkles, CreditCard, LayoutDashboard, CheckSquare, BarChart3, Shield, FolderKanban, UserCircle, HelpCircle, Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -69,6 +69,7 @@ export default function Sidebar({
     {
       label: "CRM",
       items: [
+        { href: "/dashboard/emails", icon: <Mail size={16} />, label: "Emails" },
         { href: "/dashboard/contacts", icon: <UserCircle size={16} />, label: "Contacts" },
         { href: "/dashboard/deals", icon: <Target size={16} />, label: "Deals" },
         { href: "/dashboard/activities", icon: <CheckSquare size={16} />, label: "Activities" },

@@ -15,7 +15,8 @@ import {
   FileText, 
   Activity,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ export function CompactAdminNav() {
   // Core items (always visible, no submenu)
   const coreItems: NavItem[] = [
     { name: "Dashboard", href: "/platform/dashboard", icon: LayoutDashboard },
+    { name: "Emails", href: "/platform/emails", icon: Mail },
     { name: "Organizations", href: "/platform/organizations", icon: Building2 },
     { name: "Projects", href: "/platform/projects", icon: FolderKanban },
   ];
