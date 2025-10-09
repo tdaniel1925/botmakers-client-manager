@@ -3,7 +3,7 @@
  * Operations for tracking email sync operations and logs
  */
 
-import { db } from "../index";
+import { db } from "@/db";
 import {
   emailSyncLogsTable,
   emailAISummariesTable,

@@ -3,7 +3,7 @@
  * CRUD operations for emails, threads, attachments, labels, and drafts
  */
 
-import { db } from "../index";
+import { db } from "@/db";
 import {
   emailsTable,
   emailThreadsTable,
@@ -20,7 +20,7 @@ import {
   type SelectEmailLabel,
   type InsertEmailDraft,
   type SelectEmailDraft,
-} from "../schema/email-schema";
+} from "@/db/schema/email-schema";
 import { eq, and, desc, asc, gte, lte, or, inArray, sql, count } from "drizzle-orm";
 
 // ============================================================================
