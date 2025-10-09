@@ -60,7 +60,7 @@ export async function connectImapAccountAction(
       };
     }
 
-    // Encrypt the password with userId
+    // Encrypt the password with userId (same password for IMAP and SMTP)
     const encryptedPassword = encrypt(params.password, userId);
 
     // Create the account record
@@ -72,20 +72,16 @@ export async function connectImapAccountAction(
       emailAddress: params.emailAddress,
       provider: 'imap', // Generic IMAP
       authType: 'password',
-      password: encryptedPassword,
+      imapPassword: encryptedPassword, // Fixed: use imapPassword field
       imapHost: params.imapHost,
       imapPort: params.imapPort,
+      imapUseSsl: true, // Default to SSL for IMAP
+      smtpPassword: encryptedPassword, // Fixed: use smtpPassword field (same as IMAP)
       smtpHost: params.smtpHost,
       smtpPort: params.smtpPort,
-      smtpSecure: params.smtpSecure,
+      smtpUseSsl: params.smtpSecure, // Fixed: use smtpUseSsl field
       status: 'active', // Mark as active for now
-      settings: {
-        syncEnabled: true,
-        sendEnabled: true,
-        aiSummariesEnabled: true,
-        aiCopilotEnabled: true,
-        realtimeNotificationsEnabled: false,
-      },
+      isDefault: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
