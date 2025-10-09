@@ -1,6 +1,6 @@
 "use server";
 
-import { validateRequest } from "@/lib/auth/validate-request";
+import { auth } from "@clerk/nextjs/server";
 import {
   getOrganizationCredentials,
   upsertOrganizationCredentials,
@@ -18,8 +18,8 @@ import { getOrganizationById } from "@/db/queries/organizations-queries";
  */
 export async function getOrganizationCredentialsAction(organizationId: string) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
@@ -88,8 +88,8 @@ export async function updateTwilioCredentialsAction(
   }
 ) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
@@ -152,8 +152,8 @@ export async function updateResendCredentialsAction(
   }
 ) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
@@ -209,8 +209,8 @@ export async function updateResendCredentialsAction(
  */
 export async function testTwilioConnectionAction(organizationId: string) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
@@ -269,8 +269,8 @@ export async function testTwilioConnectionAction(organizationId: string) {
  */
 export async function testResendConnectionAction(organizationId: string) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
@@ -328,8 +328,8 @@ export async function testResendConnectionAction(organizationId: string) {
  */
 export async function deleteTwilioCredentialsAction(organizationId: string) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
@@ -361,8 +361,8 @@ export async function deleteTwilioCredentialsAction(organizationId: string) {
  */
 export async function deleteResendCredentialsAction(organizationId: string) {
   try {
-    const { user } = await validateRequest();
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return { error: "Unauthorized" };
     }
 
