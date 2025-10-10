@@ -16,7 +16,8 @@ import {
   Activity,
   ChevronDown,
   ChevronRight,
-  Mail
+  Mail,
+  Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ export function CompactAdminNav() {
     { name: "Emails", href: "/platform/emails", icon: Mail },
     { name: "Organizations", href: "/platform/organizations", icon: Building2 },
     { name: "Projects", href: "/platform/projects", icon: FolderKanban },
+    { name: "Voice Campaigns", href: "/platform/voice-campaigns", icon: Phone },
   ];
 
   // Grouped items into submenus

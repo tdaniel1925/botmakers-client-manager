@@ -37,7 +37,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   const [currentStep, setCurrentStep] = useState<WizardStep>("questions");
   const [selectedProvider] = useState<"vapi">("vapi"); // Always use Vapi
   const [answers, setAnswers] = useState<Partial<CampaignSetupAnswers>>({});
-  const [phoneSelection, setPhoneSelection] = useState<PhoneNumberSelection>({ source: "vapi" });
+  const [phoneSelection, setPhoneSelection] = useState<PhoneNumberSelection>({ source: "twilio" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generatedCampaign, setGeneratedCampaign] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -295,12 +295,12 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
                 onErrorsChange={setErrors}
               />
               
-              {/* Phone Number Selection - Simplified for Vapi Auto-Buy */}
+              {/* Phone Number Selection - Using Twilio */}
               <div className="border-t pt-6">
                 <PhoneNumberSelector
                   value={phoneSelection}
                   onChange={setPhoneSelection}
-                  provider="vapi"
+                  provider="twilio"
                 />
               </div>
               

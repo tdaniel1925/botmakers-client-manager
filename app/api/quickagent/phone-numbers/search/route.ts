@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchPhoneNumbers } from "@/lib/voice-providers/vapi-provider";
+import { searchAvailableTwilioNumbers } from "@/lib/twilio-client";
 
 export async function GET(request: Request) {
   try {
@@ -16,10 +16,7 @@ export async function GET(request: Request) {
     console.log("Searching for phone numbers in area code:", areaCode);
 
     // Search for available numbers in the requested area code
-    const numbers = await searchPhoneNumbers({
-      areaCode,
-      limit: 10,
-    });
+    const numbers = await searchAvailableTwilioNumbers(areaCode);
 
     if (numbers.length > 0) {
       return NextResponse.json({
@@ -38,10 +35,7 @@ export async function GET(request: Request) {
 
     for (const nearbyCode of nearbyAreaCodes.slice(0, 3)) {
       try {
-        const nearbyNumbers = await searchPhoneNumbers({
-          areaCode: nearbyCode,
-          limit: 1,
-        });
+        const nearbyNumbers = await searchAvailableTwilioNumbers(nearbyCode);
         
         if (nearbyNumbers.length > 0) {
           alternatives.push({

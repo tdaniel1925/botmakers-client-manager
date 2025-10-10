@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createOrganization } from "@/db/queries/organizations-queries";
 import { createProject } from "@/db/queries/projects-queries";
 import { createVoiceCampaignAction } from "@/actions/voice-campaign-actions";
-import { searchPhoneNumbers } from "@/lib/voice-providers/vapi-provider";
+import { searchAvailableTwilioNumbers } from "@/lib/twilio-client";
 
 export async function POST(request: Request) {
   try {
@@ -50,10 +50,7 @@ export async function POST(request: Request) {
     
     if (areaCode) {
       try {
-        const searchResults = await searchPhoneNumbers({
-          areaCode: areaCode,
-          limit: 1,
-        });
+        const searchResults = await searchAvailableTwilioNumbers(areaCode);
 
         if (searchResults.length > 0) {
           phoneNumber = searchResults[0].phoneNumber;
@@ -81,7 +78,7 @@ export async function POST(request: Request) {
       voiceProvider: "vapi",
       model: "gpt-4o-mini",
       // Phone number provisioning
-      phoneNumberSource: "vapi-auto-buy",
+      phoneNumberSource: "twilio",
       preferredPhoneNumber: phoneNumber,
     });
 
