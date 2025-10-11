@@ -118,19 +118,21 @@ export function ScreenerView() {
         )}
 
         {/* Screening Cards */}
-        <AnimatePresence mode="sync">
-          {senders.map((sender) => (
-            <ScreenEmailCard
-              key={sender.emailAddress}
-              emailAddress={sender.emailAddress}
-              name={sender.name}
-              firstEmail={sender.firstEmail}
-              count={sender.count}
-              classification={sender.classification}
-              onScreened={handleScreened}
-            />
-          ))}
-        </AnimatePresence>
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {senders.map((sender) => (
+              <ScreenEmailCard
+                key={sender.emailAddress}
+                emailAddress={sender.emailAddress}
+                name={sender.name}
+                firstEmail={sender.firstEmail}
+                count={sender.count}
+                classification={sender.classification}
+                onScreened={handleScreened}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
 
         {/* AI Info */}
         <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-2 pt-4">

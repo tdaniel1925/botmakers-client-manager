@@ -45,22 +45,31 @@ export function ScreenEmailCard({
   const [expanded, setExpanded] = useState(false);
   const [screening, setScreening] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isExiting, setIsExiting] = useState(false);
 
   const handleScreen = async (decision: 'imbox' | 'feed' | 'paper_trail' | 'blocked') => {
     setScreening(true);
+    setIsExiting(true); // Start exit animation immediately
+    
     const result = await screenSender(emailAddress, decision, firstEmail.id, notes);
+    
     if (result.success) {
-      onScreened();
+      // Wait for exit animation to complete before removing
+      setTimeout(() => {
+        onScreened();
+      }, 300); // Match the animation duration
+    } else {
+      setIsExiting(false);
+      setScreening(false);
     }
-    setScreening(false);
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -100 }}
-      transition={{ duration: 0.2 }}
+      animate={isExiting ? { opacity: 0, x: -100, scale: 0.9 } : { opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -100, scale: 0.9 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
     >
       <Card className="p-6 hover:shadow-md transition-shadow">
         {/* Header */}

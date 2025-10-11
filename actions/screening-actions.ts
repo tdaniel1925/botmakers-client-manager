@@ -84,18 +84,31 @@ export async function screenSender(
 
     // Update all emails from this sender
     const view = decision === 'blocked' ? null : decision;
-    await db
-      .update(emailsTable)
-      .set({
-        heyView: view,
-        screeningStatus: 'screened',
-      })
-      .where(
-        and(
-          eq(emailsTable.userId, userId),
-          eq(emailsTable.fromAddress, emailAddress)
-        )
-      );
+    
+    // Get all emails from this sender (fromAddress can be string or object)
+    const userEmails = await db
+      .select()
+      .from(emailsTable)
+      .where(eq(emailsTable.userId, userId));
+    
+    // Find emails matching this sender's email address
+    const emailsToUpdate = userEmails.filter(email => {
+      const fromAddr = getEmailAddress(email.fromAddress);
+      return fromAddr === emailAddress;
+    });
+    
+    // Update each email
+    for (const email of emailsToUpdate) {
+      await db
+        .update(emailsTable)
+        .set({
+          heyView: view,
+          screeningStatus: 'screened',
+        })
+        .where(eq(emailsTable.id, email.id));
+    }
+    
+    console.log(`✅ Screened ${emailsToUpdate.length} emails from ${emailAddress} as "${decision}"`);
 
     revalidatePath('/platform/emails');
     return { success: true };
