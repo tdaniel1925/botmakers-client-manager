@@ -58,8 +58,10 @@ export async function getEmailsAction(
 
     console.log('✅ getEmailsAction: Account verified, fetching emails...');
 
-    const limit = options?.limit || 50; // Reduced from 100 to 50 for faster initial load
+    const limit = options?.limit || 5000; // Load up to 5000 emails (was 50)
     const offset = options?.offset || 0;
+
+    console.log(`📊 Fetching emails with limit: ${limit}, offset: ${offset}`);
 
     // Fetch emails with pagination - FAST query (no joins)
     const emailList = await db.query.emailsTable.findMany({
@@ -73,6 +75,15 @@ export async function getEmailsAction(
     const emails = hasMore ? emailList.slice(0, limit) : emailList;
 
     console.log('✅ getEmailsAction: Query complete, found emails:', emails.length, 'hasMore:', hasMore);
+    
+    // Debug: Count by heyView
+    const viewCounts = {
+      imbox: emails.filter(e => e.heyView === 'imbox').length,
+      feed: emails.filter(e => e.heyView === 'feed').length,
+      paper_trail: emails.filter(e => e.heyView === 'paper_trail').length,
+      null: emails.filter(e => !e.heyView).length,
+    };
+    console.log('📊 Loaded emails by view:', viewCounts);
 
     // Force revalidation to ensure fresh data
     revalidatePath('/platform/emails');
