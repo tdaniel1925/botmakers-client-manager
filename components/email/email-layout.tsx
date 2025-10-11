@@ -301,7 +301,7 @@ export function EmailLayout() {
     if (emailMode === 'hey' || emailMode === 'hybrid') {
       switch (currentView) {
         case 'screener':
-          return <ScreenerView />;
+          return <ScreenerView onEmailsUpdated={loadEmails} />;
         
         case 'imbox':
           return (

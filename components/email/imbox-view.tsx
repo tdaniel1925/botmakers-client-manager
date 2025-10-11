@@ -37,9 +37,20 @@ export function ImboxView({
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   
   // Filter to Imbox emails only
-  const imboxEmails = emails.filter(email => 
-    email.heyView === 'imbox' || (!email.heyView && !email.screeningStatus)
-  );
+  const imboxEmails = emails.filter(email => {
+    const isImbox = email.heyView === 'imbox';
+    if (isImbox) {
+      console.log('✅ Email in Imbox:', {
+        subject: email.subject,
+        from: email.fromAddress,
+        heyView: email.heyView,
+        screeningStatus: email.screeningStatus
+      });
+    }
+    return isImbox;
+  });
+
+  console.log(`📥 Imbox View: Showing ${imboxEmails.length} of ${emails.length} total emails`);
 
   const filteredEmails = filter === 'unread' 
     ? imboxEmails.filter(e => !e.isRead)

@@ -20,7 +20,11 @@ interface UnscreenedSender {
   classification: any;
 }
 
-export function ScreenerView() {
+interface ScreenerViewProps {
+  onEmailsUpdated?: () => void; // Callback to refresh emails in parent
+}
+
+export function ScreenerView({ onEmailsUpdated }: ScreenerViewProps = {}) {
   const [senders, setSenders] = useState<UnscreenedSender[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -47,6 +51,11 @@ export function ScreenerView() {
   const handleScreened = (emailAddress: string) => {
     // Optimistically remove the sender immediately (no refresh!)
     setSenders(prevSenders => prevSenders.filter(s => s.emailAddress !== emailAddress));
+    
+    // Notify parent to refresh emails so they appear in correct views
+    if (onEmailsUpdated) {
+      onEmailsUpdated();
+    }
   };
 
   if (loading) {
