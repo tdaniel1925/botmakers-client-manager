@@ -31,7 +31,7 @@ interface ScreenEmailCardProps {
   firstEmail: SelectEmail;
   count: number;
   classification: ClassificationResult;
-  onScreened: () => void;
+  onScreened: (emailAddress: string) => void;
 }
 
 export function ScreenEmailCard({
@@ -51,16 +51,15 @@ export function ScreenEmailCard({
     setScreening(true);
     setIsExiting(true); // Start exit animation immediately
     
+    // Remove from UI immediately (optimistic update)
+    onScreened(emailAddress);
+    
+    // Update database in background
     const result = await screenSender(emailAddress, decision, firstEmail.id, notes);
     
-    if (result.success) {
-      // Wait for exit animation to complete before removing
-      setTimeout(() => {
-        onScreened();
-      }, 300); // Match the animation duration
-    } else {
-      setIsExiting(false);
-      setScreening(false);
+    if (!result.success) {
+      // If it fails, we could show an error toast here
+      console.error('Failed to screen sender:', result.error);
     }
   };
 

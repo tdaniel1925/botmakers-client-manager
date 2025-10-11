@@ -44,9 +44,9 @@ export function ScreenerView() {
     setLoading(false);
   };
 
-  const handleScreened = () => {
-    // Reload to show next sender
-    loadUnscreened();
+  const handleScreened = (emailAddress: string) => {
+    // Optimistically remove the sender immediately (no refresh!)
+    setSenders(prevSenders => prevSenders.filter(s => s.emailAddress !== emailAddress));
   };
 
   if (loading) {
