@@ -93,13 +93,13 @@ export async function syncNylasEmailsAction(
     let totalFetched = 0;
     let pageNumber = 0;
 
-    // Limit initial sync to recent emails only (default: 1000 emails for better coverage)
-    const maxEmails = options?.maxEmails || 1000;
+    // Sync ALL emails (no limit) - will take 5-10 minutes for large accounts
+    const maxEmails = options?.maxEmails || 999999; // Effectively unlimited
     const skipClassification = options?.skipClassification !== false; // Default: skip for speed
 
-    console.log(`🔄 Starting OPTIMIZED email sync for account:`, account.emailAddress);
-    console.log(`📊 Max emails: ${maxEmails}, Skip classification: ${skipClassification}`);
-    console.log(`📧 Account has emails, syncing up to ${maxEmails}...`);
+    console.log(`🔄 Starting FULL email sync for account:`, account.emailAddress);
+    console.log(`📊 Syncing ALL emails (no limit), Skip classification: ${skipClassification}`);
+    console.log(`⏱️  This may take 5-10 minutes for large accounts...`);
 
     // Pagination loop - fetch pages until limit reached
     do {
@@ -324,15 +324,10 @@ export async function syncNylasEmailsAction(
       // Get next page token for pagination
       pageToken = messagesResponse.nextCursor;
       
-      console.log(`📄 Page ${pageNumber} complete. Next page: ${pageToken ? 'Yes' : 'No'}, Total fetched: ${totalFetched}/${maxEmails}`);
+      console.log(`📄 Page ${pageNumber} complete. Next page: ${pageToken ? 'Yes' : 'No'}`);
+      console.log(`📊 Progress: ${totalFetched} emails fetched, ${syncedCount} synced, ${skippedCount} skipped, ${errorCount} errors`);
       
-      // OPTIMIZATION: Stop if we've reached the max email limit
-      if (totalFetched >= maxEmails) {
-        console.log(`⚡ Reached max email limit (${maxEmails}). Stopping sync for faster loading.`);
-        pageToken = undefined; // Stop pagination
-      }
-      
-      // Continue fetching if there are more pages and we haven't hit the limit
+      // Continue fetching all pages until no more emails
     } while (pageToken);
 
     // Update sync status
@@ -344,13 +339,16 @@ export async function syncNylasEmailsAction(
       })
       .where(eq(emailAccountsTable.id, accountId));
 
-    console.log('🎉 Sync Complete:', {
+    console.log('🎉 FULL SYNC COMPLETE:', {
       totalPages: pageNumber,
       totalFetched,
       synced: syncedCount,
       skipped: skippedCount,
-      errors: errorCount
+      errors: errorCount,
+      totalEmailsInDatabase: syncedCount + skippedCount
     });
+    
+    console.log(`✅ ${syncedCount} NEW emails synced, ${skippedCount} already existed`);
 
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
