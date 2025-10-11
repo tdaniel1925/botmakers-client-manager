@@ -93,12 +93,13 @@ export async function syncNylasEmailsAction(
     let totalFetched = 0;
     let pageNumber = 0;
 
-    // Limit initial sync to recent emails only (default: 200 emails, ~4 pages)
-    const maxEmails = options?.maxEmails || 200;
+    // Limit initial sync to recent emails only (default: 1000 emails for better coverage)
+    const maxEmails = options?.maxEmails || 1000;
     const skipClassification = options?.skipClassification !== false; // Default: skip for speed
 
     console.log(`🔄 Starting OPTIMIZED email sync for account:`, account.emailAddress);
     console.log(`📊 Max emails: ${maxEmails}, Skip classification: ${skipClassification}`);
+    console.log(`📧 Account has emails, syncing up to ${maxEmails}...`);
 
     // Pagination loop - fetch pages until limit reached
     do {
