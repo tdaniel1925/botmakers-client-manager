@@ -144,8 +144,14 @@ export async function endImpersonationAction(): Promise<{ success: boolean; erro
 
 /**
  * Get current impersonation status
+ * 
+ * TEMPORARILY DISABLED: Impersonation table needs to be created via migration
  */
 export async function getImpersonationStatusAction(): Promise<ImpersonationStatus> {
+  // TEMPORARY: Return false until impersonation table is created
+  return { isImpersonating: false };
+  
+  /* ORIGINAL CODE - restore after running db:push
   try {
     const { userId } = await auth();
     
@@ -170,6 +176,7 @@ export async function getImpersonationStatusAction(): Promise<ImpersonationStatu
     console.error("[Impersonation] Status error:", error);
     return { isImpersonating: false };
   }
+  */
 }
 
 /**

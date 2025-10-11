@@ -7,13 +7,22 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
-import { checkPaymentFailedAction } from "@/actions/profiles-actions";
+// TODO: Recreate profiles system and restore this import
+// import { checkPaymentFailedAction } from "@/actions/profiles-actions";
 
 /**
  * Payment status alert component that uses server actions to check payment status
  * Only shows when payment has failed and user is not on the pricing page
+ * 
+ * TEMPORARILY DISABLED: Profiles system needs to be recreated
  */
 export function PaymentStatusAlert() {
+  // TEMPORARY: Return null until profiles system is restored
+  return null;
+  
+  /* ORIGINAL CODE - restore when profiles system is ready
+  
+  // The following code is commented out until profiles system is recreated:
   const [hasPaymentFailed, setHasPaymentFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);

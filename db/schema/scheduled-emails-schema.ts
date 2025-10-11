@@ -67,3 +67,7 @@ export const selectScheduledEmailSchema = createSelectSchema(scheduledEmails);
 export type InsertScheduledEmail = z.infer<typeof insertScheduledEmailSchema>;
 export type SelectScheduledEmail = typeof scheduledEmails.$inferSelect;
 
+
+
+
+

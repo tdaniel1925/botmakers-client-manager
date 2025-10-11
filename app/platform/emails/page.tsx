@@ -14,6 +14,10 @@ export const metadata = {
   description: 'AI-powered email client',
 };
 
+// Disable caching to always fetch fresh email data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PlatformEmailsPage() {
   const { userId } = await auth();
 
@@ -25,25 +29,11 @@ export default async function PlatformEmailsPage() {
   await ensurePlatformAdmin();
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Email</h1>
-            <p className="text-sm text-muted-foreground">
-              AI-powered email client with smart summaries
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Email Layout */}
-      <div className="flex-1 overflow-hidden">
-        <Suspense fallback={<EmailLayoutSkeleton />}>
-          <EmailLayout />
-        </Suspense>
-      </div>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Email Layout - Full Viewport (includes header internally) */}
+      <Suspense fallback={<EmailLayoutSkeleton />}>
+        <EmailLayout />
+      </Suspense>
     </div>
   );
 }
@@ -57,4 +47,7 @@ function EmailLayoutSkeleton() {
     </div>
   );
 }
+
+
+
 

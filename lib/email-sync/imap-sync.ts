@@ -43,7 +43,7 @@ export async function syncImapAccount(accountId: string, userId: string): Promis
       port: account.imapPort,
       secure: account.imapUseSsl ?? true,
       auth: {
-        user: account.emailAddress,
+        user: account.imapUsername || account.emailAddress, // Use imapUsername if available
         pass: password,
       },
       logger: false,

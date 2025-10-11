@@ -42,26 +42,44 @@ export function OrgSwitcherDropdown({
   const [isPending, startTransition] = useTransition();
   const [localView, setLocalView] = useState(currentView);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("[OrgSwitcher] Component props:", {
+      isPlatformAdmin,
+      currentView,
+      orgCount: availableOrganizations.length
+    });
+  }, [isPlatformAdmin, currentView, availableOrganizations]);
+
   // Sync local state when prop changes
   useEffect(() => {
     setLocalView(currentView);
   }, [currentView]);
 
   const handleSwitchView = async (type: "platform" | "organization", orgId?: string) => {
-    if (!orgId && type === "organization") return;
+    console.log("[OrgSwitcher] Switching view:", { type, orgId });
+    
+    if (!orgId && type === "organization") {
+      console.log("[OrgSwitcher] No orgId provided for organization view");
+      return;
+    }
 
     startTransition(async () => {
       try {
+        console.log("[OrgSwitcher] Setting current view action...");
         // Set cookie to persist view across page refreshes
         await setCurrentViewAction(type, orgId);
+        console.log("[OrgSwitcher] View action set successfully");
 
         // Update local state immediately for responsive UI
         if (type === "platform") {
+          console.log("[OrgSwitcher] Navigating to /platform/dashboard");
           setLocalView({ type: "platform" });
           router.push("/platform/dashboard");
         } else if (type === "organization" && orgId) {
           const org = availableOrganizations.find((o) => o.id === orgId);
           if (org) {
+            console.log("[OrgSwitcher] Navigating to /dashboard for org:", org.name);
             setLocalView({
               type: "organization",
               organizationId: org.id,
@@ -73,9 +91,11 @@ export function OrgSwitcherDropdown({
         }
 
         // Refresh the page to reload with new context
+        console.log("[OrgSwitcher] Refreshing router...");
         router.refresh();
+        console.log("[OrgSwitcher] View switch complete");
       } catch (error) {
-        console.error("Error switching view:", error);
+        console.error("[OrgSwitcher] Error switching view:", error);
       }
     });
   };

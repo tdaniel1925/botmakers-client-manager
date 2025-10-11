@@ -30,11 +30,11 @@ interface CampaignWizardProps {
   onCancel?: () => void;
 }
 
-type WizardStep = "questions" | "preview" | "generating" | "testing" | "complete";
+type WizardStep = "basic-info" | "phone-number" | "preview" | "generating" | "testing" | "complete";
 
 export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWizardProps) {
   const [isPending, startTransition] = useTransition();
-  const [currentStep, setCurrentStep] = useState<WizardStep>("questions");
+  const [currentStep, setCurrentStep] = useState<WizardStep>("basic-info");
   const [selectedProvider] = useState<"vapi">("vapi"); // Always use Vapi
   const [answers, setAnswers] = useState<Partial<CampaignSetupAnswers>>({});
   const [phoneSelection, setPhoneSelection] = useState<PhoneNumberSelection>({ source: "twilio" });
@@ -44,8 +44,8 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [savedProgressAge, setSavedProgressAge] = useState<string | null>(null);
   
-  // Schedule configuration
-  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
+  // Schedule configuration (for preview only, actual configuration happens post-creation)
+  const [scheduleConfig] = useState({
     callDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
     callWindows: [
       { start: "09:00", end: "12:00", label: "Morning" },
@@ -92,36 +92,52 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   };
   
   const steps = [
-    { id: "questions", label: "Setup Campaign", description: "Configure your AI agent" },
-    { id: "preview", label: "Review & Confirm", description: "Preview your configuration" },
-    { id: "generating", label: "AI Generation", description: "Creating your agent" },
-    { id: "testing", label: "Test & Deploy", description: "Test and activate" },
+    { id: "basic-info", label: "Campaign Setup", description: "Configure your AI agent" },
+    { id: "phone-number", label: "Phone Number", description: "Select or provision number" },
+    { id: "preview", label: "Review & Launch", description: "Review and create" },
   ];
   
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
   
-  const handleNextFromQuestions = () => {
-    // Validate all answers
-    const validationErrors = validateAllAnswers(answers);
-    
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      toast.error("Please fix the errors before continuing");
-      // Scroll to first error
-      const firstErrorField = Object.keys(validationErrors)[0];
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  const validateCurrentStep = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (currentStep === "basic-info") {
+      const validationErrors = validateAllAnswers(answers);
+      Object.assign(newErrors, validationErrors);
+      
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        toast.error("Please fix the errors before continuing");
+        const firstErrorField = Object.keys(newErrors)[0];
+        document.getElementById(firstErrorField)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return false;
+      }
+    } else if (currentStep === "phone-number") {
+      if (phoneSelection.source === "twilio" && !phoneSelection.twilioNumber) {
+        toast.error("Please select a Twilio phone number");
+        return false;
+      }
+    }
+
+    setErrors({});
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateCurrentStep()) {
       return;
     }
+
+    const stepOrder: WizardStep[] = ["basic-info", "phone-number", "preview"];
+    const currentIndex = stepOrder.indexOf(currentStep);
     
-    // Validate phone number selection
-    if (phoneSelection.source === "twilio" && !phoneSelection.twilioNumber) {
-      toast.error("Please select a Twilio phone number");
-      return;
+    if (currentIndex < stepOrder.length - 1) {
+      setCurrentStep(stepOrder[currentIndex + 1]);
+    } else if (currentStep === "preview") {
+      handleNextFromPreview();
     }
-    
-    // All valid, go to preview step
-    setCurrentStep("preview");
   };
 
   const handleNextFromPreview = () => {
@@ -137,13 +153,13 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
     
     startTransition(async () => {
       try {
-        // Merge phone selection and schedule config into answers
+        // Merge phone selection into answers
+        // Note: Contacts, SMS, email, and scheduling are configured post-creation
         const finalAnswers = {
           ...answers,
           phone_source: phoneSelection.source,
           twilio_phone_number: phoneSelection.twilioNumber,
           area_code: phoneSelection.areaCode,
-          schedule_config: scheduleConfig
         } as CampaignSetupAnswers;
         
         const result = await createVoiceCampaignAction(
@@ -154,7 +170,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
         
         if (result.error) {
           setError(result.error);
-          setCurrentStep("questions");
+          setCurrentStep("basic-info");
           toast.error("Error Occurred", {
             description: result.error || "Sorry, please try again later.",
             action: {
@@ -198,10 +214,13 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   };
   
   const handleBack = () => {
-    const stepOrder: WizardStep[] = ["questions", "preview", "generating", "testing"];
+    const stepOrder: WizardStep[] = ["basic-info", "phone-number", "preview"];
     const currentIndex = stepOrder.indexOf(currentStep);
+    
     if (currentIndex > 0) {
       setCurrentStep(stepOrder[currentIndex - 1]);
+    } else {
+      onCancel?.();
     }
   };
   
@@ -280,12 +299,13 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
       {/* Step Content */}
       <Card>
         <CardContent className="pt-6">
-          {currentStep === "questions" && (
-            <div className="space-y-8">
+          {/* Step 1: Basic Info - Campaign Setup Questions */}
+          {currentStep === "basic-info" && (
+            <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-semibold mb-2">Campaign Setup Questions</h3>
+                <h3 className="text-xl font-semibold mb-2">Campaign Setup</h3>
                 <p className="text-sm text-gray-600">
-                  Answer these questions to help our AI create the perfect voice agent for you
+                  Configure your AI voice agent's basic settings and behavior
                 </p>
               </div>
               <CampaignQuestionsForm
@@ -294,26 +314,23 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
                 errors={errors}
                 onErrorsChange={setErrors}
               />
-              
-              {/* Phone Number Selection - Using Twilio */}
-              <div className="border-t pt-6">
-                <PhoneNumberSelector
-                  value={phoneSelection}
-                  onChange={setPhoneSelection}
-                  provider="twilio"
-                />
+            </div>
+          )}
+          
+          {/* Step 2: Phone Number Selection */}
+          {currentStep === "phone-number" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Phone Number</h3>
+                <p className="text-sm text-gray-600">
+                  Select or provision a phone number for your campaign
+                </p>
               </div>
-              
-              {/* Call Scheduling Configuration */}
-              {answers.campaign_type === "outbound" && (
-                <div className="border-t pt-6">
-                  <ScheduleConfigForm
-                    value={scheduleConfig}
-                    onChange={setScheduleConfig}
-                    campaignType="outbound"
-                  />
-                </div>
-              )}
+              <PhoneNumberSelector
+                value={phoneSelection}
+                onChange={setPhoneSelection}
+                provider="twilio"
+              />
             </div>
           )}
           
@@ -395,23 +412,23 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
       <div className="flex justify-between">
         <Button
           variant="outline"
-          onClick={currentStep === "questions" ? onCancel : handleBack}
+          onClick={handleBack}
           disabled={isPending || currentStep === "generating"}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {currentStep === "questions" ? "Cancel" : "Back"}
+          {currentStep === "basic-info" ? "Cancel" : "Back"}
         </Button>
         
         <div className="space-x-2">
-          {currentStep === "questions" && (
-            <Button onClick={handleNextFromQuestions} disabled={isPending}>
-              Next: Review
+          {(currentStep === "basic-info" || currentStep === "phone-number") && (
+            <Button onClick={handleNext} disabled={isPending}>
+              Continue
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
           
           {currentStep === "preview" && (
-            <Button onClick={handleNextFromPreview} disabled={isPending}>
+            <Button onClick={handleNext} disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

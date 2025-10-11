@@ -70,10 +70,12 @@ export async function connectImapAccountAction(
       emailAddress: params.emailAddress,
       provider: 'imap', // Generic IMAP
       authType: 'password',
+      imapUsername: params.emailAddress, // Use email as username (most common)
       imapPassword: encryptedPassword, // Fixed: use imapPassword field
       imapHost: params.imapHost,
       imapPort: params.imapPort,
       imapUseSsl: true, // Default to SSL for IMAP
+      smtpUsername: params.emailAddress, // Use email as username
       smtpPassword: encryptedPassword, // Fixed: use smtpPassword field (same as IMAP)
       smtpHost: params.smtpHost,
       smtpPort: params.smtpPort,

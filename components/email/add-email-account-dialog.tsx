@@ -1,88 +1,62 @@
 /**
- * Add Email Account Dialog
- * Simple dialog for connecting email accounts via IMAP/SMTP
+ * Add Email Account Dialog - Nylas Edition
+ * Connect email accounts via Nylas OAuth (Gmail, Outlook) or IMAP fallback
  */
 
 'use client';
 
 import { useState } from 'react';
-import { X, Mail } from 'lucide-react';
+import { X, Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { connectImapAccountAction } from '@/actions/email-imap-connection-actions';
+import { connectNylasAccountAction } from '@/actions/email-nylas-actions';
 
 interface AddEmailAccountDialogProps {
-  onClose: () => void;
-  onSuccess: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDialogProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [imapHost, setImapHost] = useState('');
-  const [imapPort, setImapPort] = useState('993');
-  const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState('587');
+export function AddEmailAccountDialog({ open, onOpenChange, onSuccess }: AddEmailAccountDialogProps) {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleClose = () => {
+    if (!connecting) {
+      onOpenChange(false);
+    }
+  };
+
+  const handleConnect = async (provider: 'gmail' | 'microsoft' | 'imap') => {
     setError('');
     setConnecting(true);
 
     try {
-      const result = await connectImapAccountAction({
-        emailAddress: email,
-        password,
-        imapHost,
-        imapPort: parseInt(imapPort),
-        smtpHost,
-        smtpPort: parseInt(smtpPort),
-        smtpSecure: parseInt(smtpPort) === 465,
-      });
+      const result = await connectNylasAccountAction(provider);
 
-      if (result.success) {
-        onSuccess();
-        onClose();
-      } else {
-        setError(result.error || 'Failed to connect account');
+      if (result.authUrl) {
+        // Redirect to Nylas OAuth
+        window.location.href = result.authUrl;
+      } else if (result.error) {
+        setError(result.error);
+        setConnecting(false);
       }
     } catch (err) {
-      setError('An error occurred while connecting the account');
-    } finally {
+      setError('Failed to initiate connection');
       setConnecting(false);
     }
   };
 
-  const handleQuickSetup = (provider: 'gmail' | 'outlook' | 'yahoo' | 'fastmail') => {
-    if (provider === 'gmail') {
-      setImapHost('imap.gmail.com');
-      setImapPort('993');
-      setSmtpHost('smtp.gmail.com');
-      setSmtpPort('587');
-    } else if (provider === 'outlook') {
-      setImapHost('outlook.office365.com');
-      setImapPort('993');
-      setSmtpHost('smtp.office365.com');
-      setSmtpPort('587');
-    } else if (provider === 'yahoo') {
-      setImapHost('imap.mail.yahoo.com');
-      setImapPort('993');
-      setSmtpHost('smtp.mail.yahoo.com');
-      setSmtpPort('587');
-    } else if (provider === 'fastmail') {
-      setImapHost('imap.fastmail.com');
-      setImapPort('993');
-      setSmtpHost('smtp.fastmail.com'); // Fixed: was imap.fastmail.com
-      setSmtpPort('587');
-    }
-  };
+  if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background border shadow-2xl rounded-lg w-full max-w-md">
+    <div 
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={handleClose}
+    >
+      <div 
+        className="bg-background border shadow-2xl rounded-lg w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="border-b px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -90,131 +64,91 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
             <h2 className="text-lg font-semibold">Connect Email Account</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
+            disabled={connecting}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Quick Setup */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Quick Setup</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickSetup('gmail')}
-              >
-                Gmail
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickSetup('outlook')}
-              >
-                Outlook
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickSetup('yahoo')}
-              >
-                Yahoo
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickSetup('fastmail')}
-              >
-                Fastmail
-              </Button>
-            </div>
-          </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Connect your email account to start managing emails with AI-powered features.
+          </p>
 
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-            />
-          </div>
+          {/* Provider Buttons */}
+          <div className="space-y-3">
+            {/* Gmail */}
+            <Button
+              onClick={() => handleConnect('gmail')}
+              disabled={connecting}
+              className="w-full justify-start h-auto py-4 px-4"
+              variant="outline"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-shrink-0 w-8 h-8 bg-white rounded flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5">
+                    <path fill="#EA4335" d="M5 5v14h14V5H5zm13 13H6V6h12v12z"/>
+                    <path fill="#FBBC05" d="M8.5 8.5h7v7h-7z"/>
+                    <path fill="#34A853" d="M8.5 11h3.5v4.5H8.5z"/>
+                    <path fill="#4285F4" d="M12 8.5h3.5V12H12z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-base">Gmail</div>
+                  <div className="text-xs text-muted-foreground">
+                    Connect your Google account (recommended)
+                  </div>
+                </div>
+                {connecting && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+            </Button>
 
-          {/* Password */}
-          <div className="space-y-2">
-            <Label htmlFor="password">Password *</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your email password"
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              For Gmail, use an App Password. For others, use your email password.
-            </p>
-          </div>
+            {/* Microsoft/Outlook */}
+            <Button
+              onClick={() => handleConnect('microsoft')}
+              disabled={connecting}
+              className="w-full justify-start h-auto py-4 px-4"
+              variant="outline"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-shrink-0 w-8 h-8 bg-[#0078D4] rounded flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="white">
+                    <path d="M3 3v18h18V3H3zm16 16H5V5h14v14z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-base">Microsoft / Outlook</div>
+                  <div className="text-xs text-muted-foreground">
+                    Connect your Microsoft 365 or Outlook account
+                  </div>
+                </div>
+                {connecting && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+            </Button>
 
-          {/* IMAP Settings */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="imapHost">IMAP Host *</Label>
-              <Input
-                id="imapHost"
-                value={imapHost}
-                onChange={(e) => setImapHost(e.target.value)}
-                placeholder="imap.gmail.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="imapPort">IMAP Port *</Label>
-              <Input
-                id="imapPort"
-                type="number"
-                value={imapPort}
-                onChange={(e) => setImapPort(e.target.value)}
-                placeholder="993"
-                required
-              />
-            </div>
-          </div>
-
-          {/* SMTP Settings */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="smtpHost">SMTP Host *</Label>
-              <Input
-                id="smtpHost"
-                value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
-                placeholder="smtp.gmail.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="smtpPort">SMTP Port *</Label>
-              <Input
-                id="smtpPort"
-                type="number"
-                value={smtpPort}
-                onChange={(e) => setSmtpPort(e.target.value)}
-                placeholder="587"
-                required
-              />
-            </div>
+            {/* IMAP (fallback) */}
+            <Button
+              onClick={() => handleConnect('imap')}
+              disabled={connecting}
+              className="w-full justify-start h-auto py-4 px-4"
+              variant="outline"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-shrink-0 w-8 h-8 bg-muted rounded flex items-center justify-center">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-base">Other Email Provider</div>
+                  <div className="text-xs text-muted-foreground">
+                    Yahoo, iCloud, custom IMAP, etc.
+                  </div>
+                </div>
+                {connecting && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+            </Button>
           </div>
 
           {/* Error */}
@@ -224,28 +158,22 @@ export function AddEmailAccountDialog({ onClose, onSuccess }: AddEmailAccountDia
             </div>
           )}
 
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={connecting}>
-              {connecting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Connect
-                </>
-              )}
-            </Button>
+          {/* Info */}
+          <div className="pt-4 border-t">
+            <p className="text-xs text-muted-foreground">
+              <strong>Secure & Private:</strong> Your email credentials are encrypted and stored
+              securely. We use Nylas for reliable, enterprise-grade email connectivity.
+            </p>
           </div>
-        </form>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t px-6 py-4 flex items-center justify-end">
+          <Button type="button" variant="ghost" onClick={handleClose} disabled={connecting}>
+            Cancel
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
-

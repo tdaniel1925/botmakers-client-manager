@@ -6,11 +6,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, X, Sparkles, MessageSquare } from 'lucide-react';
+import { Send, Bot, X, Sparkles, MessageSquare, Calendar, ListTodo, Search, FileText, Clock } from 'lucide-react';
 import type { SelectEmail } from '@/db/schema/email-schema';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { EmailInsightsCard } from './email-insights-card';
 
 interface Message {
   id: string;
@@ -21,21 +22,58 @@ interface Message {
 
 interface EmailCopilotPanelProps {
   selectedEmail: SelectEmail | null;
+  accountId: string | null;
   onClose: () => void;
 }
 
-const SUGGESTED_ACTIONS = [
-  { id: 'summarize', label: 'Summarize this email', icon: Sparkles },
-  { id: 'draft-reply', label: 'Draft a professional reply', icon: MessageSquare },
-  { id: 'extract-actions', label: 'Extract action items', icon: MessageSquare },
-  { id: 'find-similar', label: 'Find similar emails', icon: MessageSquare },
-];
+// Dynamic suggested actions based on email content
+const getSmartActions = (email: SelectEmail | null) => {
+  if (!email) {
+    return [
+      { id: 'help', label: 'How can I help you?', icon: Sparkles },
+      { id: 'shortcuts', label: 'Show keyboard shortcuts', icon: MessageSquare },
+    ];
+  }
 
-export function EmailCopilotPanel({ selectedEmail, onClose }: EmailCopilotPanelProps) {
+  const actions = [];
+  const subject = email.subject?.toLowerCase() || '';
+  const body = email.bodyText?.toLowerCase() || '';
+
+  // Always show these for any email
+  actions.push(
+    { id: 'draft-reply', label: 'Draft professional reply', icon: MessageSquare },
+    { id: 'extract-actions', label: 'Extract action items', icon: ListTodo }
+  );
+
+  // Meeting-related
+  if (subject.includes('meeting') || body.includes('meeting') || subject.includes('call')) {
+    actions.push(
+      { id: 'schedule', label: 'Schedule follow-up', icon: Calendar }
+    );
+  }
+
+  // Thread-specific
+  if (email.threadId) {
+    actions.push(
+      { id: 'summarize-thread', label: 'Summarize thread history', icon: FileText }
+    );
+  }
+
+  // Find similar
+  actions.push(
+    { id: 'find-similar', label: 'Find related conversations', icon: Search }
+  );
+
+  return actions;
+};
+
+export function EmailCopilotPanel({ selectedEmail, accountId, onClose }: EmailCopilotPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [smartActions, setSmartActions] = useState<any[]>([]);
 
   // Add initial welcome message
   useEffect(() => {
@@ -58,25 +96,34 @@ export function EmailCopilotPanel({ selectedEmail, onClose }: EmailCopilotPanelP
     }
   }, [messages]);
 
-  // Update context when email changes
+  // Update context and smart actions when email changes
   useEffect(() => {
-    if (selectedEmail && messages.length === 1) {
-      const contextMessage: Message = {
-        id: `context-${selectedEmail.id}`,
-        role: 'assistant',
-        content: `I can see you've selected an email from **${
-          typeof selectedEmail.fromAddress === 'object'
-            ? selectedEmail.fromAddress.email
-            : selectedEmail.fromAddress
-        }** with subject "${selectedEmail.subject}". How can I help you with this email?`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, contextMessage]);
+    // Update smart actions
+    setSmartActions(getSmartActions(selectedEmail));
+
+    // Add context message for new email
+    if (selectedEmail && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      const isAlreadyContext = lastMessage.id.startsWith('context-');
+      
+      if (!isAlreadyContext) {
+        const sender = typeof selectedEmail.fromAddress === 'object'
+          ? selectedEmail.fromAddress.email
+          : selectedEmail.fromAddress;
+        
+        const contextMessage: Message = {
+          id: `context-${selectedEmail.id}`,
+          role: 'assistant',
+          content: `I can see you've selected an email from ${sender} with subject "${selectedEmail.subject}". I'm ready to help you with this email!`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, contextMessage]);
+      }
     }
   }, [selectedEmail]);
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isThinking) return;
+    if (!input.trim() || isThinking || !accountId) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -88,18 +135,52 @@ export function EmailCopilotPanel({ selectedEmail, onClose }: EmailCopilotPanelP
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsThinking(true);
+    setError(null);
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      // Call real AI API
+      const response = await fetch('/api/email/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage.content,
+          accountId,
+          selectedEmailId: selectedEmail?.id,
+          conversationHistory: messages.slice(-10), // Last 10 messages for context
+          includeAllEmails: userMessage.content.toLowerCase().includes('all') || 
+                           userMessage.content.toLowerCase().includes('search'),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI response');
+      }
+
+      const data = await response.json();
+
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
-        content: generateAIResponse(userMessage.content, selectedEmail),
+        content: data.response,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error: any) {
+      console.error('AI Error:', error);
+      setError(error.message || 'Failed to get AI response');
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: `❌ Sorry, I encountered an error: ${error.message}\n\nPlease try again or rephrase your question.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsThinking(false);
-    }, 1000);
+    }
   };
 
   const handleSuggestedAction = (actionId: string) => {
@@ -107,10 +188,19 @@ export function EmailCopilotPanel({ selectedEmail, onClose }: EmailCopilotPanelP
       'summarize': 'Summarize this email',
       'draft-reply': 'Draft a professional reply to this email',
       'extract-actions': 'Extract all action items from this email',
-      'find-similar': 'Find similar emails in my inbox',
+      'find-similar': 'Find similar emails from this sender',
+      'schedule': 'Help me schedule a follow-up meeting',
+      'summarize-thread': 'Summarize the entire conversation thread',
+      'help': 'What can you help me with?',
+      'shortcuts': 'Show me the keyboard shortcuts',
     };
 
-    setInput(actionMessages[actionId] || '');
+    const message = actionMessages[actionId] || actionId;
+    setInput(message);
+    // Auto-submit for better UX
+    setTimeout(async () => {
+      await handleSendMessage();
+    }, 100);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -121,37 +211,57 @@ export function EmailCopilotPanel({ selectedEmail, onClose }: EmailCopilotPanelP
   };
 
   return (
-    <div className="w-[420px] border-l bg-background flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" />
-          <span className="font-semibold">AI Copilot</span>
-        </div>
-        <button
-          onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+    <div className="flex flex-col h-full bg-background">
+      {/* Header removed - now in DraggableAIModal */}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Email Insights Card - show when email is selected */}
+        {selectedEmail && (
+          <div className="sticky top-0 z-10 mb-4">
+            <EmailInsightsCard email={selectedEmail} />
+          </div>
+        )}
+
+        {/* Smart Action Chips - show when email is selected */}
+        {selectedEmail && smartActions.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-muted-foreground px-1">
+              Quick Actions
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {smartActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.id}
+                    onClick={() => handleSuggestedAction(action.id)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                  >
+                    <Icon className="h-3 w-3" />
+                    {action.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Chat Messages */}
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-lg px-4 py-2 ${
+              className={`max-w-[85%] rounded-lg px-4 py-2.5 border ${
                 message.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-muted text-foreground border-border shadow-sm'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-              <span className="text-xs opacity-70 mt-1 block">
+              <p className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+              <span className="text-xs opacity-70 mt-1.5 block">
                 {message.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -177,29 +287,6 @@ export function EmailCopilotPanel({ selectedEmail, onClose }: EmailCopilotPanelP
         )}
       </div>
 
-      {/* Suggested Actions */}
-      {selectedEmail && messages.length <= 2 && (
-        <div className="border-t px-4 py-3 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">
-            Suggested Actions
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_ACTIONS.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.id}
-                  onClick={() => handleSuggestedAction(action.id)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
-                >
-                  <Icon className="h-3 w-3" />
-                  {action.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Input */}
       <div className="border-t p-4">
@@ -256,4 +343,7 @@ function generateAIResponse(input: string, email: SelectEmail | null): string {
 
   return `I understand you're asking about: "${input}"\n\nI can help you with:\n• Summarizing emails\n• Drafting replies\n• Extracting action items\n• Finding similar emails\n• Managing your inbox\n\nWhat would you like me to do?`;
 }
+
+
+
 

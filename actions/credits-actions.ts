@@ -1,8 +1,13 @@
 "use server";
 
-import { getProfileByUserId, updateProfile } from "@/db/queries/profiles-queries";
+// TODO: Recreate profiles system and restore these imports
+// import { getProfileByUserId, updateProfile } from "@/db/queries/profiles-queries";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+
+// TEMPORARY: Profiles system is disabled, return defaults
+const getProfileByUserId = async (userId: string) => null;
+const updateProfile = async (userId: string, data: any, options?: any) => null;
 
 // Constants
 const DEFAULT_USAGE_CREDITS = 1000; // Pro users get 1000 credits per cycle

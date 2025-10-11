@@ -71,6 +71,38 @@ export const voiceCampaignsTable = pgTable("voice_campaigns", {
   }
   */
   
+  // SMS Automation Settings
+  smsSettings: jsonb("sms_settings"),
+  /* Example structure:
+  {
+    followUps: {
+      enabled: boolean,
+      template: string // with variables like {contact_name}, {agent_name}, {call_summary}
+    },
+    notifications: {
+      enabled: boolean,
+      template: string,
+      triggers: ['all_calls' | 'qualified_leads' | 'failed_calls']
+    }
+  }
+  */
+  
+  // Email Automation Settings
+  emailSettings: jsonb("email_settings"),
+  /* Example structure:
+  {
+    followUps: {
+      enabled: boolean,
+      subject: string,
+      body: string // with variables like {contact_name}, {agent_name}, {call_summary}
+    },
+    notifications: {
+      enabled: boolean,
+      frequency: 'realtime' | 'daily' | 'weekly'
+    }
+  }
+  */
+  
   // Campaign Goals & Personality
   campaignGoal: text("campaign_goal"), // lead_qualification, appointment_booking, etc.
   agentPersonality: text("agent_personality"), // professional, friendly, etc.

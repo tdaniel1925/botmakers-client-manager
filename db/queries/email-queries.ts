@@ -488,3 +488,22 @@ export async function getThreadStats(accountId: string) {
   return stats;
 }
 
+// ============================================================================
+// Email Folders - Read
+// ============================================================================
+
+export async function getEmailFoldersByAccountId(accountId: string) {
+  const { emailFoldersTable } = await import("@/db/schema/email-schema");
+  
+  const folders = await db
+    .select()
+    .from(emailFoldersTable)
+    .where(eq(emailFoldersTable.accountId, accountId))
+    .orderBy(
+      desc(emailFoldersTable.isSystemFolder),
+      asc(emailFoldersTable.name)
+    );
+  
+  return folders;
+}
+

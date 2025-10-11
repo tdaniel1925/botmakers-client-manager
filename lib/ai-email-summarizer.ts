@@ -1,6 +1,7 @@
 /**
  * AI Email Summarizer
  * Uses OpenAI GPT-4 to generate intelligent email summaries
+ * With in-memory caching and request deduplication
  */
 
 import OpenAI from 'openai';
@@ -10,10 +11,55 @@ import {
   getAISummaryByThreadId,
 } from '@/db/queries/email-sync-queries';
 import type { SelectEmail } from '@/db/schema/email-schema';
+import { db } from '@/db/db';
+import { emailAttachmentsTable } from '@/db/schema/email-schema';
+import { eq } from 'drizzle-orm';
+import { extractMultipleAttachments, formatAttachmentsForAI } from './attachment-extractor';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// In-memory cache for ultra-fast access
+const memoryCache = new Map<string, { data: any; timestamp: number }>();
+const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Request deduplication - prevent multiple concurrent requests for same email
+const pendingRequests = new Map<string, Promise<any>>();
+
+function getCachedValue<T>(key: string): T | null {
+  const cached = memoryCache.get(key);
+  if (!cached) return null;
+  
+  // Check if expired
+  if (Date.now() - cached.timestamp > MEMORY_CACHE_TTL) {
+    memoryCache.delete(key);
+    return null;
+  }
+  
+  return cached.data as T;
+}
+
+function setCachedValue(key: string, data: any): void {
+  memoryCache.set(key, { data, timestamp: Date.now() });
+}
+
+async function dedupRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  // Check if request is already pending
+  const pending = pendingRequests.get(key);
+  if (pending) {
+    return pending as Promise<T>;
+  }
+  
+  // Create new request
+  const promise = fn().finally(() => {
+    // Remove from pending when done
+    pendingRequests.delete(key);
+  });
+  
+  pendingRequests.set(key, promise);
+  return promise;
+}
 
 // ============================================================================
 // Email Summarization
@@ -30,29 +76,60 @@ export interface EmailSummary {
 
 /**
  * Generate AI summary for an email
- * Cached for 24 hours
+ * Cached for 24 hours with in-memory cache layer
  */
 export async function summarizeEmail(
   email: SelectEmail,
   userId: string
 ): Promise<EmailSummary> {
-  try {
-    // Check if summary already exists and is not expired
-    const existingSummary = await getAISummaryByEmailId(email.id);
+  const cacheKey = `email-summary-${email.id}`;
+  
+  // Check in-memory cache first
+  const memoryCached = getCachedValue<EmailSummary>(cacheKey);
+  if (memoryCached) {
+    return memoryCached;
+  }
+  
+  // Use request deduplication
+  return dedupRequest(cacheKey, async () => {
+    try {
+      // Check if summary already exists in database
+      const existingSummary = await getAISummaryByEmailId(email.id);
 
-    if (existingSummary) {
-      return {
-        summary: existingSummary.summaryText,
-        keyPoints: (existingSummary.keyPoints as string[]) || [],
-        actionItems: (existingSummary.actionItems as string[]) || [],
-        sentiment: (existingSummary.sentiment as any) || 'neutral',
-        urgency: (existingSummary.urgency as any) || 'medium',
-        suggestedReply: existingSummary.suggestedReply || undefined,
-      };
+      if (existingSummary) {
+        const summary = {
+          summary: existingSummary.summaryText,
+          keyPoints: (existingSummary.keyPoints as string[]) || [],
+          actionItems: (existingSummary.actionItems as string[]) || [],
+          sentiment: (existingSummary.sentiment as any) || 'neutral',
+          urgency: (existingSummary.urgency as any) || 'medium',
+          suggestedReply: existingSummary.suggestedReply || undefined,
+        };
+        setCachedValue(cacheKey, summary);
+        return summary;
+      }
+
+    // Generate new summary with attachment content
+    let emailContent = buildEmailContext(email);
+    
+    // Fetch and extract attachment content if email has attachments
+    if (email.hasAttachments) {
+      try {
+        const attachments = await db
+          .select()
+          .from(emailAttachmentsTable)
+          .where(eq(emailAttachmentsTable.emailId, email.id));
+        
+        if (attachments.length > 0) {
+          const extractedContent = await extractMultipleAttachments(attachments);
+          const attachmentContext = formatAttachmentsForAI(extractedContent);
+          emailContent += attachmentContext;
+        }
+      } catch (error) {
+        console.error('Error extracting attachment content:', error);
+        // Continue without attachment content
+      }
     }
-
-    // Generate new summary
-    const emailContent = buildEmailContext(email);
 
     const prompt = `Analyze this email and provide:
 1. A concise 2-3 sentence summary
@@ -115,19 +192,26 @@ Respond in JSON format:
       expiresAt,
     });
 
+    // Store in memory cache
+    setCachedValue(cacheKey, analysis);
+    
     return analysis;
-  } catch (error) {
-    console.error('Error summarizing email:', error);
+    } catch (error) {
+      console.error('Error summarizing email:', error);
 
-    // Fallback summary
-    return {
-      summary: email.snippet || email.subject,
-      keyPoints: [],
-      actionItems: [],
-      sentiment: 'neutral',
-      urgency: 'medium',
-    };
-  }
+      // Fallback summary
+      const fallback = {
+        summary: email.snippet || email.subject,
+        keyPoints: [],
+        actionItems: [],
+        sentiment: 'neutral' as const,
+        urgency: 'medium' as const,
+      };
+      
+      setCachedValue(cacheKey, fallback);
+      return fallback;
+    }
+  });
 }
 
 /**
@@ -387,43 +471,67 @@ ${email.bodyText || email.snippet || '(No content)'}
 /**
  * Quick summary (for hover popups)
  * Generates ultra-fast 1-2 sentence summary
+ * With in-memory caching and request deduplication
  */
 export async function quickSummary(email: SelectEmail): Promise<string> {
-  try {
-    // Check cache first
-    const cached = await getAISummaryByEmailId(email.id);
-    if (cached) {
-      return cached.summaryText;
-    }
-
-    // Use snippet if available
-    if (email.snippet && email.snippet.length > 50) {
-      return email.snippet.substring(0, 150) + '...';
-    }
-
-    // Generate quick summary
-    const emailContent = buildEmailContext(email).substring(0, 500);
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Faster, cheaper model
-      messages: [
-        {
-          role: 'system',
-          content: 'Summarize this email in 1-2 sentences. Be concise.',
-        },
-        {
-          role: 'user',
-          content: emailContent,
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 100,
-    });
-
-    return response.choices[0]?.message?.content || email.subject;
-  } catch (error) {
-    console.error('Error generating quick summary:', error);
-    return email.snippet || email.subject;
+  const cacheKey = `quick-summary-${email.id}`;
+  
+  // Check in-memory cache first (5 min TTL)
+  const memoryCached = getCachedValue<string>(cacheKey);
+  if (memoryCached) {
+    return memoryCached;
   }
+  
+  // Use request deduplication to prevent concurrent requests
+  return dedupRequest(cacheKey, async () => {
+    try {
+      // Check database cache
+      const cached = await getAISummaryByEmailId(email.id);
+      if (cached) {
+        const summary = cached.summaryText;
+        setCachedValue(cacheKey, summary);
+        return summary;
+      }
+
+      // Use snippet if available
+      if (email.snippet && email.snippet.length > 50) {
+        const snippet = email.snippet.substring(0, 150) + '...';
+        setCachedValue(cacheKey, snippet);
+        return snippet;
+      }
+
+      // Generate quick summary
+      const emailContent = buildEmailContext(email).substring(0, 500);
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini', // Faster, cheaper model
+        messages: [
+          {
+            role: 'system',
+            content: 'Summarize this email in 1-2 sentences. Be concise.',
+          },
+          {
+            role: 'user',
+            content: emailContent,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 100,
+      });
+
+      const summary = response.choices[0]?.message?.content || email.subject;
+      setCachedValue(cacheKey, summary);
+      return summary;
+    } catch (error) {
+      console.error('Error generating quick summary:', error);
+      const fallback = email.snippet || email.subject;
+      setCachedValue(cacheKey, fallback);
+      return fallback;
+    }
+  });
 }
+
+
+
+
 

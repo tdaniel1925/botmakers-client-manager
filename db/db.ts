@@ -1,31 +1,9 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { profilesTable } from "./schema/profiles-schema";
-import { pendingProfilesTable } from "./schema/pending-profiles-schema";
-import { 
-  emailAccountsTable,
-  emailsTable,
-  emailThreadsTable,
-  emailAttachmentsTable,
-  emailLabelsTable,
-  emailAISummariesTable,
-  emailSyncLogsTable,
-  emailDraftsTable
-} from "./schema/email-schema";
+import * as schema from "./schema";
 
-// Define the schema properly
-const schema = { 
-  profiles: profilesTable,
-  pendingProfiles: pendingProfilesTable,
-  emailAccountsTable,
-  emailsTable,
-  emailThreadsTable,
-  emailAttachmentsTable,
-  emailLabelsTable,
-  emailAISummariesTable,
-  emailSyncLogsTable,
-  emailDraftsTable
-};
+// Note: Profiles tables are temporarily commented out in schema/index.ts
+// The schema object is automatically populated with all exported tables from schema/index.ts
 
 // Add connection options with improved timeout and retry settings for Vercel environment
 const connectionOptions = {

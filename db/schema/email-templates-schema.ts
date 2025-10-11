@@ -1,66 +1,38 @@
 /**
  * Email Templates Schema
- * Reusable email templates for quick composition
+ * For saving frequently used email content as templates
  */
 
-import { pgTable, text, timestamp, boolean, jsonb, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-export const emailTemplates = pgTable('email_templates', {
+export const emailTemplatesTable = pgTable('email_templates', {
   id: uuid('id').defaultRandom().primaryKey(),
   
-  // Ownership
+  // User and organization
   userId: text('user_id').notNull(),
   organizationId: uuid('organization_id'),
-  isGlobal: boolean('is_global').default(false), // Available to all users in org
   
-  // Template info
-  name: text('name').notNull(),
-  description: text('description'),
-  category: text('category'), // e.g., "follow-up", "introduction", "thank-you"
-  
-  // Content
+  // Template details
+  name: varchar('name', { length: 100 }).notNull(),
+  category: varchar('category', { length: 50 }).default('general'),
   subject: text('subject'),
   body: text('body').notNull(),
-  htmlBody: text('html_body'),
-  
-  // Variables (placeholders like {{firstName}}, {{companyName}})
-  variables: jsonb('variables').$type<Array<{
-    name: string;
-    description: string;
-    defaultValue?: string;
-    required: boolean;
-  }>>(),
   
   // Metadata
+  isShared: text('is_shared').default('false'), // Can be shared with team
   usageCount: text('usage_count').default('0'),
-  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
-  isFavorite: boolean('is_favorite').default(false),
-  tags: jsonb('tags').$type<string[]>(),
   
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Zod schemas
-export const insertEmailTemplateSchema = createInsertSchema(emailTemplates, {
-  name: z.string().min(1),
-  body: z.string().min(1),
-  category: z.string().optional(),
-  variables: z.array(z.object({
-    name: z.string(),
-    description: z.string(),
-    defaultValue: z.string().optional(),
-    required: z.boolean(),
-  })).optional(),
-  tags: z.array(z.string()).optional(),
-});
+// Zod schemas for validation
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplatesTable);
+export const selectEmailTemplateSchema = createSelectSchema(emailTemplatesTable);
 
-export const selectEmailTemplateSchema = createSelectSchema(emailTemplates);
-
-// TypeScript types
+// Types
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
-export type SelectEmailTemplate = typeof emailTemplates.$inferSelect;
-
+export type SelectEmailTemplate = z.infer<typeof selectEmailTemplateSchema>;

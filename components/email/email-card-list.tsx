@@ -5,12 +5,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EmailCard } from './email-card';
 import { Search, Filter, CheckSquare } from 'lucide-react';
 import type { SelectEmail } from '@/db/schema/email-schema';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { getThreadCountsAction } from '@/actions/email-operations-actions';
+import { useEmailPrefetch } from '@/hooks/use-email-prefetch';
 
 interface EmailCardListProps {
   emails: SelectEmail[];
@@ -18,6 +20,13 @@ interface EmailCardListProps {
   onEmailSelect: (email: SelectEmail) => void;
   loading: boolean;
   folder: string;
+  accountId?: string;
+  onComposeWithDraft?: (draft: {
+    to?: string;
+    subject?: string;
+    body?: string;
+    replyTo?: any;
+  }) => void;
 }
 
 export function EmailCardList({
@@ -26,12 +35,53 @@ export function EmailCardList({
   onEmailSelect,
   loading,
   folder,
+  accountId,
+  onComposeWithDraft,
 }: EmailCardListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
+  const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
+  const [activePopupEmailId, setActivePopupEmailId] = useState<string | null>(null);
 
+  // Initialize prefetch hook for instant AI data loading
+  const { registerEmailCard, prefetchEmail } = useEmailPrefetch(emails, true);
+
+  // Filter emails by folder AND search query (client-side - instant!)
+  const filterStartTime = performance.now();
   const filteredEmails = emails.filter((email) => {
+    // First filter by folder
+    let matchesFolder = true;
+    
+    // Email folderName is stored in DB (may be case-sensitive based on provider)
+    const emailFolderName = email.folderName || '';
+    
+    // System folders are identified by uppercase constants
+    if (folder === 'INBOX') {
+      // Inbox: check folderName case-insensitively OR boolean flags
+      matchesFolder = emailFolderName.toUpperCase() === 'INBOX' || 
+        (!emailFolderName && !email.isArchived && !email.isTrash && !email.isSent && !email.isDraft);
+    } else if (folder === 'SENT') {
+      matchesFolder = emailFolderName.toUpperCase() === 'SENT' || email.isSent === true;
+    } else if (folder === 'DRAFTS') {
+      matchesFolder = emailFolderName.toUpperCase() === 'DRAFTS' || email.isDraft === true;
+    } else if (folder === 'STARRED') {
+      matchesFolder = email.isStarred === true;
+    } else if (folder === 'ARCHIVE') {
+      matchesFolder = emailFolderName.toUpperCase() === 'ARCHIVE' || email.isArchived === true;
+    } else if (folder === 'TRASH') {
+      matchesFolder = emailFolderName.toUpperCase() === 'TRASH' || email.isTrash === true;
+    } else if (folder === 'SPAM') {
+      matchesFolder = emailFolderName.toUpperCase() === 'SPAM' || email.isSpam === true;
+    } else {
+      // For custom folders, match by exact folder name (case-sensitive)
+      // The folder parameter will be the actual folder name (e.g., "Calendar", "Contacts")
+      matchesFolder = emailFolderName === folder;
+    }
+    
+    if (!matchesFolder) return false;
+    
+    // Then filter by search query
     if (!searchQuery) return true;
 
     const query = searchQuery.toLowerCase();
@@ -42,6 +92,41 @@ export function EmailCardList({
 
     return subject.includes(query) || from.includes(query);
   });
+  
+  const filterTime = performance.now() - filterStartTime;
+  console.log(`⚡ Filtered ${emails.length} emails to ${filteredEmails.length} for folder "${folder}" in ${filterTime.toFixed(2)}ms`);
+  
+  // Debug: Show sample of filtered emails
+  if (filteredEmails.length > 0 && filteredEmails.length <= 3) {
+    console.log('Filtered emails:', filteredEmails.map(e => ({
+      subject: e.subject,
+      folderName: e.folderName,
+      isSent: e.isSent,
+      isDraft: e.isDraft
+    })));
+  }
+
+  // Load thread counts for emails with threadId
+  useEffect(() => {
+    if (!accountId || filteredEmails.length === 0) return;
+
+    const threadsToCount = filteredEmails
+      .filter(e => e.threadId)
+      .map(e => e.threadId!)
+      .filter((id, index, arr) => arr.indexOf(id) === index); // unique
+
+    if (threadsToCount.length === 0) return;
+
+    getThreadCountsAction(accountId, threadsToCount)
+      .then(result => {
+        if (result.success && result.data) {
+          setThreadCounts(result.data);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading thread counts:', error);
+      });
+  }, [accountId, filteredEmails.length]);
 
   const handleSelectEmail = (emailId: string) => {
     const newSelected = new Set(selectedEmails);
@@ -85,7 +170,7 @@ export function EmailCardList({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div className="flex-1 flex flex-col bg-background min-w-0 overflow-hidden">
       {/* Header */}
       <div className="border-b px-4 py-3 space-y-3">
         <div className="flex items-center justify-between">
@@ -158,7 +243,7 @@ export function EmailCardList({
             </div>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y min-w-0">
             {bulkMode && (
               <div className="sticky top-0 bg-background border-b px-4 py-2 flex items-center gap-3 z-10">
                 <input
@@ -177,9 +262,26 @@ export function EmailCardList({
                 email={email}
                 isSelected={selectedEmail?.id === email.id}
                 isBulkSelected={selectedEmails.has(email.id)}
+                threadCount={email.threadId ? threadCounts[email.threadId] : undefined}
                 bulkMode={bulkMode}
                 onSelect={() => onEmailSelect(email)}
                 onBulkSelect={() => handleSelectEmail(email.id)}
+                isPopupActive={activePopupEmailId === email.id}
+                onPopupOpen={() => {
+                  setActivePopupEmailId(email.id);
+                  // Prefetch immediately when popup opens
+                  prefetchEmail(email);
+                }}
+                onPopupClose={() => setActivePopupEmailId(null)}
+                onEmailSelect={(emailId) => {
+                  const targetEmail = emails.find(e => e.id === emailId);
+                  if (targetEmail) {
+                    onEmailSelect(targetEmail);
+                    setActivePopupEmailId(null); // Close popup after selecting
+                  }
+                }}
+                onComposeWithDraft={onComposeWithDraft}
+                registerForPrefetch={registerEmailCard}
               />
             ))}
           </div>
@@ -188,4 +290,7 @@ export function EmailCardList({
     </div>
   );
 }
+
+
+
 

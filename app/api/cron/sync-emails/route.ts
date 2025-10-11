@@ -1,85 +1,124 @@
 /**
- * Email Sync Cron Job
- * Runs every 5 minutes to sync emails from all active accounts
+ * Background Email Sync Cron Job
+ * This API route syncs all active email accounts automatically
+ * Can be triggered by:
+ * - Vercel Cron (every 15 minutes)
+ * - Manual API call
+ * - Webhook event
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccountsNeedingSync } from '@/db/queries/email-account-queries';
-import { syncAccounts } from '@/lib/email-sync/sync-engine';
+import { db } from '@/db/db';
+import { emailAccountsTable } from '@/db/schema/email-schema';
+import { eq } from 'drizzle-orm';
+import { syncNylasEmailsAction } from '@/actions/email-nylas-actions';
 
-export const maxDuration = 60; // 60 seconds max execution time
+// Verify cron secret to prevent unauthorized access
+function verifyCronSecret(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET || 'your-secret-key-change-this';
+  
+  return authHeader === `Bearer ${cronSecret}`;
+}
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-
+  
   try {
-    // Authenticate cron request
-    const authHeader = request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.EMAIL_SYNC_SECRET}`;
-
-    if (authHeader !== expectedAuth) {
+    // Verify authorization
+    if (!verifyCronSecret(request)) {
+      console.warn('🚫 Unauthorized cron access attempt');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    console.log('[Email Sync Cron] Starting email sync job...');
+    console.log('⏰ CRON: Starting background email sync...');
 
-    // Get accounts that need syncing
-    const accounts = await getAccountsNeedingSync(50); // Batch of 50
+    // Get all active email accounts
+    const accounts = await db
+      .select()
+      .from(emailAccountsTable)
+      .where(eq(emailAccountsTable.status, 'active'));
 
-    if (accounts.length === 0) {
-      console.log('[Email Sync Cron] No accounts need syncing');
-      return NextResponse.json({
-        success: true,
-        message: 'No accounts need syncing',
-        duration: Date.now() - startTime,
-      });
+    console.log(`📧 CRON: Found ${accounts.length} active accounts to sync`);
+
+    const results = {
+      total: accounts.length,
+      successful: 0,
+      failed: 0,
+      details: [] as any[],
+    };
+
+    // Sync each account
+    for (const account of accounts) {
+      try {
+        console.log(`🔄 CRON: Syncing ${account.emailAddress}...`);
+        
+        // Only sync Nylas accounts
+        if (!account.nylasGrantId) {
+          console.log(`⚠️ CRON: Skipping ${account.emailAddress} - no Nylas grant`);
+          results.details.push({
+            email: account.emailAddress,
+            status: 'skipped',
+            reason: 'No Nylas grant ID',
+          });
+          continue;
+        }
+
+        const result = await syncNylasEmailsAction(account.id);
+
+        if (result.success) {
+          results.successful++;
+          results.details.push({
+            email: account.emailAddress,
+            status: 'success',
+            syncedCount: result.syncedCount || 0,
+          });
+          console.log(`✅ CRON: ${account.emailAddress} - synced ${result.syncedCount || 0} emails`);
+        } else {
+          results.failed++;
+          results.details.push({
+            email: account.emailAddress,
+            status: 'error',
+            error: result.error,
+          });
+          console.error(`❌ CRON: ${account.emailAddress} - ${result.error}`);
+        }
+      } catch (error: any) {
+        results.failed++;
+        results.details.push({
+          email: account.emailAddress,
+          status: 'error',
+          error: error.message,
+        });
+        console.error(`❌ CRON: ${account.emailAddress} - ${error.message}`);
+      }
     }
 
-    console.log(`[Email Sync Cron] Syncing ${accounts.length} accounts...`);
-
-    // Sync accounts
-    const results = await syncAccounts(
-      accounts.map((acc) => ({ id: acc.id, userId: acc.userId })),
-      { maxEmails: 50 }
-    );
-
-    // Calculate stats
-    const totalFetched = results.reduce((sum, r) => sum + r.emailsFetched, 0);
-    const totalProcessed = results.reduce((sum, r) => sum + r.emailsProcessed, 0);
-    const totalSkipped = results.reduce((sum, r) => sum + r.emailsSkipped, 0);
-    const totalFailed = results.reduce((sum, r) => sum + r.emailsFailed, 0);
-    const successfulSyncs = results.filter((r) => r.success).length;
-
     const duration = Date.now() - startTime;
-
-    console.log(`[Email Sync Cron] Completed in ${duration}ms`);
-    console.log(`[Email Sync Cron] Stats: ${totalProcessed} processed, ${totalSkipped} skipped, ${totalFailed} failed`);
+    console.log(`✅ CRON: Completed in ${duration}ms - ${results.successful} successful, ${results.failed} failed`);
 
     return NextResponse.json({
       success: true,
-      accountsSynced: accounts.length,
-      successfulSyncs,
-      failedSyncs: accounts.length - successfulSyncs,
-      emailsFetched: totalFetched,
-      emailsProcessed: totalProcessed,
-      emailsSkipped: totalSkipped,
-      emailsFailed: totalFailed,
       duration,
+      ...results,
     });
-  } catch (error) {
-    console.error('[Email Sync Cron] Error:', error);
 
+  } catch (error: any) {
+    console.error('❌ CRON: Fatal error:', error);
     return NextResponse.json(
-      {
-        error: 'Email sync failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        duration: Date.now() - startTime,
+      { 
+        error: 'Background sync failed', 
+        details: error.message 
       },
       { status: 500 }
     );
   }
 }
 
+// Also support POST for manual triggers
+export async function POST(request: NextRequest) {
+  return GET(request);
+}

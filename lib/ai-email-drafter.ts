@@ -497,3 +497,7 @@ export async function generatePurposeEmail(
   return draftNewEmail(`${basePrompt}\n\nDetails:\n${detailsText}`);
 }
 
+
+
+
+

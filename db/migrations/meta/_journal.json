@@ -127,6 +127,55 @@
       "when": 1760031234950,
       "tag": "0017_left_zaran",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1760108503264,
+      "tag": "0018_classy_skreet",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1760116418015,
+      "tag": "0019_secret_sunspot",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1760133965879,
+      "tag": "0020_awesome_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1760136856709,
+      "tag": "0021_hot_wolfpack",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1760150418379,
+      "tag": "0022_spooky_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1760156482285,
+      "tag": "0023_open_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1760160380393,
+      "tag": "0024_bright_nebula",
+      "breakpoints": true
     }
   ]
 }

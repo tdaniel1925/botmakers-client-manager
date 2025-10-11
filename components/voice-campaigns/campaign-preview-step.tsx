@@ -13,17 +13,24 @@ import {
   Calendar,
   Info,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  MessageSquare,
+  Mail
 } from "lucide-react";
 import type { CampaignSetupAnswers } from "@/types/voice-campaign-types";
+import type { ContactsScheduleConfig } from "./contacts-schedule-config";
 
 interface CampaignPreviewStepProps {
   answers: Partial<CampaignSetupAnswers>;
   phoneSelection: { source: string; twilioNumber?: string; areaCode?: string };
-  scheduleConfig?: any;
+  scheduleConfig?: any; // Legacy support
+  contactsScheduleConfig?: ContactsScheduleConfig;
 }
 
-export function CampaignPreviewStep({ answers, phoneSelection, scheduleConfig }: CampaignPreviewStepProps) {
+export function CampaignPreviewStep({ answers, phoneSelection, scheduleConfig, contactsScheduleConfig }: CampaignPreviewStepProps) {
+  // Use contactsScheduleConfig if provided, otherwise fall back to legacy scheduleConfig
+  const actualScheduleConfig = contactsScheduleConfig?.scheduleConfig || scheduleConfig;
   // Calculate estimated costs
   const estimateCosts = () => {
     const avgCallDuration = 3; // 3 minutes average
@@ -164,12 +171,12 @@ export function CampaignPreviewStep({ answers, phoneSelection, scheduleConfig }:
               <p className="text-sm text-gray-600">Availability</p>
               <p className="font-semibold capitalize">{answers.working_hours?.replace(/_/g, " ") || "24/7"}</p>
             </div>
-            {scheduleConfig && answers.campaign_type === "outbound" && (
+            {actualScheduleConfig && answers.campaign_type === "outbound" && (
               <>
                 <div>
                   <p className="text-sm text-gray-600">Call Days</p>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {scheduleConfig.callDays?.map((day: string) => (
+                    {actualScheduleConfig.callDays?.map((day: string) => (
                       <Badge key={day} variant="outline" className="text-xs">
                         {day.slice(0, 3)}
                       </Badge>
@@ -178,13 +185,115 @@ export function CampaignPreviewStep({ answers, phoneSelection, scheduleConfig }:
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Max Attempts</p>
-                  <p className="font-semibold">{scheduleConfig.maxAttemptsPerContact || 3} per contact</p>
+                  <p className="font-semibold">{actualScheduleConfig.maxAttemptsPerContact || 3} per contact</p>
                 </div>
               </>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Contacts, SMS, and Email Automation (if configured) */}
+      {contactsScheduleConfig && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Contact List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Upload className="h-5 w-5 text-blue-600" />
+                Contacts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contactsScheduleConfig.contacts && contactsScheduleConfig.contacts.length > 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-3xl font-bold text-blue-600">{contactsScheduleConfig.contacts.length}</p>
+                  <p className="text-sm text-gray-600 mt-1">contacts uploaded</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">No contacts uploaded</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* SMS Automation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MessageSquare className="h-5 w-5 text-green-600" />
+                SMS Automation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">Follow-ups</p>
+                {contactsScheduleConfig.smsSettings?.followUps?.enabled ? (
+                  <Badge variant="default" className="bg-green-600">Enabled</Badge>
+                ) : (
+                  <Badge variant="outline">Disabled</Badge>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">Notifications</p>
+                {contactsScheduleConfig.smsSettings?.notifications?.enabled ? (
+                  <Badge variant="default" className="bg-green-600">Enabled</Badge>
+                ) : (
+                  <Badge variant="outline">Disabled</Badge>
+                )}
+              </div>
+              {contactsScheduleConfig.smsSettings?.notifications?.enabled && 
+               contactsScheduleConfig.smsSettings?.notifications?.triggers?.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500">Triggers:</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {contactsScheduleConfig.smsSettings.notifications.triggers.map((trigger) => (
+                      <Badge key={trigger} variant="outline" className="text-xs">
+                        {trigger.replace(/_/g, ' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Email Automation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Mail className="h-5 w-5 text-blue-600" />
+                Email Automation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">Follow-ups</p>
+                {contactsScheduleConfig.emailSettings?.followUps?.enabled ? (
+                  <Badge variant="default" className="bg-blue-600">Enabled</Badge>
+                ) : (
+                  <Badge variant="outline">Disabled</Badge>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">Notifications</p>
+                {contactsScheduleConfig.emailSettings?.notifications?.enabled ? (
+                  <Badge variant="default" className="bg-blue-600">Enabled</Badge>
+                ) : (
+                  <Badge variant="outline">Disabled</Badge>
+                )}
+              </div>
+              {contactsScheduleConfig.emailSettings?.notifications?.enabled && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500">Frequency:</p>
+                  <Badge variant="outline" className="text-xs mt-1 capitalize">
+                    {contactsScheduleConfig.emailSettings.notifications.frequency}
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Campaign Goal Details */}
       <Card>

@@ -8,9 +8,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/db/db';
-import { emailsTable, emailAccountsTable, emailLabelsTable, emailThreadsTable } from '@/db/schema/email-schema';
+import { emailsTable, emailAccountsTable, emailLabelsTable, emailThreadsTable, emailAttachmentsTable } from '@/db/schema/email-schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import type { SelectEmail } from '@/db/schema/email-schema';
+import type { SelectEmail, SelectEmailAttachment } from '@/db/schema/email-schema';
 
 interface ActionResult<T = void> {
   success: boolean;
@@ -24,10 +24,21 @@ interface ActionResult<T = void> {
  */
 export async function getEmailsAction(accountId: string): Promise<ActionResult<{ emails: SelectEmail[] }>> {
   try {
-    const { userId } = await auth();
+    console.log('🚀 getEmailsAction: Starting, accountId:', accountId);
+    
+    const authResult = await auth();
+    console.log('🔑 getEmailsAction: Auth result:', { 
+      hasUserId: !!authResult?.userId, 
+      userId: authResult?.userId?.substring(0, 10) + '...'
+    });
+    
+    const { userId } = authResult;
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      console.log('❌ getEmailsAction: No userId in auth result');
+      return { success: false, error: 'Unauthorized - No user ID' };
     }
+
+    console.log('🔍 getEmailsAction: Fetching emails for account:', { accountId, userId: userId.substring(0, 10) + '...' });
 
     // Verify account ownership
     const account = await db.query.emailAccountsTable.findFirst({
@@ -38,25 +49,38 @@ export async function getEmailsAction(accountId: string): Promise<ActionResult<{
     });
 
     if (!account) {
+      console.log('❌ getEmailsAction: Account not found');
       return { success: false, error: 'Account not found' };
     }
 
+    console.log('✅ getEmailsAction: Account verified, fetching emails...');
+
     // Fetch emails with pagination (limit to 100 most recent)
-    const emailList = await db.query.emailsTableTable.findMany({
+    const emailList = await db.query.emailsTable.findMany({
       where: eq(emailsTable.accountId, accountId),
       orderBy: [desc(emailsTable.receivedAt)],
       limit: 100,
     });
 
+    console.log('✅ getEmailsAction: Query complete, found emails:', emailList.length);
+
+    // Force revalidation to ensure fresh data
+    revalidatePath('/platform/emails');
+    revalidatePath('/dashboard/emails');
+
     return {
       success: true,
       data: { emails: emailList },
     };
-  } catch (error) {
-    console.error('Error fetching emails:', error);
+  } catch (error: any) {
+    console.error('❌ getEmailsAction: Exception caught:', {
+      message: error?.message,
+      stack: error?.stack,
+      error: error
+    });
     return {
       success: false,
-      error: 'Failed to fetch emails',
+      error: error?.message || 'Failed to fetch emails',
     };
   }
 }
@@ -364,6 +388,141 @@ export async function bulkEmailOperationAction(
     return {
       success: false,
       error: 'Failed to perform bulk operation',
+    };
+  }
+}
+
+/**
+ * Get all folders for a specific email account
+ */
+export async function getEmailFoldersAction(accountId: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Verify account ownership
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: and(
+        eq(emailAccountsTable.id, accountId),
+        eq(emailAccountsTable.userId, userId)
+      ),
+    });
+
+    if (!account) {
+      return { success: false, error: 'Account not found' };
+    }
+
+    // Import the folders table
+    const { getEmailFoldersByAccountId } = await import('@/db/queries/email-queries');
+    
+    // Get folders from database
+    const folders = await getEmailFoldersByAccountId(accountId);
+    
+    return {
+      success: true,
+      folders,
+    };
+  } catch (error) {
+    console.error('Error getting folders:', error);
+    return {
+      success: false,
+      error: 'Failed to get folders',
+    };
+  }
+}
+
+/**
+ * Get thread message count for emails
+ * Returns a map of threadId -> count
+ */
+export async function getThreadCountsAction(
+  accountId: string,
+  threadIds: string[]
+): Promise<ActionResult<Record<string, number>>> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Verify account ownership
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: and(
+        eq(emailAccountsTable.id, accountId),
+        eq(emailAccountsTable.userId, userId)
+      ),
+    });
+
+    if (!account) {
+      return { success: false, error: 'Account not found' };
+    }
+
+    // If no thread IDs provided, return empty
+    if (threadIds.length === 0) {
+      return { success: true, data: {} };
+    }
+
+    // Count emails per thread
+    const threadCounts: Record<string, number> = {};
+    
+    for (const threadId of threadIds) {
+      const count = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(emailsTable)
+        .where(
+          and(
+            eq(emailsTable.accountId, accountId),
+            eq(emailsTable.threadId, threadId)
+          )
+        );
+      
+      threadCounts[threadId] = Number(count[0]?.count || 0);
+    }
+
+    return {
+      success: true,
+      data: threadCounts,
+    };
+  } catch (error) {
+    console.error('Error getting thread counts:', error);
+    return {
+      success: false,
+      error: 'Failed to get thread counts',
+    };
+  }
+}
+
+/**
+ * Get attachments for an email
+ */
+export async function getEmailAttachmentsAction(emailId: string): Promise<ActionResult<{ attachments: SelectEmailAttachment[] }>> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const attachments = await db
+      .select()
+      .from(emailAttachmentsTable)
+      .where(
+        and(
+          eq(emailAttachmentsTable.emailId, emailId),
+          eq(emailAttachmentsTable.userId, userId)
+        )
+      );
+
+    return {
+      success: true,
+      data: { attachments },
+    };
+  } catch (error) {
+    console.error('Error fetching attachments:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch attachments',
     };
   }
 }

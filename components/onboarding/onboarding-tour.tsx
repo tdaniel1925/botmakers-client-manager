@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
 
 interface OnboardingTourProps {
@@ -10,6 +11,18 @@ interface OnboardingTourProps {
 }
 
 export function OnboardingTour({ steps, run, stepIndex, onCallback }: OnboardingTourProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Only render on client after mount to prevent hydration errors
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Don't render anything on server or before mount
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <Joyride
       steps={steps}

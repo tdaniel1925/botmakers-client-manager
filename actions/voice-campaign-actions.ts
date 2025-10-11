@@ -41,10 +41,8 @@ export async function createVoiceCampaignAction(
       return { error: "Unauthorized" };
     }
     
+    // Check if user is a platform admin (for admin-free campaigns)
     const isAdmin = await isPlatformAdmin(userId);
-    if (!isAdmin) {
-      return { error: "Only platform admins can create voice campaigns" };
-    }
     
     // ===== SUBSCRIPTION & USAGE CHECKS =====
     // Get project to find organization
