@@ -323,10 +323,20 @@ export async function syncNylasEmailsAction(
 
         // Auto-classify email for Hey mode (screening, Imbox/Feed/Paper Trail)
         // OPTIMIZATION: Skip classification during initial sync for speed
-        if (!skipClassification) {
+        // BUT: Always auto-classify emails older than 2 weeks
+        const emailAge = Date.now() - new Date(insertedEmail.receivedAt).getTime();
+        const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000; // 14 days
+        const isOlderThan2Weeks = emailAge > twoWeeksInMs;
+
+        if (!skipClassification || isOlderThan2Weeks) {
           try {
             const { autoClassifyEmail } = await import('@/actions/screening-actions');
             await autoClassifyEmail(insertedEmail.id);
+            
+            if (isOlderThan2Weeks) {
+              const daysOld = Math.round(emailAge / (24 * 60 * 60 * 1000));
+              console.log(`📅 Auto-classified old email (${daysOld} days old) → Skipping Screener`);
+            }
           } catch (classifyError) {
             console.error('Error auto-classifying email:', classifyError);
             // Don't fail email sync if classification fails

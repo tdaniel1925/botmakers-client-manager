@@ -6,7 +6,7 @@
 
 import { db } from '@/db/db';
 import { contactScreeningTable, emailsTable } from '@/db/schema/email-schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql, gte } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { classifyEmail, getEmailAddress, getEmailName } from '@/lib/email-classifier';
 import { revalidatePath } from 'next/cache';
@@ -132,14 +132,22 @@ export async function getUnscreenedEmails(): Promise<ActionResult> {
     const { userId } = await auth();
     if (!userId) return { success: false, error: 'Unauthorized' };
 
-    // Get emails with pending screening status
+    // Only show emails from last 2 weeks in Screener
+    // Older emails are auto-classified during sync
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    console.log(`📅 Screener: Only showing emails newer than ${twoWeeksAgo.toLocaleDateString()}`);
+
+    // Get emails with pending screening status (last 2 weeks only)
     const emails = await db
       .select()
       .from(emailsTable)
       .where(
         and(
           eq(emailsTable.userId, userId),
-          eq(emailsTable.screeningStatus, 'pending')
+          eq(emailsTable.screeningStatus, 'pending'),
+          gte(emailsTable.receivedAt, twoWeeksAgo)
         )
       )
       .orderBy(desc(emailsTable.receivedAt))
