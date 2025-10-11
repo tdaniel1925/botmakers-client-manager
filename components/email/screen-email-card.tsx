@@ -55,10 +55,7 @@ export function ScreenEmailCard({
     setScreening(true);
     setIsExiting(true); // Start exit animation immediately
     
-    // Remove from UI immediately (optimistic update)
-    onScreened(emailAddress);
-    
-    // Show confirmation toast
+    // Show confirmation toast immediately
     const toastMessages = {
       imbox: { 
         title: '✨ Moved to Imbox',
@@ -88,16 +85,26 @@ export function ScreenEmailCard({
       description: message.description,
     });
     
-    // Update database in background
+    // Update database FIRST - this is critical!
+    console.log(`🔄 Updating database for ${emailAddress}...`);
     const result = await screenSender(emailAddress, decision, firstEmail.id, notes);
     
-    if (!result.success) {
+    if (result.success) {
+      console.log(`✅ Database updated successfully for ${emailAddress}`);
+      
+      // NOW remove from UI and trigger refresh (after DB is updated)
+      onScreened(emailAddress);
+    } else {
       console.error('Failed to screen sender:', result.error);
       toast({
         title: '❌ Error',
         description: 'Failed to screen sender. Please try again.',
         variant: 'destructive',
       });
+      
+      // Reset UI state on error
+      setIsExiting(false);
+      setScreening(false);
     }
   };
 
