@@ -85,31 +85,59 @@ export async function screenSender(
     // Update all emails from this sender
     const view = decision === 'blocked' ? null : decision;
     
+    console.log(`\n🎯 SCREENING DECISION:`, {
+      decision,
+      computedView: view,
+      emailAddress,
+      userId: userId.substring(0, 10) + '...'
+    });
+    
     // Get all emails from this sender (fromAddress can be string or object)
     const userEmails = await db
       .select()
       .from(emailsTable)
       .where(eq(emailsTable.userId, userId));
     
+    console.log(`📊 Total user emails: ${userEmails.length}`);
+    
     // Find emails matching this sender's email address
     const emailsToUpdate = userEmails.filter(email => {
       const fromAddr = getEmailAddress(email.fromAddress);
-      return fromAddr === emailAddress;
+      const matches = fromAddr === emailAddress;
+      if (matches) {
+        console.log(`  ✓ Match found: ${email.subject?.substring(0, 50)}... from ${fromAddr}`);
+      }
+      return matches;
     });
+    
+    console.log(`🎯 Found ${emailsToUpdate.length} emails to update from ${emailAddress}\n`);
     
     // Update each email
     console.log(`🔄 Updating ${emailsToUpdate.length} emails in database...`);
     
     for (const email of emailsToUpdate) {
-      await db
+      console.log(`  🔄 Updating email ID: ${email.id}`);
+      console.log(`     Current heyView: ${email.heyView}`);
+      console.log(`     Will set heyView to: "${view}"`);
+      console.log(`     Will set screeningStatus to: "screened"`);
+      
+      const result = await db
         .update(emailsTable)
         .set({
           heyView: view,
           screeningStatus: 'screened',
         })
-        .where(eq(emailsTable.id, email.id));
+        .where(eq(emailsTable.id, email.id))
+        .returning();
       
-      console.log(`  ✓ Updated email: ${email.subject} - heyView set to "${view}"`);
+      if (result.length > 0) {
+        console.log(`  ✓ CONFIRMED: Email updated successfully`);
+        console.log(`     New heyView: ${result[0].heyView}`);
+        console.log(`     New screeningStatus: ${result[0].screeningStatus}`);
+      } else {
+        console.log(`  ⚠️  WARNING: Update returned no rows!`);
+      }
+      console.log('');
     }
     
     // VERIFY the update worked
