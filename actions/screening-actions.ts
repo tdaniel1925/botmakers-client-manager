@@ -98,6 +98,8 @@ export async function screenSender(
     });
     
     // Update each email
+    console.log(`🔄 Updating ${emailsToUpdate.length} emails in database...`);
+    
     for (const email of emailsToUpdate) {
       await db
         .update(emailsTable)
@@ -106,8 +108,22 @@ export async function screenSender(
           screeningStatus: 'screened',
         })
         .where(eq(emailsTable.id, email.id));
+      
+      console.log(`  ✓ Updated email: ${email.subject} - heyView set to "${view}"`);
     }
     
+    // VERIFY the update worked
+    const verifyEmails = await db
+      .select()
+      .from(emailsTable)
+      .where(eq(emailsTable.userId, userId));
+    
+    const updatedEmails = verifyEmails.filter(e => {
+      const fromAddr = getEmailAddress(e.fromAddress);
+      return fromAddr === emailAddress;
+    });
+    
+    console.log(`✅ VERIFICATION: ${updatedEmails.length} emails now have heyView="${updatedEmails[0]?.heyView}"`);
     console.log(`✅ Screened ${emailsToUpdate.length} emails from ${emailAddress} as "${decision}"`);
     console.log(`📬 Emails will now appear in: ${
       decision === 'imbox' ? '✨ Imbox (Important)' :
@@ -117,7 +133,9 @@ export async function screenSender(
     }`);
 
     revalidatePath('/platform/emails');
-    return { success: true };
+    revalidatePath('/dashboard/emails');
+    
+    return { success: true, updatedCount: emailsToUpdate.length };
   } catch (error) {
     console.error('Error screening sender:', error);
     return { success: false, error: 'Failed to screen sender' };

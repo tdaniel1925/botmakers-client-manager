@@ -91,8 +91,14 @@ export function ScreenEmailCard({
     
     if (result.success) {
       console.log(`✅ Database updated successfully for ${emailAddress}`);
+      console.log(`⏱️  Waiting for database commit...`);
       
-      // NOW remove from UI and trigger refresh (after DB is updated)
+      // Wait 500ms for database to fully commit
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log(`🔄 Now refreshing email list...`);
+      
+      // NOW remove from UI and trigger refresh (after DB is fully committed)
       onScreened(emailAddress);
     } else {
       console.error('Failed to screen sender:', result.error);
