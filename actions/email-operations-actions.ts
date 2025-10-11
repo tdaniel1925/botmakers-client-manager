@@ -58,10 +58,12 @@ export async function getEmailsAction(
 
     console.log('✅ getEmailsAction: Account verified, fetching emails...');
 
-    const limit = options?.limit || 5000; // Load up to 5000 emails (was 50)
+    const limit = options?.limit || 1000; // Load 1000 emails (optimized for speed)
     const offset = options?.offset || 0;
 
     console.log(`📊 Fetching emails with limit: ${limit}, offset: ${offset}`);
+
+    const startTime = performance.now();
 
     // Fetch emails with pagination - FAST query (no joins)
     const emailList = await db.query.emailsTable.findMany({
@@ -70,6 +72,9 @@ export async function getEmailsAction(
       limit: limit + 1, // Fetch one extra to check if there are more
       offset,
     });
+
+    const queryTime = performance.now() - startTime;
+    console.log(`⚡ Database query took ${queryTime.toFixed(2)}ms`);
 
     const hasMore = emailList.length > limit;
     const emails = hasMore ? emailList.slice(0, limit) : emailList;

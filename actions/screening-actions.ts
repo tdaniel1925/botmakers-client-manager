@@ -92,30 +92,39 @@ export async function screenSender(
       userId: userId.substring(0, 10) + '...'
     });
     
-    // Get all emails from this sender (fromAddress can be string or object)
-    const userEmails = await db
+    // OPTIMIZED: Query only emails from this sender using SQL LIKE
+    // fromAddress is stored as JSON string like: {"email":"sender@example.com","name":"Sender"}
+    // We search for the email address within the JSON string
+    const startTime = performance.now();
+    
+    const emailsToUpdate = await db
       .select()
       .from(emailsTable)
-      .where(eq(emailsTable.userId, userId));
+      .where(
+        and(
+          eq(emailsTable.userId, userId),
+          sql`${emailsTable.fromAddress}::text LIKE ${`%${emailAddress}%`}`
+        )
+      );
     
-    console.log(`📊 Total user emails: ${userEmails.length}`);
-    
-    // Find emails matching this sender's email address
-    const emailsToUpdate = userEmails.filter(email => {
-      const fromAddr = getEmailAddress(email.fromAddress);
-      const matches = fromAddr === emailAddress;
-      if (matches) {
-        console.log(`  ✓ Match found: ${email.subject?.substring(0, 50)}... from ${fromAddr}`);
-      }
-      return matches;
-    });
-    
+    const queryTime = performance.now() - startTime;
+    console.log(`⚡ Query for sender emails took ${queryTime.toFixed(2)}ms`);
     console.log(`🎯 Found ${emailsToUpdate.length} emails to update from ${emailAddress}\n`);
     
-    // Update each email
-    console.log(`🔄 Updating ${emailsToUpdate.length} emails in database...`);
+    // Verify matches (in case of false positives from LIKE query)
+    const verifiedEmails = emailsToUpdate.filter(email => {
+      const fromAddr = getEmailAddress(email.fromAddress);
+      return fromAddr === emailAddress;
+    });
     
-    for (const email of emailsToUpdate) {
+    if (verifiedEmails.length !== emailsToUpdate.length) {
+      console.log(`⚠️ Filtered out ${emailsToUpdate.length - verifiedEmails.length} false positive matches`);
+    }
+    
+    // Update each verified email
+    console.log(`🔄 Updating ${verifiedEmails.length} emails in database...`);
+    
+    for (const email of verifiedEmails) {
       console.log(`  🔄 Updating email ID: ${email.id}`);
       console.log(`     Current heyView: ${email.heyView}`);
       console.log(`     Will set heyView to: "${view}"`);
@@ -163,7 +172,7 @@ export async function screenSender(
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
     
-    return { success: true, updatedCount: emailsToUpdate.length };
+    return { success: true, updatedCount: verifiedEmails.length };
   } catch (error) {
     console.error('Error screening sender:', error);
     return { success: false, error: 'Failed to screen sender' };

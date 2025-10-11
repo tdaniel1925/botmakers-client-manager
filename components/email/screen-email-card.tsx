@@ -93,8 +93,8 @@ export function ScreenEmailCard({
       console.log(`✅ Database updated successfully for ${emailAddress}`);
       console.log(`⏱️  Waiting for database commit...`);
       
-      // Wait 500ms for database to fully commit
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait 200ms for database to commit (reduced from 500ms for speed)
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       console.log(`🔄 Now refreshing email list...`);
       
@@ -121,9 +121,9 @@ export function ScreenEmailCard({
       animate={isExiting ? { opacity: 0, x: -100, scale: 0.9 } : { opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -100, scale: 0.9 }}
       transition={{ 
-        duration: 0.3, 
-        ease: 'easeInOut',
-        layout: { duration: 0.4, ease: 'easeInOut' } // Smooth layout shift
+        duration: 0.2, // Faster exit animation (was 0.3)
+        ease: 'easeOut',
+        layout: { duration: 0.25, ease: 'easeOut' } // Faster layout shift
       }}
     >
       <Card className="p-6 hover:shadow-md transition-shadow">
