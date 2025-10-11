@@ -71,7 +71,36 @@ export function EmailLayout() {
   // Load email accounts on mount
   useEffect(() => {
     loadAccounts();
+    checkIfSyncInProgress();
   }, []);
+
+  // Check if sync is already in progress (after page refresh)
+  async function checkIfSyncInProgress() {
+    try {
+      console.log('🔍 Checking if sync is in progress...');
+      
+      const response = await fetch('/api/email/sync-status');
+      if (response.ok) {
+        const status = await response.json();
+        
+        console.log('📊 Sync status on load:', status);
+        
+        // If sync is in progress (not complete and has data), reopen the modal
+        if (!status.isComplete && status.totalFetched > 0) {
+          console.log('🔄 Detected sync in progress! Reopening modal...');
+          console.log('📊 Current progress:', status);
+          setSyncProgressOpen(true);
+        } else if (!status.isComplete && status.currentPage > 0) {
+          console.log('🔄 Sync might be in progress (early stage)...');
+          setSyncProgressOpen(true);
+        } else {
+          console.log('✅ No sync in progress');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error checking sync status:', error);
+    }
+  }
 
   // Load emails and folders when account changes (NOT when folder changes)
   useEffect(() => {
@@ -280,16 +309,23 @@ export function EmailLayout() {
     // Show sync progress modal
     setSyncProgressOpen(true);
     
-    try {
-      // Trigger email sync with progress tracking
-      await syncNylasEmailsAction(selectedAccount.id);
-      
-      // Reload emails and folders after sync
-      await loadEmails();
-      await loadFolders();
-    } catch (error) {
-      console.error('Sync error:', error);
-    }
+    console.log('🚀 Starting background email sync...');
+    console.log('💡 You can refresh the page - sync will continue!');
+    
+    // Trigger email sync WITHOUT await - runs in background!
+    // The modal will poll for progress
+    syncNylasEmailsAction(selectedAccount.id)
+      .then(() => {
+        console.log('✅ Sync completed! Reloading emails...');
+        loadEmails();
+        loadFolders();
+      })
+      .catch((error) => {
+        console.error('❌ Sync error:', error);
+      });
+    
+    // Don't wait for sync - return immediately
+    // Modal will show progress as it syncs in background
   };
 
   // Calculate badge counts for Hey sidebar
