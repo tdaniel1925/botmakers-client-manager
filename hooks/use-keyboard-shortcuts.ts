@@ -1,105 +1,199 @@
 /**
- * Keyboard Shortcuts Hook
- * Power user keyboard shortcuts
+ * Keyboard Shortcuts Hook - Hey-style keyboard navigation
  */
 
-import { useEffect } from "react";
+'use client';
 
-export interface KeyboardShortcutsConfig {
-  onNew?: () => void;
-  onSearch?: () => void;
-  onHelp?: () => void;
-  onEscape?: () => void;
+import { useEffect, useCallback } from 'react';
+
+export interface ShortcutConfig {
+  key: string;
+  action: () => void;
+  description: string;
+  ctrlKey?: boolean;
+  altKey?: boolean;
+  shiftKey?: boolean;
+  metaKey?: boolean; // Cmd on Mac
   enabled?: boolean;
 }
 
-export function useKeyboardShortcuts(config: KeyboardShortcutsConfig) {
-  const { onNew, onSearch, onHelp, onEscape, enabled = true } = config;
+export const DEFAULT_SHORTCUTS: Record<string, ShortcutConfig> = {
+  // Composition
+  compose: {
+    key: 'c',
+    action: () => {},
+    description: 'Compose new email',
+  },
+  reply: {
+    key: 'r',
+    action: () => {},
+    description: 'Reply to email',
+  },
+  replyAll: {
+    key: 'a',
+    action: () => {},
+    description: 'Reply all',
+  },
+  forward: {
+    key: 'f',
+    action: () => {},
+    description: 'Forward email',
+  },
+  
+  // Views
+  imbox: {
+    key: '1',
+    action: () => {},
+    description: 'Go to Imbox',
+  },
+  feed: {
+    key: '2',
+    action: () => {},
+    description: 'Go to The Feed',
+  },
+  paperTrail: {
+    key: '3',
+    action: () => {},
+    description: 'Go to Paper Trail',
+  },
+  screener: {
+    key: '4',
+    action: () => {},
+    description: 'Go to Screener',
+  },
+  
+  // Actions
+  archive: {
+    key: 'e',
+    action: () => {},
+    description: 'Archive email',
+  },
+  delete: {
+    key: '#',
+    action: () => {},
+    description: 'Delete email',
+  },
+  replyLater: {
+    key: 'l',
+    action: () => {},
+    description: 'Reply Later',
+  },
+  setAside: {
+    key: 's',
+    action: () => {},
+    description: 'Set Aside',
+  },
+  star: {
+    key: '*',
+    action: () => {},
+    description: 'Toggle star',
+  },
+  
+  // Navigation
+  nextEmail: {
+    key: 'j',
+    action: () => {},
+    description: 'Next email',
+  },
+  previousEmail: {
+    key: 'k',
+    action: () => {},
+    description: 'Previous email',
+  },
+  
+  // Marking
+  markRead: {
+    key: 'i',
+    action: () => {},
+    description: 'Mark as read',
+  },
+  markUnread: {
+    key: 'u',
+    action: () => {},
+    description: 'Mark as unread',
+  },
+  
+  // Command Palette
+  commandPalette: {
+    key: 'k',
+    metaKey: true, // Cmd+K or Ctrl+K
+    action: () => {},
+    description: 'Open command palette',
+  },
+  
+  // Search
+  search: {
+    key: '/',
+    action: () => {},
+    description: 'Search emails',
+  },
+};
 
-  useEffect(() => {
-    if (!enabled) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
+export function useKeyboardShortcuts(shortcuts: Record<string, ShortcutConfig>) {
+  const handleKeyPress = useCallback(
+    (event: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
       const target = event.target as HTMLElement;
       if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
         target.isContentEditable
       ) {
-        // Allow escape to work in inputs
-        if (event.key === "Escape" && onEscape) {
-          onEscape();
+        // Exception: Allow command palette in input fields
+        if (!(event.metaKey || event.ctrlKey) || event.key !== 'k') {
           return;
         }
-        return;
       }
 
-      // Cmd/Ctrl + K → Search
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-        event.preventDefault();
-        onSearch?.();
-        return;
-      }
+      for (const shortcut of Object.values(shortcuts)) {
+        if (shortcut.enabled === false) continue;
 
-      // N → New campaign
-      if (event.key === "n" || event.key === "N") {
-        event.preventDefault();
-        onNew?.();
-        return;
-      }
+        const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase();
+        const ctrlMatches = shortcut.ctrlKey ? event.ctrlKey : !event.ctrlKey;
+        const altMatches = shortcut.altKey ? event.altKey : !event.altKey;
+        const shiftMatches = shortcut.shiftKey ? event.shiftKey : !event.shiftKey;
+        const metaMatches = shortcut.metaKey
+          ? event.metaKey || event.ctrlKey
+          : !(event.metaKey || event.ctrlKey);
 
-      // / → Focus search
-      if (event.key === "/") {
-        event.preventDefault();
-        onSearch?.();
-        return;
+        if (keyMatches && ctrlMatches && altMatches && shiftMatches && metaMatches) {
+          event.preventDefault();
+          shortcut.action();
+          break;
+        }
       }
+    },
+    [shortcuts]
+  );
 
-      // ? → Show help
-      if (event.key === "?") {
-        event.preventDefault();
-        onHelp?.();
-        return;
-      }
-
-      // Escape → Clear/Cancel
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onEscape?.();
-        return;
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onNew, onSearch, onHelp, onEscape, enabled]);
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleKeyPress]);
 }
 
-export const KEYBOARD_SHORTCUTS = [
-  {
-    key: "N",
-    description: "Create new campaign",
-    category: "Actions",
-  },
-  {
-    key: "/",
-    description: "Focus search",
-    category: "Navigation",
-  },
-  {
-    key: "Cmd/Ctrl + K",
-    description: "Quick search",
-    category: "Navigation",
-  },
-  {
-    key: "?",
-    description: "Show keyboard shortcuts",
-    category: "Help",
-  },
-  {
-    key: "Esc",
-    description: "Close dialog / Clear selection",
-    category: "Navigation",
-  },
-] as const;
+/**
+ * Simplified hook for single shortcuts
+ */
+export function useShortcut(
+  key: string,
+  action: () => void,
+  options?: {
+    ctrlKey?: boolean;
+    altKey?: boolean;
+    shiftKey?: boolean;
+    metaKey?: boolean;
+    enabled?: boolean;
+  }
+) {
+  const shortcuts = {
+    shortcut: {
+      key,
+      action,
+      description: '',
+      ...options,
+    },
+  };
+
+  useKeyboardShortcuts(shortcuts);
+}
