@@ -102,7 +102,10 @@ export async function syncNylasEmailsAction(
     console.log(`⏱️  This may take 5-10 minutes for large accounts...`);
 
     // Initialize sync status tracking
+    console.log('🔄 Importing updateSyncStatus...');
     const { updateSyncStatus } = await import('@/app/api/email/sync-status/route');
+    
+    console.log('📊 Initializing sync status for userId:', userId.substring(0, 10) + '...');
     updateSyncStatus(userId, {
       currentPage: 0,
       totalFetched: 0,
@@ -112,6 +115,8 @@ export async function syncNylasEmailsAction(
       estimatedTotal: 1000,
       isComplete: false,
     });
+    
+    console.log('✅ Sync status initialized - modal should show progress now');
 
     // Batch size for database operations
     const BATCH_SIZE = 10; // Process 10 emails at a time for better performance
@@ -122,15 +127,18 @@ export async function syncNylasEmailsAction(
       pageNumber++;
       
       // Update progress
+      console.log(`📊 Updating sync status - Page ${pageNumber}, Fetched: ${totalFetched}, Synced: ${syncedCount}`);
       updateSyncStatus(userId, {
         currentPage: pageNumber,
         totalFetched,
         synced: syncedCount,
         skipped: skippedCount,
         errors: errorCount,
+        estimatedTotal: Math.max(1000, totalFetched + 500), // Dynamic estimate
       });
       
       // Fetch messages from Nylas in batches of 50
+      console.log(`🌐 Fetching page ${pageNumber} from Nylas...`);
       const messagesResponse = await listNylasMessages(account.nylasGrantId, {
         limit: 50,
         pageToken,

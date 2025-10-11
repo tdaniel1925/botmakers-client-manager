@@ -41,28 +41,41 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
 
   // Poll for sync status
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      console.log('❌ Sync modal closed, not polling');
+      return;
+    }
+
+    console.log('✅ Sync modal opened, starting to poll for status...');
 
     const pollInterval = setInterval(async () => {
       try {
+        console.log('🔄 Polling /api/email/sync-status...');
         const response = await fetch('/api/email/sync-status');
         if (response.ok) {
           const data = await response.json();
+          console.log('📊 Sync status received:', data);
           setStatus(data);
           
           // Close modal when complete
           if (data.isComplete) {
+            console.log('✅ Sync complete! Closing modal in 2 seconds...');
             setTimeout(() => {
               onOpenChange(false);
             }, 2000);
           }
+        } else {
+          console.error('❌ Sync status API returned error:', response.status);
         }
       } catch (error) {
-        console.error('Error polling sync status:', error);
+        console.error('❌ Error polling sync status:', error);
       }
     }, 500); // Poll every 500ms for real-time updates
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      console.log('🛑 Stopping sync status polling');
+      clearInterval(pollInterval);
+    };
   }, [open, onOpenChange]);
 
   const progress = status.estimatedTotal > 0 

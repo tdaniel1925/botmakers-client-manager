@@ -23,6 +23,7 @@ export async function GET() {
   try {
     const { userId } = await auth();
     if (!userId) {
+      console.log('❌ Sync status GET: No userId');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -37,9 +38,15 @@ export async function GET() {
       lastUpdated: new Date(),
     };
 
+    console.log(`📊 Sync status GET for user ${userId.substring(0, 10)}...:`, {
+      hasStatus: syncStatusStore.has(userId),
+      status: status,
+      storeSize: syncStatusStore.size
+    });
+
     return NextResponse.json(status);
   } catch (error) {
-    console.error('Error getting sync status:', error);
+    console.error('❌ Error getting sync status:', error);
     return NextResponse.json({ error: 'Failed to get sync status' }, { status: 500 });
   }
 }
@@ -66,10 +73,20 @@ export function updateSyncStatus(userId: string, status: Partial<{
     lastUpdated: new Date(),
   };
 
-  syncStatusStore.set(userId, {
+  const updated = {
     ...current,
     ...status,
     lastUpdated: new Date(),
+  };
+
+  syncStatusStore.set(userId, updated);
+
+  console.log(`💾 Sync status UPDATED for user ${userId.substring(0, 10)}...:`, {
+    page: updated.currentPage,
+    fetched: updated.totalFetched,
+    synced: updated.synced,
+    skipped: updated.skipped,
+    isComplete: updated.isComplete
   });
 }
 
