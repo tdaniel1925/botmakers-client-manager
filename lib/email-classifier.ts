@@ -2,8 +2,6 @@
  * Email Classifier - AI-powered categorization for Hey-style views
  */
 
-'use server';
-
 import type { SelectEmail } from '@/db/schema/email-schema';
 
 export type HeyView = 'imbox' | 'feed' | 'paper_trail' | 'screener';
