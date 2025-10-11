@@ -200,19 +200,3 @@ export async function autoClassifyEmail(emailId: string): Promise<ActionResult> 
     return { success: false, error: 'Failed to auto-classify email' };
   }
 }
-
-function getEmailAddress(fromAddress: any): string {
-  if (!fromAddress) return '';
-  if (typeof fromAddress === 'string') return fromAddress;
-  if (typeof fromAddress === 'object' && fromAddress.email) return fromAddress.email;
-  return '';
-}
-
-function getEmailName(fromAddress: any): string {
-  if (!fromAddress) return '';
-  if (typeof fromAddress === 'string') return fromAddress.split('@')[0];
-  if (typeof fromAddress === 'object' && fromAddress.name) return fromAddress.name;
-  if (typeof fromAddress === 'object' && fromAddress.email) return fromAddress.email.split('@')[0];
-  return '';
-}
-
