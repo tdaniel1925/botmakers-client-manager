@@ -55,6 +55,19 @@ export function InstantSearchDialog({
     dateRange: 'all',
   });
 
+  // Helper function - defined first so it can be used in useMemo
+  const hasActiveFilters = () => {
+    return (
+      filters.from ||
+      filters.subject ||
+      filters.hasAttachment ||
+      filters.isUnread !== undefined ||
+      filters.isStarred ||
+      filters.heyView ||
+      (filters.dateRange && filters.dateRange !== 'all')
+    );
+  };
+
   // Create search index (memoized)
   const searchIndex = useMemo(() => {
     return createEmailSearchIndex(emails);
@@ -94,18 +107,6 @@ export function InstantSearchDialog({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onOpenChange]);
-
-  const hasActiveFilters = () => {
-    return (
-      filters.from ||
-      filters.subject ||
-      filters.hasAttachment ||
-      filters.isUnread !== undefined ||
-      filters.isStarred ||
-      filters.heyView ||
-      (filters.dateRange && filters.dateRange !== 'all')
-    );
-  };
 
   const clearFilters = () => {
     setFilters({ dateRange: 'all' });
