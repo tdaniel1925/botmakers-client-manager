@@ -1,6 +1,7 @@
 /**
  * Email Layout Component
  * Header + 3-panel layout: Folders | Email Cards | AI Copilot
+ * Now with Hey-inspired features!
  */
 
 'use client';
@@ -8,12 +9,24 @@
 import { useState, useEffect } from 'react';
 import { EmailHeader } from './email-header';
 import { FolderSidebar } from './folder-sidebar';
+import { HeySidebar } from './hey-sidebar';
 import { EmailCardList } from './email-card-list';
 import { EmailViewer } from './email-viewer';
 import { EmailCopilotPanel } from './email-copilot-panel';
 import { DraggableAIModal } from './draggable-ai-modal';
 import { AddEmailAccountDialog } from './add-email-account-dialog';
 import { EmailComposer } from './email-composer';
+import { ScreenerView } from './screener-view';
+import { ImboxView } from './imbox-view';
+import { FeedView } from './feed-view';
+import { PaperTrailView } from './paper-trail-view';
+import { ReplyLaterStack } from './reply-later-stack';
+import { SetAsideView } from './set-aside-view';
+import { FocusReplyMode } from './focus-reply-mode';
+import { CommandPalette } from './command-palette';
+import { InstantSearchDialog } from './instant-search-dialog';
+import { EmailModeSettings, useEmailModeOnboarding } from './email-mode-settings';
+import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from '@/hooks/use-keyboard-shortcuts';
 import { getEmailAccountsAction } from '@/actions/email-account-actions';
 import { getEmailsAction, getEmailFoldersAction } from '@/actions/email-operations-actions';
 import type { SelectEmailAccount } from '@/db/schema/email-schema';
@@ -39,6 +52,18 @@ export function EmailLayout() {
     replyTo?: any;
   }>({});
 
+  // Hey mode state
+  const [emailMode, setEmailMode] = useState<'traditional' | 'hey' | 'hybrid'>('traditional');
+  const [currentView, setCurrentView] = useState('imbox');
+  const [focusMode, setFocusMode] = useState(false);
+  const [focusModeEmails, setFocusModeEmails] = useState<SelectEmail[]>([]);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [activePopupEmailId, setActivePopupEmailId] = useState<string | null>(null);
+  
+  // First-time onboarding
+  const { showOnboarding, completeOnboarding } = useEmailModeOnboarding();
+
   // Load email accounts on mount
   useEffect(() => {
     loadAccounts();
@@ -51,6 +76,51 @@ export function EmailLayout() {
       loadFolders();
     }
   }, [selectedAccount]); // Removed selectedFolder dependency - we'll filter client-side!
+
+  // Load user email mode preference
+  useEffect(() => {
+    fetch('/api/user/email-preferences')
+      .then(res => res.json())
+      .then(prefs => {
+        setEmailMode(prefs.emailMode || 'traditional');
+      })
+      .catch(err => console.error('Failed to load preferences:', err));
+  }, []);
+
+  // Keyboard shortcuts
+  const shortcuts = {
+    ...DEFAULT_SHORTCUTS,
+    commandPalette: {
+      ...DEFAULT_SHORTCUTS.commandPalette,
+      action: () => setCommandPaletteOpen(true),
+    },
+    imbox: {
+      ...DEFAULT_SHORTCUTS.imbox,
+      action: () => setCurrentView('imbox'),
+    },
+    feed: {
+      ...DEFAULT_SHORTCUTS.feed,
+      action: () => setCurrentView('feed'),
+    },
+    paperTrail: {
+      ...DEFAULT_SHORTCUTS.paperTrail,
+      action: () => setCurrentView('paper_trail'),
+    },
+    screener: {
+      ...DEFAULT_SHORTCUTS.screener,
+      action: () => setCurrentView('screener'),
+    },
+    search: {
+      ...DEFAULT_SHORTCUTS.search,
+      action: () => setSearchOpen(true),
+    },
+    compose: {
+      ...DEFAULT_SHORTCUTS.compose,
+      action: () => setComposerOpen(true),
+    },
+  };
+  
+  useKeyboardShortcuts(shortcuts);
 
   async function loadAccounts() {
     try {
@@ -171,6 +241,119 @@ export function EmailLayout() {
     loadFolders();
   };
 
+  // Calculate badge counts for Hey sidebar
+  const unscreenedCount = emails.filter(e => e.screeningStatus === 'pending').length;
+  const replyLaterCount = emails.filter(e => e.isReplyLater).length;
+  const setAsideCount = emails.filter(e => e.isSetAside).length;
+
+  // Render the appropriate view based on mode and selection
+  const renderView = () => {
+    // Focus mode overrides everything
+    if (focusMode) {
+      return (
+        <FocusReplyMode
+          emails={focusModeEmails}
+          onClose={() => setFocusMode(false)}
+          onComplete={() => {
+            setFocusMode(false);
+            setCurrentView('imbox');
+            handleRefresh();
+          }}
+        />
+      );
+    }
+
+    // Hey mode views
+    if (emailMode === 'hey' || emailMode === 'hybrid') {
+      switch (currentView) {
+        case 'screener':
+          return <ScreenerView />;
+        
+        case 'imbox':
+          return (
+            <ImboxView
+              emails={emails}
+              selectedEmail={selectedEmail}
+              onEmailClick={handleEmailSelect}
+              onRefresh={handleRefresh}
+              activePopupEmailId={activePopupEmailId}
+              onPopupOpen={setActivePopupEmailId}
+              onPopupClose={() => setActivePopupEmailId(null)}
+              onComposeWithDraft={handleOpenComposerWithDraft}
+            />
+          );
+        
+        case 'feed':
+          return (
+            <FeedView
+              emails={emails}
+              selectedEmail={selectedEmail}
+              onEmailClick={handleEmailSelect}
+              onRefresh={handleRefresh}
+              activePopupEmailId={activePopupEmailId}
+              onPopupOpen={setActivePopupEmailId}
+              onPopupClose={() => setActivePopupEmailId(null)}
+              onComposeWithDraft={handleOpenComposerWithDraft}
+            />
+          );
+        
+        case 'paper_trail':
+          return (
+            <PaperTrailView
+              emails={emails}
+              selectedEmail={selectedEmail}
+              onEmailClick={handleEmailSelect}
+              onRefresh={handleRefresh}
+              activePopupEmailId={activePopupEmailId}
+              onPopupOpen={setActivePopupEmailId}
+              onPopupClose={() => setActivePopupEmailId(null)}
+              onComposeWithDraft={handleOpenComposerWithDraft}
+            />
+          );
+        
+        case 'reply_later':
+          return (
+            <ReplyLaterStack
+              onEmailClick={handleEmailSelect}
+              onEnterFocusMode={(emails) => {
+                setFocusModeEmails(emails);
+                setFocusMode(true);
+              }}
+            />
+          );
+        
+        case 'set_aside':
+          return <SetAsideView onEmailClick={handleEmailSelect} />;
+        
+        default:
+          // Fall through to traditional view below
+          break;
+      }
+    }
+
+    // Traditional view - show email viewer or card list
+    if (selectedEmail) {
+      return (
+        <EmailViewer
+          email={selectedEmail}
+          onClose={() => setSelectedEmail(null)}
+        />
+      );
+    }
+
+    return (
+      <EmailCardList
+        emails={emails}
+        selectedEmail={selectedEmail}
+        onEmailSelect={handleEmailSelect}
+        loading={loading}
+        folder={selectedFolder}
+        accountId={selectedAccount?.id}
+        onComposeWithDraft={handleOpenComposerWithDraft}
+      />
+    );
+  };
+
   if (loading && accounts.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -231,34 +414,37 @@ export function EmailLayout() {
 
       {/* Main content: 3-panel layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Panel 1: Folder Sidebar with Account Switcher */}
-        <FolderSidebar
-          selectedFolder={selectedFolder}
-          folders={folders}
-          onFolderChange={handleFolderChange}
-          accounts={accounts}
-          selectedAccount={selectedAccount}
-          onAccountChange={handleAccountChange}
-          onAddAccount={() => setShowAddDialog(true)}
-        />
-
-        {/* Panel 2: Email Cards or Email Viewer */}
-        {selectedEmail ? (
-          <EmailViewer
-            email={selectedEmail}
-            onClose={() => setSelectedEmail(null)}
+        {/* Panel 1: Hey Sidebar (or traditional if mode is traditional) */}
+        {emailMode === 'hey' || emailMode === 'hybrid' ? (
+          <HeySidebar
+            selectedView={currentView}
+            folders={folders}
+            onViewChange={setCurrentView}
+            accounts={accounts}
+            selectedAccount={selectedAccount}
+            onAccountChange={handleAccountChange}
+            onAddAccount={() => setShowAddDialog(true)}
+            emailMode={emailMode}
+            unscreenedCount={unscreenedCount}
+            replyLaterCount={replyLaterCount}
+            setAsideCount={setAsideCount}
           />
         ) : (
-          <EmailCardList
-            emails={emails}
-            selectedEmail={selectedEmail}
-            onEmailSelect={handleEmailSelect}
-            loading={loading}
-            folder={selectedFolder}
-            accountId={selectedAccount?.id}
-            onComposeWithDraft={handleOpenComposerWithDraft}
+          <FolderSidebar
+            selectedFolder={selectedFolder}
+            folders={folders}
+            onFolderChange={handleFolderChange}
+            accounts={accounts}
+            selectedAccount={selectedAccount}
+            onAccountChange={handleAccountChange}
+            onAddAccount={() => setShowAddDialog(true)}
           />
         )}
+
+        {/* Panel 2: Rendered view (cards, viewer, or Hey views) */}
+        <div className="flex-1 overflow-hidden">
+          {renderView()}
+        </div>
 
         {/* AI Copilot - Draggable Modal */}
         {copilotOpen && (
@@ -316,6 +502,50 @@ export function EmailLayout() {
           initialSubject={composerDraft.subject}
         />
       )}
+
+      {/* Command Palette - Cmd+K */}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onNavigate={(view) => {
+          setCurrentView(view);
+          setCommandPaletteOpen(false);
+        }}
+        onAction={(action) => {
+          if (action === 'compose') setComposerOpen(true);
+          if (action === 'search') setSearchOpen(true);
+          setCommandPaletteOpen(false);
+        }}
+        onSearch={(query) => {
+          setSearchOpen(true);
+          setCommandPaletteOpen(false);
+        }}
+      />
+
+      {/* Instant Search - / key */}
+      <InstantSearchDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        emails={emails}
+        onEmailSelect={(email) => {
+          setSelectedEmail(email);
+          setSearchOpen(false);
+        }}
+      />
+
+      {/* First-time mode selection */}
+      <EmailModeSettings
+        open={showOnboarding}
+        onOpenChange={(open) => {
+          if (!open) completeOnboarding();
+        }}
+        currentMode={emailMode}
+        onModeChange={(mode) => {
+          setEmailMode(mode);
+          completeOnboarding();
+        }}
+        isFirstTime
+      />
     </div>
   );
 }

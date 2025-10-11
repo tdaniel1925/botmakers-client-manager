@@ -283,6 +283,15 @@ export async function syncNylasEmailsAction(accountId: string) {
           // Don't fail email sync if rules fail
         }
 
+        // Auto-classify email for Hey mode (screening, Imbox/Feed/Paper Trail)
+        try {
+          const { autoClassifyEmail } = await import('@/actions/screening-actions');
+          await autoClassifyEmail(insertedEmail.id);
+        } catch (classifyError) {
+          console.error('Error auto-classifying email:', classifyError);
+          // Don't fail email sync if classification fails
+        }
+
         syncedCount++;
         console.log(`✓ Email ${syncedCount} synced successfully`);
       
