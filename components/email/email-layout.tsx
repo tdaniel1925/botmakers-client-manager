@@ -374,13 +374,19 @@ export function EmailLayout() {
       );
     }
 
+    // In Hey/Hybrid mode, currentView might be a folder name (e.g., 'INBOX', 'SENT')
+    // Use currentView as folder if we're in Hey mode, otherwise use selectedFolder
+    const folderToDisplay = (emailMode === 'hey' || emailMode === 'hybrid') 
+      ? currentView 
+      : selectedFolder;
+
     return (
       <EmailCardList
         emails={emails}
         selectedEmail={selectedEmail}
         onEmailSelect={handleEmailSelect}
         loading={loading}
-        folder={selectedFolder}
+        folder={folderToDisplay}
         accountId={selectedAccount?.id}
         onComposeWithDraft={handleOpenComposerWithDraft}
       />
