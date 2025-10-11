@@ -444,11 +444,7 @@ export function EmailLayout() {
         accounts={accounts}
         selectedAccount={selectedAccount}
         onAccountChange={handleAccountChange}
-        onRefresh={() => {
-          loadAccounts();
-          loadEmails();
-          loadFolders();
-        }}
+        onRefresh={handleRefresh}
         onCompose={() => setComposerOpen(true)}
       />
 

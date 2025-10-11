@@ -55,7 +55,6 @@ export function EmailHeader({
   const [refreshing, setRefreshing] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSettingsSlideOver, setShowSettingsSlideOver] = useState(false);
-  const [fullSyncing, setFullSyncing] = useState(false);
   const [folderSyncing, setFolderSyncing] = useState(false);
 
   // Toast notification utility
@@ -99,23 +98,8 @@ export function EmailHeader({
   const handleFullSync = async () => {
     if (!selectedAccount) return;
     
-    setFullSyncing(true);
-    try {
-      const result = await syncNylasEmailsAction(selectedAccount.id);
-      if (result.success) {
-        const message = result.syncedCount === 0 
-          ? '✅ All emails are up to date!'
-          : `✅ Downloaded ${result.syncedCount} new emails!`;
-        showToast(message, 'success');
-        await onRefresh();
-      } else {
-        showToast(`❌ Sync failed: ${result.error}`, 'error');
-      }
-    } catch (error) {
-      showToast('❌ An error occurred during sync', 'error');
-    } finally {
-      setFullSyncing(false);
-    }
+    // Call parent's refresh function which opens progress modal and syncs
+    await onRefresh();
   };
 
   const handleSyncFolders = async () => {
@@ -230,14 +214,10 @@ export function EmailHeader({
               variant="outline"
               size="sm"
               onClick={handleFullSync}
-              disabled={fullSyncing || !selectedAccount}
+              disabled={!selectedAccount}
               className="gap-2"
             >
-              {fullSyncing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
+              <Download className="h-4 w-4" />
               <span className="hidden lg:inline">Download All</span>
             </Button>
 
@@ -280,13 +260,10 @@ export function EmailHeader({
         </div>
 
         {/* Progress Indicator */}
-        {(fullSyncing || folderSyncing) && (
+        {folderSyncing && (
           <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
-            <span>
-              {fullSyncing && 'Downloading emails...'}
-              {folderSyncing && 'Syncing folders...'}
-            </span>
+            <span>Syncing folders...</span>
           </div>
         )}
       </div>
