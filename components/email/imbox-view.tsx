@@ -128,8 +128,11 @@ export function ImboxView({
                 key={email.id}
                 email={email}
                 isSelected={selectedEmail?.id === email.id}
-                onClick={() => onEmailClick(email)}
-                showPopup={activePopupEmailId === email.id}
+                isBulkSelected={false}
+                bulkMode={false}
+                onSelect={() => onEmailClick(email)}
+                onBulkSelect={() => {}}
+                isPopupActive={activePopupEmailId === email.id}
                 onPopupOpen={() => onPopupOpen?.(email.id)}
                 onPopupClose={onPopupClose}
                 onComposeWithDraft={onComposeWithDraft}

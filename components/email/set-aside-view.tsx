@@ -115,7 +115,10 @@ export function SetAsideView({ onEmailClick }: SetAsideViewProps) {
                         <EmailCard
                           email={email}
                           isSelected={false}
-                          onClick={() => onEmailClick(email)}
+                          isBulkSelected={false}
+                          bulkMode={false}
+                          onSelect={() => onEmailClick(email)}
+                          onBulkSelect={() => {}}
                         />
                         
                         <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
