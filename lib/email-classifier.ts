@@ -80,10 +80,18 @@ function isNewsletter(subject: string, body: string, from: string): boolean {
   return false;
 }
 
-function getEmailAddress(fromAddress: any): string {
+export function getEmailAddress(fromAddress: any): string {
   if (!fromAddress) return '';
   if (typeof fromAddress === 'string') return fromAddress;
   if (typeof fromAddress === 'object' && fromAddress.email) return fromAddress.email;
+  return '';
+}
+
+export function getEmailName(fromAddress: any): string {
+  if (!fromAddress) return '';
+  if (typeof fromAddress === 'string') return fromAddress.split('@')[0];
+  if (typeof fromAddress === 'object' && fromAddress.name) return fromAddress.name;
+  if (typeof fromAddress === 'object' && fromAddress.email) return fromAddress.email.split('@')[0];
   return '';
 }
 

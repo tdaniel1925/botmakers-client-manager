@@ -8,7 +8,7 @@ import { db } from '@/db/db';
 import { contactScreeningTable, emailsTable } from '@/db/schema/email-schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
-import { classifyEmail } from '@/lib/email-classifier';
+import { classifyEmail, getEmailAddress, getEmailName } from '@/lib/email-classifier';
 import { revalidatePath } from 'next/cache';
 
 interface ActionResult<T = any> {
