@@ -145,8 +145,18 @@ export function EmailLayout() {
 
   async function loadAccounts() {
     try {
+      console.log('🔄 Loading email accounts...');
       const result = await getEmailAccountsAction();
+      
+      console.log('📊 Account load result:', {
+        success: result.success,
+        accountCount: result.accounts?.length || 0,
+        accounts: result.accounts?.map(a => a.emailAddress) || [],
+        error: result.error || 'none'
+      });
+      
       if (result.success && result.accounts) {
+        console.log(`✅ Setting ${result.accounts.length} accounts`);
         setAccounts(result.accounts);
         
         // Auto-select first account or default account
@@ -154,11 +164,18 @@ export function EmailLayout() {
         const accountToSelect = defaultAccount || result.accounts[0];
         
         if (accountToSelect) {
+          console.log(`✅ Auto-selecting account: ${accountToSelect.emailAddress}`);
           setSelectedAccount(accountToSelect);
+        } else {
+          console.log('⚠️ No account to auto-select');
         }
+      } else {
+        console.error('❌ Failed to load accounts:', result.error);
+        setAccounts([]);
       }
     } catch (error) {
-      console.error('Error loading accounts:', error);
+      console.error('❌ Error loading accounts:', error);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
