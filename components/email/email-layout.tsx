@@ -27,6 +27,7 @@ import { CommandPalette } from './command-palette';
 import { InstantSearchDialog } from './instant-search-dialog';
 import { EmailModeSettings, useEmailModeOnboarding } from './email-mode-settings';
 import { SyncProgressModal } from './sync-progress-modal';
+import { Toaster } from '@/components/ui/toaster';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { getEmailAccountsAction } from '@/actions/email-account-actions';
 import { getEmailsAction, getEmailFoldersAction } from '@/actions/email-operations-actions';
@@ -592,6 +593,9 @@ export function EmailLayout() {
         }}
         isFirstTime
       />
+
+      {/* Toast notifications */}
+      <Toaster />
     </div>
   );
 }

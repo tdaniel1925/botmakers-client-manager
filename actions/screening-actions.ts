@@ -109,6 +109,12 @@ export async function screenSender(
     }
     
     console.log(`✅ Screened ${emailsToUpdate.length} emails from ${emailAddress} as "${decision}"`);
+    console.log(`📬 Emails will now appear in: ${
+      decision === 'imbox' ? '✨ Imbox (Important)' :
+      decision === 'feed' ? '📰 The Feed (Newsletters)' :
+      decision === 'paper_trail' ? '🧾 Paper Trail (Receipts)' :
+      '🚫 Blocked (Hidden)'
+    }`);
 
     revalidatePath('/platform/emails');
     return { success: true };
@@ -187,13 +193,21 @@ export async function autoClassifyEmail(emailId: string): Promise<ActionResult> 
 
     if (screeningResult.data) {
       // Use screened decision
+      const view = screeningResult.data === 'blocked' ? null : screeningResult.data;
       await db
         .update(emailsTable)
         .set({
-          heyView: screeningResult.data,
+          heyView: view,
           screeningStatus: 'screened',
         })
         .where(eq(emailsTable.id, emailId));
+      
+      console.log(`📬 Auto-routed email from ${sender} to: ${
+        screeningResult.data === 'imbox' ? '✨ Imbox' :
+        screeningResult.data === 'feed' ? '📰 The Feed' :
+        screeningResult.data === 'paper_trail' ? '🧾 Paper Trail' :
+        '🚫 Blocked'
+      } (based on screening decision)`);
     } else {
       // Auto-classify
       const classification = classifyEmail(email);

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -18,7 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   Mail,
-  Calendar
+  Calendar,
+  Inbox,
+  Ban
 } from 'lucide-react';
 import { screenSender } from '@/actions/screening-actions';
 import { formatDistanceToNow } from 'date-fns';
@@ -46,6 +49,7 @@ export function ScreenEmailCard({
   const [screening, setScreening] = useState(false);
   const [notes, setNotes] = useState('');
   const [isExiting, setIsExiting] = useState(false);
+  const { toast } = useToast();
 
   const handleScreen = async (decision: 'imbox' | 'feed' | 'paper_trail' | 'blocked') => {
     setScreening(true);
@@ -54,12 +58,46 @@ export function ScreenEmailCard({
     // Remove from UI immediately (optimistic update)
     onScreened(emailAddress);
     
+    // Show confirmation toast
+    const toastMessages = {
+      imbox: { 
+        title: '✨ Moved to Imbox',
+        description: `${name} will now appear in your Imbox`,
+        icon: Inbox,
+      },
+      feed: { 
+        title: '📰 Moved to The Feed',
+        description: `${name} will now appear in The Feed`,
+        icon: Newspaper,
+      },
+      paper_trail: { 
+        title: '🧾 Moved to Paper Trail',
+        description: `${name} will now appear in Paper Trail`,
+        icon: Receipt,
+      },
+      blocked: { 
+        title: '🚫 Blocked',
+        description: `${name} has been blocked`,
+        icon: Ban,
+      },
+    };
+    
+    const message = toastMessages[decision];
+    toast({
+      title: message.title,
+      description: message.description,
+    });
+    
     // Update database in background
     const result = await screenSender(emailAddress, decision, firstEmail.id, notes);
     
     if (!result.success) {
-      // If it fails, we could show an error toast here
       console.error('Failed to screen sender:', result.error);
+      toast({
+        title: '❌ Error',
+        description: 'Failed to screen sender. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
