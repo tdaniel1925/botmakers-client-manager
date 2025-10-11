@@ -81,32 +81,43 @@ export function getEmailName(fromAddress: any): string {
 
 /**
  * Highlight matched text in search results
+ * Returns array of text segments with match information
  */
-export function highlightMatches(text: string, indices: [number, number][]): React.ReactNode[] {
-  if (!indices || indices.length === 0) return [text];
+export interface TextSegment {
+  text: string;
+  isMatch: boolean;
+}
 
-  const parts: React.ReactNode[] = [];
+export function highlightMatches(text: string, indices: [number, number][]): TextSegment[] {
+  if (!indices || indices.length === 0) return [{ text, isMatch: false }];
+
+  const parts: TextSegment[] = [];
   let lastIndex = 0;
 
-  indices.forEach(([start, end], i) => {
+  indices.forEach(([start, end]) => {
     // Add text before match
     if (start > lastIndex) {
-      parts.push(text.substring(lastIndex, start));
+      parts.push({
+        text: text.substring(lastIndex, start),
+        isMatch: false,
+      });
     }
 
     // Add matched text
-    parts.push(
-      <mark key={i} className="bg-yellow-200 font-semibold">
-        {text.substring(start, end + 1)}
-      </mark>
-    );
+    parts.push({
+      text: text.substring(start, end + 1),
+      isMatch: true,
+    });
 
     lastIndex = end + 1;
   });
 
   // Add remaining text
   if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
+    parts.push({
+      text: text.substring(lastIndex),
+      isMatch: false,
+    });
   }
 
   return parts;
