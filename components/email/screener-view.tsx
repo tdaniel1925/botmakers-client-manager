@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getUnscreenedEmails } from '@/actions/screening-actions';
 import { Filter, Sparkles, CheckCircle, Info } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface UnscreenedSender {
   emailAddress: string;
@@ -118,7 +118,10 @@ export function ScreenerView() {
         )}
 
         {/* Screening Cards */}
-        <div className="space-y-4">
+        <motion.div 
+          className="space-y-4"
+          layout // Enable parent container layout animations
+        >
           <AnimatePresence mode="popLayout">
             {senders.map((sender) => (
               <ScreenEmailCard
@@ -132,7 +135,7 @@ export function ScreenerView() {
               />
             ))}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         {/* AI Info */}
         <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-2 pt-4">

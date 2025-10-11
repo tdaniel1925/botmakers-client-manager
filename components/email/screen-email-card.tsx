@@ -66,10 +66,15 @@ export function ScreenEmailCard({
 
   return (
     <motion.div
+      layout // Enable layout animations for smooth repositioning
       initial={{ opacity: 0, y: 20 }}
       animate={isExiting ? { opacity: 0, x: -100, scale: 0.9 } : { opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -100, scale: 0.9 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      transition={{ 
+        duration: 0.3, 
+        ease: 'easeInOut',
+        layout: { duration: 0.4, ease: 'easeInOut' } // Smooth layout shift
+      }}
     >
       <Card className="p-6 hover:shadow-md transition-shadow">
         {/* Header */}
