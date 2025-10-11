@@ -48,8 +48,15 @@ export async function connectNylasAccountAction(
 
 /**
  * Sync emails from Nylas for a specific account
+ * OPTIMIZED: Limits initial sync for faster loading
  */
-export async function syncNylasEmailsAction(accountId: string) {
+export async function syncNylasEmailsAction(
+  accountId: string,
+  options?: {
+    maxEmails?: number;
+    skipClassification?: boolean;
+  }
+) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -86,9 +93,14 @@ export async function syncNylasEmailsAction(accountId: string) {
     let totalFetched = 0;
     let pageNumber = 0;
 
-    console.log(`🔄 Starting email sync for account:`, account.emailAddress);
+    // Limit initial sync to recent emails only (default: 200 emails, ~4 pages)
+    const maxEmails = options?.maxEmails || 200;
+    const skipClassification = options?.skipClassification !== false; // Default: skip for speed
 
-    // Pagination loop - fetch all pages
+    console.log(`🔄 Starting OPTIMIZED email sync for account:`, account.emailAddress);
+    console.log(`📊 Max emails: ${maxEmails}, Skip classification: ${skipClassification}`);
+
+    // Pagination loop - fetch pages until limit reached
     do {
       pageNumber++;
       
@@ -284,12 +296,15 @@ export async function syncNylasEmailsAction(accountId: string) {
         }
 
         // Auto-classify email for Hey mode (screening, Imbox/Feed/Paper Trail)
-        try {
-          const { autoClassifyEmail } = await import('@/actions/screening-actions');
-          await autoClassifyEmail(insertedEmail.id);
-        } catch (classifyError) {
-          console.error('Error auto-classifying email:', classifyError);
-          // Don't fail email sync if classification fails
+        // OPTIMIZATION: Skip classification during initial sync for speed
+        if (!skipClassification) {
+          try {
+            const { autoClassifyEmail } = await import('@/actions/screening-actions');
+            await autoClassifyEmail(insertedEmail.id);
+          } catch (classifyError) {
+            console.error('Error auto-classifying email:', classifyError);
+            // Don't fail email sync if classification fails
+          }
         }
 
         syncedCount++;
@@ -308,9 +323,15 @@ export async function syncNylasEmailsAction(accountId: string) {
       // Get next page token for pagination
       pageToken = messagesResponse.nextCursor;
       
-      console.log(`📄 Page ${pageNumber} complete. Next page: ${pageToken ? 'Yes' : 'No'}`);
+      console.log(`📄 Page ${pageNumber} complete. Next page: ${pageToken ? 'Yes' : 'No'}, Total fetched: ${totalFetched}/${maxEmails}`);
       
-      // Continue fetching if there are more pages
+      // OPTIMIZATION: Stop if we've reached the max email limit
+      if (totalFetched >= maxEmails) {
+        console.log(`⚡ Reached max email limit (${maxEmails}). Stopping sync for faster loading.`);
+        pageToken = undefined; // Stop pagination
+      }
+      
+      // Continue fetching if there are more pages and we haven't hit the limit
     } while (pageToken);
 
     // Update sync status

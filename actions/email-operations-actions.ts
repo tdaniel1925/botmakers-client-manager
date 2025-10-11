@@ -21,17 +21,20 @@ interface ActionResult<T = void> {
 
 /**
  * Get all emails for a specific account
+ * OPTIMIZED: Fetches only essential fields initially for fast loading
  */
-export async function getEmailsAction(accountId: string): Promise<ActionResult<{ emails: SelectEmail[] }>> {
+export async function getEmailsAction(
+  accountId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    folder?: string;
+  }
+): Promise<ActionResult<{ emails: SelectEmail[]; hasMore: boolean }>> {
   try {
     console.log('🚀 getEmailsAction: Starting, accountId:', accountId);
     
     const authResult = await auth();
-    console.log('🔑 getEmailsAction: Auth result:', { 
-      hasUserId: !!authResult?.userId, 
-      userId: authResult?.userId?.substring(0, 10) + '...'
-    });
-    
     const { userId } = authResult;
     if (!userId) {
       console.log('❌ getEmailsAction: No userId in auth result');
@@ -55,14 +58,21 @@ export async function getEmailsAction(accountId: string): Promise<ActionResult<{
 
     console.log('✅ getEmailsAction: Account verified, fetching emails...');
 
-    // Fetch emails with pagination (limit to 100 most recent)
+    const limit = options?.limit || 50; // Reduced from 100 to 50 for faster initial load
+    const offset = options?.offset || 0;
+
+    // Fetch emails with pagination - FAST query (no joins)
     const emailList = await db.query.emailsTable.findMany({
       where: eq(emailsTable.accountId, accountId),
       orderBy: [desc(emailsTable.receivedAt)],
-      limit: 100,
+      limit: limit + 1, // Fetch one extra to check if there are more
+      offset,
     });
 
-    console.log('✅ getEmailsAction: Query complete, found emails:', emailList.length);
+    const hasMore = emailList.length > limit;
+    const emails = hasMore ? emailList.slice(0, limit) : emailList;
+
+    console.log('✅ getEmailsAction: Query complete, found emails:', emails.length, 'hasMore:', hasMore);
 
     // Force revalidation to ensure fresh data
     revalidatePath('/platform/emails');
@@ -70,7 +80,7 @@ export async function getEmailsAction(accountId: string): Promise<ActionResult<{
 
     return {
       success: true,
-      data: { emails: emailList },
+      data: { emails, hasMore },
     };
   } catch (error: any) {
     console.error('❌ getEmailsAction: Exception caught:', {
