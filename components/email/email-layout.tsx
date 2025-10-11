@@ -26,7 +26,7 @@ import { FocusReplyMode } from './focus-reply-mode';
 import { CommandPalette } from './command-palette';
 import { InstantSearchDialog } from './instant-search-dialog';
 import { EmailModeSettings, useEmailModeOnboarding } from './email-mode-settings';
-import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from '@/hooks/use-keyboard-shortcuts';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { getEmailAccountsAction } from '@/actions/email-account-actions';
 import { getEmailsAction, getEmailFoldersAction } from '@/actions/email-operations-actions';
 import type { SelectEmailAccount } from '@/db/schema/email-schema';
@@ -89,34 +89,51 @@ export function EmailLayout() {
 
   // Keyboard shortcuts
   const shortcuts = {
-    ...DEFAULT_SHORTCUTS,
     commandPalette: {
-      ...DEFAULT_SHORTCUTS.commandPalette,
+      key: 'k',
+      metaKey: true,
       action: () => setCommandPaletteOpen(true),
+      description: 'Open command palette',
     },
     imbox: {
-      ...DEFAULT_SHORTCUTS.imbox,
+      key: '1',
       action: () => setCurrentView('imbox'),
+      description: 'Go to Imbox',
     },
     feed: {
-      ...DEFAULT_SHORTCUTS.feed,
+      key: '2',
       action: () => setCurrentView('feed'),
+      description: 'Go to The Feed',
     },
     paperTrail: {
-      ...DEFAULT_SHORTCUTS.paperTrail,
+      key: '3',
       action: () => setCurrentView('paper_trail'),
+      description: 'Go to Paper Trail',
     },
     screener: {
-      ...DEFAULT_SHORTCUTS.screener,
+      key: '4',
       action: () => setCurrentView('screener'),
+      description: 'Go to Screener',
     },
     search: {
-      ...DEFAULT_SHORTCUTS.search,
+      key: '/',
       action: () => setSearchOpen(true),
+      description: 'Search emails',
     },
     compose: {
-      ...DEFAULT_SHORTCUTS.compose,
+      key: 'c',
       action: () => setComposerOpen(true),
+      description: 'Compose new email',
+    },
+    replyLater: {
+      key: 'l',
+      action: () => setCurrentView('reply_later'),
+      description: 'Reply Later',
+    },
+    setAside: {
+      key: 's',
+      action: () => setCurrentView('set_aside'),
+      description: 'Set Aside',
     },
   };
   
