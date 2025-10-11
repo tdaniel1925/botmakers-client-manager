@@ -26,9 +26,11 @@ import { FocusReplyMode } from './focus-reply-mode';
 import { CommandPalette } from './command-palette';
 import { InstantSearchDialog } from './instant-search-dialog';
 import { EmailModeSettings, useEmailModeOnboarding } from './email-mode-settings';
+import { SyncProgressModal } from './sync-progress-modal';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { getEmailAccountsAction } from '@/actions/email-account-actions';
 import { getEmailsAction, getEmailFoldersAction } from '@/actions/email-operations-actions';
+import { syncNylasEmailsAction } from '@/actions/email-nylas-actions';
 import type { SelectEmailAccount } from '@/db/schema/email-schema';
 import type { SelectEmail } from '@/db/schema/email-schema';
 import { useAuth } from '@clerk/nextjs';
@@ -60,6 +62,7 @@ export function EmailLayout() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [activePopupEmailId, setActivePopupEmailId] = useState<string | null>(null);
+  const [syncProgressOpen, setSyncProgressOpen] = useState(false);
   
   // First-time onboarding
   const { showOnboarding, completeOnboarding } = useEmailModeOnboarding();
@@ -253,9 +256,22 @@ export function EmailLayout() {
     setComposerOpen(true);
   };
 
-  const handleRefresh = () => {
-    loadEmails();
-    loadFolders();
+  const handleRefresh = async () => {
+    if (!selectedAccount) return;
+    
+    // Show sync progress modal
+    setSyncProgressOpen(true);
+    
+    try {
+      // Trigger email sync with progress tracking
+      await syncNylasEmailsAction(selectedAccount.id);
+      
+      // Reload emails and folders after sync
+      await loadEmails();
+      await loadFolders();
+    } catch (error) {
+      console.error('Sync error:', error);
+    }
   };
 
   // Calculate badge counts for Hey sidebar
@@ -548,6 +564,13 @@ export function EmailLayout() {
           setSelectedEmail(email);
           setSearchOpen(false);
         }}
+      />
+
+      {/* Sync Progress Modal */}
+      <SyncProgressModal
+        open={syncProgressOpen}
+        onOpenChange={setSyncProgressOpen}
+        accountEmail={selectedAccount?.emailAddress || ''}
       />
 
       {/* First-time mode selection */}

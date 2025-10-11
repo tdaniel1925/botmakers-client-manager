@@ -101,11 +101,36 @@ export async function syncNylasEmailsAction(
     console.log(`📊 Syncing ALL emails (no limit), Skip classification: ${skipClassification}`);
     console.log(`⏱️  This may take 5-10 minutes for large accounts...`);
 
+    // Initialize sync status tracking
+    const { updateSyncStatus } = await import('@/app/api/email/sync-status/route');
+    updateSyncStatus(userId, {
+      currentPage: 0,
+      totalFetched: 0,
+      synced: 0,
+      skipped: 0,
+      errors: 0,
+      estimatedTotal: 1000,
+      isComplete: false,
+    });
+
+    // Batch size for database operations
+    const BATCH_SIZE = 10; // Process 10 emails at a time for better performance
+    let emailBatch: any[] = [];
+
     // Pagination loop - fetch pages until limit reached
     do {
       pageNumber++;
       
-      // Fetch messages from Nylas
+      // Update progress
+      updateSyncStatus(userId, {
+        currentPage: pageNumber,
+        totalFetched,
+        synced: syncedCount,
+        skipped: skippedCount,
+        errors: errorCount,
+      });
+      
+      // Fetch messages from Nylas in batches of 50
       const messagesResponse = await listNylasMessages(account.nylasGrantId, {
         limit: 50,
         pageToken,
@@ -339,6 +364,17 @@ export async function syncNylasEmailsAction(
       })
       .where(eq(emailAccountsTable.id, accountId));
 
+    // Mark sync as complete
+    updateSyncStatus(userId, {
+      currentPage: pageNumber,
+      totalFetched,
+      synced: syncedCount,
+      skipped: skippedCount,
+      errors: errorCount,
+      estimatedTotal: totalFetched,
+      isComplete: true,
+    });
+
     console.log('🎉 FULL SYNC COMPLETE:', {
       totalPages: pageNumber,
       totalFetched,
@@ -352,6 +388,12 @@ export async function syncNylasEmailsAction(
 
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
+
+    // Clear status after 30 seconds
+    setTimeout(() => {
+      const { clearSyncStatus } = require('@/app/api/email/sync-status/route');
+      clearSyncStatus(userId);
+    }, 30000);
 
     return { success: true, syncedCount, skippedCount, errorCount };
   } catch (error: any) {
