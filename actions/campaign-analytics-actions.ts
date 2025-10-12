@@ -33,7 +33,7 @@ export async function getCampaignAnalyticsAction(campaignId: string) {
       ? await db
           .select()
           .from(callRecordsTable)
-          .where(eq(callRecordsTable.webhookId, campaign.webhookId))
+          .where(eq(callRecordsTable.webhookId, campaign.webhookId!))
           .orderBy(desc(callRecordsTable.timestamp))
       : [];
 
