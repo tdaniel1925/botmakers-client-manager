@@ -8,7 +8,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { isPlatformAdmin } from "@/db/queries/platform-queries";
 import { getCampaignById } from "@/db/queries/voice-campaigns-queries";
-import { getCallRecordsByCampaign } from "@/db/queries/calls-queries";
 import { db } from "@/db/db";
 import { callRecordsTable } from "@/db/schema";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
