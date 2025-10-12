@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { EmailCard } from './email-card';
+import { EmailViewer } from './email-viewer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Newspaper, CheckCheck, RefreshCw } from 'lucide-react';
@@ -53,6 +54,33 @@ export function FeedView({
     setMarkingAllRead(false);
     onRefresh?.();
   };
+
+  // Show EmailViewer if an email is selected
+  if (selectedEmail) {
+    return (
+      <div className="h-full flex flex-col">
+        {/* Back button header */}
+        <div className="border-b bg-background p-3 flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEmailClick(null as any)}
+            className="gap-2"
+          >
+            ← Back to The Feed
+          </Button>
+        </div>
+        
+        {/* Email Viewer */}
+        <div className="flex-1 overflow-auto">
+          <EmailViewer
+            email={selectedEmail}
+            onClose={() => onEmailClick(null as any)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
