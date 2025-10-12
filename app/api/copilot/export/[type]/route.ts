@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db/db';
-import { contacts, deals, activities, projects } from '@/db/schema';
+import { contactsTable, dealsTable, activitiesTable, projectsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Export data handlers for different types
 const exportHandlers = {
   contacts: async (userId: string, orgId: string) => {
-    const data = await db.query.contacts.findMany({
-      where: eq(contacts.organizationId, orgId),
+    const data = await db.query.contactsTable.findMany({
+      where: eq(contactsTable.organizationId, orgId),
       limit: 1000, // Reasonable limit for CSV export
     });
 
@@ -27,8 +27,8 @@ const exportHandlers = {
   },
 
   deals: async (userId: string, orgId: string) => {
-    const data = await db.query.deals.findMany({
-      where: eq(deals.organizationId, orgId),
+    const data = await db.query.dealsTable.findMany({
+      where: eq(dealsTable.organizationId, orgId),
       limit: 1000,
     });
 
@@ -47,8 +47,8 @@ const exportHandlers = {
   },
 
   activities: async (userId: string, orgId: string) => {
-    const data = await db.query.activities.findMany({
-      where: eq(activities.organizationId, orgId),
+    const data = await db.query.activitiesTable.findMany({
+      where: eq(activitiesTable.organizationId, orgId),
       limit: 1000,
     });
 
@@ -67,8 +67,8 @@ const exportHandlers = {
   },
 
   projects: async (userId: string, orgId: string) => {
-    const data = await db.query.projects.findMany({
-      where: eq(projects.organizationId, orgId),
+    const data = await db.query.projectsTable.findMany({
+      where: eq(projectsTable.organizationId, orgId),
       limit: 1000,
     });
 

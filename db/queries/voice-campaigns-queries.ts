@@ -270,3 +270,6 @@ export async function resumeAllCampaigns(projectId: string): Promise<void> {
       )
     );
 }
+
+// Alias for backward compatibility
+export const getVoiceCampaignById = getCampaignById;

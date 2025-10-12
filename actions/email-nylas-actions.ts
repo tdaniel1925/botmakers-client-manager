@@ -107,7 +107,7 @@ export async function syncNylasEmailsAction(
 
     // Initialize sync status tracking
     console.log('🔄 Importing updateSyncStatus...');
-    const { updateSyncStatus } = await import('@/app/api/email/sync-status/route');
+    const { updateSyncStatus } = await import('@/lib/email-sync-status');
     
     console.log('📊 Initializing sync status for userId:', userId.substring(0, 10) + '...');
     updateSyncStatus(userId, {
@@ -412,8 +412,8 @@ export async function syncNylasEmailsAction(
     revalidatePath('/dashboard/emails');
 
     // Clear status after 30 seconds
-    setTimeout(() => {
-      const { clearSyncStatus } = require('@/app/api/email/sync-status/route');
+    setTimeout(async () => {
+      const { clearSyncStatus } = await import('@/lib/email-sync-status');
       clearSyncStatus(userId);
     }, 30000);
 
@@ -431,7 +431,7 @@ export async function syncNylasEmailsAction(
       })
       .where(eq(emailAccountsTable.id, accountId));
 
-    const { updateSyncStatus } = await import('@/app/api/email/sync-status/route');
+    const { updateSyncStatus } = await import('@/lib/email-sync-status');
     updateSyncStatus(userId, {
       isComplete: true,
       errors: errorCount + 1,

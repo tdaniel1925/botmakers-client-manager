@@ -131,3 +131,20 @@ export async function seedSubscriptionPlansAction() {
     return { error: "Failed to seed plans" };
   }
 }
+
+// Mock organization seeding functions (not implemented yet)
+export async function seedMockOrganizationsAction() {
+  return { 
+    isSuccess: false, 
+    message: "Mock organization seeding not implemented yet",
+    data: null 
+  };
+}
+
+export async function clearMockOrganizationsAction() {
+  return { 
+    isSuccess: false, 
+    message: "Mock organization clearing not implemented yet",
+    data: null 
+  };
+}

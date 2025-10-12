@@ -197,3 +197,11 @@ export function useShortcut(
 
   useKeyboardShortcuts(shortcuts);
 }
+
+/**
+ * Check if user is on Mac
+ */
+export const isMac = () => {
+  if (typeof window === 'undefined') return false;
+  return /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+};

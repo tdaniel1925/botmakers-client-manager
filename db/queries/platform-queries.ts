@@ -173,3 +173,6 @@ export async function updateOrganizationStatus(
   return result[0];
 }
 
+// Alias for backward compatibility
+export const getPlatformAdmins = getAllPlatformAdmins;
+

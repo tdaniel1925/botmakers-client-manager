@@ -81,4 +81,7 @@ export function getAllTemplateOptions() {
   }));
 }
 
+// Alias for backward compatibility
+export const getTemplateByType = getTemplateByProjectType;
+
 export default ONBOARDING_TEMPLATES;

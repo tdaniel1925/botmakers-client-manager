@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { auditLogsTable, SelectAuditLog } from "../schema/audit-schema";
+import { auditLogsTable, SelectAuditLog, InsertAuditLog } from "../schema/audit-schema";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 
 /**
@@ -144,6 +144,23 @@ export async function getAuditLogsByDateRange(
   } catch (error) {
     console.error("Error fetching audit logs by date range:", error);
     return [];
+  }
+}
+
+/**
+ * Create an audit log entry
+ */
+export async function logAuditEvent(data: InsertAuditLog): Promise<SelectAuditLog> {
+  try {
+    const result = await db
+      .insert(auditLogsTable)
+      .values(data)
+      .returning();
+    
+    return result[0];
+  } catch (error) {
+    console.error("Error logging audit event:", error);
+    throw error;
   }
 }
 

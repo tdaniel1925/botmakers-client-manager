@@ -406,3 +406,33 @@ export class VapiProvider extends BaseVoiceProvider {
     };
   }
 }
+
+// Standalone helper function for making outbound calls
+export async function makeOutboundCall(params: {
+  assistantId?: string | null;
+  customerPhoneNumber: string;
+  customerName?: string;
+}): Promise<{ success: boolean; callId?: string; error?: string }> {
+  try {
+    const provider = new VapiProvider();
+    
+    if (!params.assistantId) {
+      return { success: false, error: "Assistant ID is required" };
+    }
+    
+    // TODO: Implement actual outbound call logic
+    // For now, return a stub response
+    console.warn("makeOutboundCall: Not fully implemented yet");
+    
+    return {
+      success: false,
+      error: "Outbound calling not fully implemented yet"
+    };
+  } catch (error) {
+    console.error("Error making outbound call:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
