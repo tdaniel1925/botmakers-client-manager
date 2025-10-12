@@ -447,8 +447,8 @@ export async function updateEventAction(
         if (account?.nylasGrantId) {
           await updateNylasEvent(account.nylasGrantId, event.nylasEventId, {
             title: eventData.title,
-            description: eventData.description,
-            location: eventData.location,
+            description: eventData.description ?? undefined,
+            location: eventData.location ?? undefined,
             start: eventData.startTime ? Math.floor(eventData.startTime.getTime() / 1000) : undefined,
             end: eventData.endTime ? Math.floor(eventData.endTime.getTime() / 1000) : undefined,
           });
