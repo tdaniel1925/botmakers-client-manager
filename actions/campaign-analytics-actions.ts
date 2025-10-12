@@ -28,11 +28,14 @@ export async function getCampaignAnalyticsAction(campaignId: string) {
     }
 
     // Get call records for this campaign (via webhook)
-    const callRecords = await db
-      .select()
-      .from(callRecordsTable)
-      .where(eq(callRecordsTable.webhookId, campaign.webhookId))
-      .orderBy(desc(callRecordsTable.timestamp));
+    // If campaign has no webhook, return empty analytics
+    const callRecords = campaign.webhookId
+      ? await db
+          .select()
+          .from(callRecordsTable)
+          .where(eq(callRecordsTable.webhookId, campaign.webhookId))
+          .orderBy(desc(callRecordsTable.timestamp))
+      : [];
 
     // Calculate analytics
     const totalCalls = callRecords.length;
