@@ -78,6 +78,9 @@ export const emailAccountsTable = pgTable(
 
     // Nylas integration
     nylasGrantId: text("nylas_grant_id"), // Nylas grant ID for unified API
+    
+    // Organization (multi-tenancy)
+    organizationId: text("organization_id"), // For multi-tenant setups
 
     // OAuth fields (encrypted)
     accessToken: text("access_token"), // Encrypted
@@ -102,6 +105,8 @@ export const emailAccountsTable = pgTable(
     lastSyncAt: timestamp("last_sync_at"),
     lastSyncError: text("last_sync_error"),
     lastUid: integer("last_uid"), // For IMAP incremental sync
+    syncCursor: text("sync_cursor"), // For incremental email sync tracking
+    errorMessage: text("error_message"), // General error messages
 
     // Webhook/Push notifications
     webhookSubscriptionId: text("webhook_subscription_id"),

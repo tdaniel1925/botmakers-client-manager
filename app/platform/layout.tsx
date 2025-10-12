@@ -8,7 +8,7 @@ import { ImpersonationBanner } from "@/components/impersonation/impersonation-ba
 import { CompactAdminNav } from "@/components/platform/compact-admin-nav";
 import { BrowserFrame } from "@/components/ui/browser-frame";
 import { OrgSwitcherDropdown } from "@/components/org-switcher-dropdown";
-import { headers } from "next/headers";
+import { InstantSidebarToggle } from "@/components/instant-sidebar-toggle";
 
 export default async function PlatformLayout({
   children,
@@ -31,19 +31,11 @@ export default async function PlatformLayout({
   // Get view switcher data
   const viewSwitcherData = await getViewSwitcherDataAction();
 
-  // Check if current route is emails or calendar page - if so, render without sidebar
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
-  const isEmailsPage = pathname.includes("/emails");
-  const isCalendarPage = pathname.includes("/calendar");
-
-  // If emails or calendar page, render children without sidebar
-  if (isEmailsPage || isCalendarPage) {
-    return <>{children}</>;
-  }
-
   return (
     <>
+      {/* Instant client-side sidebar toggle (0ms delay) */}
+      <InstantSidebarToggle />
+      
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
@@ -53,31 +45,33 @@ export default async function PlatformLayout({
         className="h-screen"
       >
         <div className="flex h-full bg-app-bg">
-          {/* Sidebar - Using shared GlassSidebarContainer for consistent styling */}
-          <GlassSidebarContainer className="py-3">
-            {/* Organization Switcher */}
-            <div className="px-4 py-3">
-              <OrgSwitcherDropdown
-                currentView={viewSwitcherData.currentView}
-                availableOrganizations={viewSwitcherData.availableOrganizations}
-                isPlatformAdmin={viewSwitcherData.isPlatformAdmin}
-              />
-            </div>
-            
-            <CompactAdminNav />
-            
-            <div className="p-4 border-t border-white/40">
-              <Link
-                href="/dashboard"
-                className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                ← Back to User Dashboard
-              </Link>
-            </div>
-          </GlassSidebarContainer>
+          {/* Sidebar - always rendered, hidden via CSS instantly when needed */}
+          <div className="app-sidebar">
+            <GlassSidebarContainer className="py-3">
+              {/* Organization Switcher */}
+              <div className="px-4 py-3">
+                <OrgSwitcherDropdown
+                  currentView={viewSwitcherData.currentView}
+                  availableOrganizations={viewSwitcherData.availableOrganizations}
+                  isPlatformAdmin={viewSwitcherData.isPlatformAdmin}
+                />
+              </div>
+              
+              <CompactAdminNav />
+              
+              <div className="p-4 border-t border-white/40">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  ← Back to User Dashboard
+                </Link>
+              </div>
+            </GlassSidebarContainer>
+          </div>
 
           {/* Main content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden main-content-area">
             {/* Page content */}
             <div className="flex-1 overflow-auto">
               {children}

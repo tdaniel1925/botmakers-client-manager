@@ -23,10 +23,14 @@ export function GeneralSettings({ account }: GeneralSettingsProps) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadSettings();
-  }, [account.id]);
+    if (account?.id) {
+      loadSettings();
+    }
+  }, [account?.id]);
 
   async function loadSettings() {
+    if (!account?.id) return;
+    
     setLoading(true);
     const result = await getEmailSettingsAction(account.id);
     if (result.success && result.settings) {
@@ -36,7 +40,7 @@ export function GeneralSettings({ account }: GeneralSettingsProps) {
   }
 
   async function handleSave() {
-    if (!settings) return;
+    if (!settings || !account?.id) return;
 
     setSaving(true);
     const result = await updateEmailSettingsAction(account.id, {

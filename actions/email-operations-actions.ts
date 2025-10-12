@@ -58,7 +58,7 @@ export async function getEmailsAction(
 
     console.log('✅ getEmailsAction: Account verified, fetching emails...');
 
-    const limit = options?.limit || 1000; // Load 1000 emails (optimized for speed)
+    const limit = options?.limit || 50; // Load 50 emails initially (Gmail-style pagination)
     const offset = options?.offset || 0;
 
     console.log(`📊 Fetching emails with limit: ${limit}, offset: ${offset}`);
@@ -552,3 +552,7 @@ export async function getEmailAttachmentsAction(emailId: string): Promise<Action
     };
   }
 }
+
+// Alias exports for backward compatibility
+export { markEmailReadAction as markAsReadAction };
+export { toggleStarEmailAction as toggleStarAction };

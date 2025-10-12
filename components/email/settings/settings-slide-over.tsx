@@ -96,7 +96,7 @@ export function SettingsSlideOver({ account, folders, open, onClose, onUpdate }:
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">Email Settings</h2>
-              <p className="text-sm text-muted-foreground">{account.emailAddress}</p>
+              <p className="text-sm text-muted-foreground">{account?.emailAddress || 'Loading...'}</p>
             </div>
             <Button
               variant="ghost"

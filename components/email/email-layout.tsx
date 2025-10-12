@@ -28,16 +28,26 @@ import { InstantSearchDialog } from './instant-search-dialog';
 import { EmailModeSettings, useEmailModeOnboarding } from './email-mode-settings';
 import { SyncProgressModal } from './sync-progress-modal';
 import { Toaster } from '@/components/ui/toaster';
+import { useToast } from '@/components/ui/use-toast';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { getEmailAccountsAction } from '@/actions/email-account-actions';
 import { getEmailsAction, getEmailFoldersAction } from '@/actions/email-operations-actions';
-import { syncNylasEmailsAction } from '@/actions/email-nylas-actions';
+import { syncNylasEmailsAction, syncNylasFoldersAction } from '@/actions/email-nylas-actions';
 import type { SelectEmailAccount } from '@/db/schema/email-schema';
 import type { SelectEmail } from '@/db/schema/email-schema';
 import { useAuth } from '@clerk/nextjs';
+import { SectionErrorBoundary } from '@/components/error-boundary';
+import { logError, logInfo, logWarn, logAction } from '@/lib/logger';
+import { SettingsSlideOver } from './settings/settings-slide-over';
+import { SyncReportModal } from './sync-report-modal';
+import { usePathname } from 'next/navigation';
+import { User } from 'lucide-react';
 
 export function EmailLayout() {
   const { userId } = useAuth();
+  const { toast } = useToast();
+  const pathname = usePathname();
   const [accounts, setAccounts] = useState<SelectEmailAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<SelectEmailAccount | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string>('INBOX');
@@ -45,7 +55,10 @@ export function EmailLayout() {
   const [selectedEmail, setSelectedEmail] = useState<SelectEmail | null>(null);
   const [folders, setFolders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copilotOpen, setCopilotOpen] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerDraft, setComposerDraft] = useState<{
@@ -64,9 +77,54 @@ export function EmailLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [activePopupEmailId, setActivePopupEmailId] = useState<string | null>(null);
   const [syncProgressOpen, setSyncProgressOpen] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [newEmailCount, setNewEmailCount] = useState(0);
+  
+  // Sync and settings state
+  const [showSettingsSlideOver, setShowSettingsSlideOver] = useState(false);
+  const [showSyncReport, setShowSyncReport] = useState(false);
+  const [folderSyncing, setFolderSyncing] = useState(false);
   
   // First-time onboarding
   const { showOnboarding, completeOnboarding } = useEmailModeOnboarding();
+  
+  // Calendar path
+  const isPlatform = pathname?.startsWith('/platform');
+  const calendarPath = isPlatform ? '/platform/calendar' : '/dashboard/calendar';
+  const contactsPath = isPlatform ? '/platform/contacts' : '/dashboard/contacts';
+
+  // Auto-refresh for new emails (every 2 minutes)
+  const handleAutoRefresh = async () => {
+    if (!selectedAccount) return;
+    
+    console.log('🔄 Auto-refreshing emails silently...');
+    const previousCount = emails.length;
+    
+    try {
+      await loadEmails();
+      
+      // Check if there are new emails
+      const currentCount = emails.length;
+      if (currentCount > previousCount) {
+        const newCount = currentCount - previousCount;
+        setNewEmailCount(newCount);
+        
+        toast({
+          title: `${newCount} new email${newCount > 1 ? 's' : ''}`,
+          description: 'Your inbox has been updated',
+        });
+      }
+    } catch (error) {
+      console.error('Auto-refresh failed:', error);
+    }
+  };
+
+  // Initialize auto-refresh hook
+  const { lastRefresh, isRefreshing, manualRefresh } = useAutoRefresh({
+    enabled: autoRefreshEnabled && !!selectedAccount,
+    intervalMs: 120000, // 2 minutes
+    onRefresh: handleAutoRefresh,
+  });
 
   // Load email accounts on mount
   useEffect(() => {
@@ -128,6 +186,11 @@ export function EmailLayout() {
       action: () => setCommandPaletteOpen(true),
       description: 'Open command palette',
     },
+    refresh: {
+      key: 'g',
+      action: () => manualRefresh(),
+      description: 'Check for new mail',
+    },
     imbox: {
       key: '1',
       action: () => setCurrentView('imbox'),
@@ -172,9 +235,14 @@ export function EmailLayout() {
   
   useKeyboardShortcuts(shortcuts);
 
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
   async function loadAccounts() {
     try {
       console.log('🔄 Loading email accounts...');
+      setAccountError(null);
+      
       const result = await getEmailAccountsAction();
       
       console.log('📊 Account load result:', {
@@ -187,6 +255,7 @@ export function EmailLayout() {
       if (result.success && result.accounts) {
         console.log(`✅ Setting ${result.accounts.length} accounts`);
         setAccounts(result.accounts);
+        setRetryCount(0);
         
         // Auto-select first account or default account
         const defaultAccount = result.accounts.find((acc) => acc.isDefault);
@@ -199,16 +268,28 @@ export function EmailLayout() {
           console.log('⚠️ No account to auto-select');
         }
       } else {
-        console.error('❌ Failed to load accounts:', result.error);
+        const errorMsg = result.error || 'Failed to load accounts';
+        console.error('❌ Failed to load accounts:', errorMsg);
+        logError('Failed to load email accounts', new Error(errorMsg), { userId });
+        setAccountError(errorMsg);
         setAccounts([]);
       }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error loading accounts';
       console.error('❌ Error loading accounts:', error);
+      logError('Exception loading email accounts', error instanceof Error ? error : new Error(errorMsg), { userId });
+      setAccountError(errorMsg);
       setAccounts([]);
     } finally {
       setLoading(false);
     }
   }
+
+  const handleRetryAccounts = () => {
+    setRetryCount(prev => prev + 1);
+    setLoading(true);
+    loadAccounts();
+  };
 
   async function loadFolders() {
     if (!selectedAccount) return;
@@ -222,10 +303,20 @@ export function EmailLayout() {
       } else {
         console.error('❌ Failed to load folders:', result.error);
         setFolders([]);
+        toast({
+          title: 'Error Loading Folders',
+          description: result.error || 'Failed to load email folders',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error loading folders:', error);
       setFolders([]);
+      toast({
+        title: 'Error Loading Folders',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -237,24 +328,28 @@ export function EmailLayout() {
 
     try {
       setLoading(true);
-      console.log('📧 Loading emails for account:', {
+      setCurrentOffset(0); // Reset pagination
+      console.log('📧 Loading first 50 emails for account:', {
         accountId: selectedAccount.id,
         email: selectedAccount.emailAddress,
         folder: selectedFolder
       });
       
-      const result = await getEmailsAction(selectedAccount.id);
+      const result = await getEmailsAction(selectedAccount.id, { limit: 50, offset: 0 });
       
       console.log('📧 Load emails result:', { 
         success: result.success, 
         emailCount: result.data?.emails?.length || 0,
+        hasMore: result.data?.hasMore || false,
         accountId: selectedAccount.id,
         error: result.error || 'none'
       });
       
       if (result.success && result.data?.emails) {
         setEmails(result.data.emails);
-        console.log(`✅ Loaded ${result.data.emails.length} emails from database`);
+        setHasMore(result.data.hasMore || false);
+        setCurrentOffset(50); // Set offset for next load
+        console.log(`✅ Loaded ${result.data.emails.length} emails from database (hasMore: ${result.data.hasMore})`);
         
         // Log first few email subjects for verification
         if (result.data.emails.length > 0) {
@@ -269,12 +364,51 @@ export function EmailLayout() {
       } else {
         console.error('❌ Failed to load emails:', result.error);
         setEmails([]); // Clear emails on error
+        setHasMore(false);
+        toast({
+          title: 'Error Loading Emails',
+          description: result.error || 'Failed to load emails from this account',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('❌ Exception loading emails:', error);
       setEmails([]); // Clear emails on error
+      toast({
+        title: 'Error Loading Emails',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Load more emails (infinite scroll)
+  async function loadMoreEmails() {
+    if (!selectedAccount || !hasMore || loadingMore) {
+      return;
+    }
+
+    try {
+      setLoadingMore(true);
+      console.log(`📧 Loading more emails (offset: ${currentOffset})...`);
+      
+      const result = await getEmailsAction(selectedAccount.id, { 
+        limit: 50, 
+        offset: currentOffset 
+      });
+      
+      if (result.success && result.data?.emails) {
+        setEmails(prev => [...prev, ...result.data.emails]);
+        setHasMore(result.data.hasMore || false);
+        setCurrentOffset(prev => prev + 50);
+        console.log(`✅ Loaded ${result.data.emails.length} more emails (total: ${emails.length + result.data.emails.length})`);
+      }
+    } catch (error) {
+      console.error('❌ Error loading more emails:', error);
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -315,17 +449,99 @@ export function EmailLayout() {
     // Trigger email sync WITHOUT await - runs in background!
     // The modal will poll for progress
     syncNylasEmailsAction(selectedAccount.id)
-      .then(() => {
-        console.log('✅ Sync completed! Reloading emails...');
+      .then((result) => {
+        if (result.success) {
+          console.log('✅ Sync completed! Reloading emails...');
+          logInfo('Email sync completed successfully', {
+            userId,
+            accountId: selectedAccount.id,
+            syncedCount: result.syncedCount,
+            skippedCount: result.skippedCount,
+          });
+          loadEmails();
+          loadFolders();
+          toast({
+            title: 'Sync Complete',
+            description: `Synced ${result.syncedCount} new emails, ${result.skippedCount} already synced`,
+          });
+        } else {
+          console.error('❌ Sync failed:', result.error);
+          logError('Email sync failed', new Error(result.error || 'Unknown sync error'), {
+            userId,
+            accountId: selectedAccount.id,
+          });
+          toast({
+            title: 'Sync Failed',
+            description: result.error || 'Failed to sync emails',
+            variant: 'destructive',
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Sync error:', error);
+        logError('Email sync exception', error instanceof Error ? error : new Error('Sync exception'), {
+          userId,
+          accountId: selectedAccount.id,
+        });
+        toast({
+          title: 'Sync Error',
+          description: error instanceof Error ? error.message : 'An unexpected error occurred',
+          variant: 'destructive',
+        });
+      });
+    
+    // Don't wait for sync - return immediately
+    // Modal will show progress as it syncs in background
+  };
+
+  const handleDownloadAll = async () => {
+    if (!selectedAccount) return;
+    
+    // Show sync progress modal
+    setSyncProgressOpen(true);
+    
+    console.log('🚀 Starting full email sync...');
+    
+    // Trigger email sync in background
+    syncNylasEmailsAction(selectedAccount.id)
+      .then((result) => {
+        console.log('✅ Full sync completed:', result);
         loadEmails();
         loadFolders();
       })
       .catch((error) => {
         console.error('❌ Sync error:', error);
       });
+  };
+
+  const handleSyncFolders = async () => {
+    if (!selectedAccount) return;
     
-    // Don't wait for sync - return immediately
-    // Modal will show progress as it syncs in background
+    setFolderSyncing(true);
+    try {
+      const result = await syncNylasFoldersAction(selectedAccount.id);
+      if (result.success) {
+        toast({
+          title: 'Folders Synced',
+          description: `Successfully synced ${result.syncedCount} folders`,
+        });
+        await loadFolders();
+      } else {
+        toast({
+          title: 'Sync Failed',
+          description: result.error || 'Failed to sync folders',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Sync Error',
+        description: 'An error occurred during folder sync',
+        variant: 'destructive',
+      });
+    } finally {
+      setFolderSyncing(false);
+    }
   };
 
   // Calculate badge counts for Hey sidebar
@@ -420,10 +636,15 @@ export function EmailLayout() {
 
     // Traditional view - show email viewer or card list
     if (selectedEmail) {
+      const currentIndex = emails.findIndex(e => e.id === selectedEmail.id);
       return (
         <EmailViewer
           email={selectedEmail}
           onClose={() => setSelectedEmail(null)}
+          emails={emails}
+          currentIndex={currentIndex}
+          onNavigate={handleEmailSelect}
+          onCompose={handleOpenComposerWithDraft}
         />
       );
     }
@@ -443,6 +664,9 @@ export function EmailLayout() {
         folder={folderToDisplay}
         accountId={selectedAccount?.id}
         onComposeWithDraft={handleOpenComposerWithDraft}
+        onLoadMore={loadMoreEmails}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
       />
     );
   };
@@ -462,18 +686,49 @@ export function EmailLayout() {
     return (
       <>
         <div className="h-full flex items-center justify-center">
-          <div className="text-center space-y-4 max-w-md">
+          <div className="text-center space-y-4 max-w-md px-4">
             <div className="text-6xl mb-4">📧</div>
             <h2 className="text-2xl font-bold">No Email Accounts Connected</h2>
-            <p className="text-muted-foreground">
-              Connect your email account to start managing your inbox with AI-powered intelligence.
-            </p>
-            <button 
-              onClick={() => setShowAddDialog(true)}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Connect Email Account
-            </button>
+            
+            {accountError ? (
+              <>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-sm">
+                  <p className="text-destructive font-medium mb-2">Error Loading Accounts</p>
+                  <p className="text-muted-foreground">{accountError}</p>
+                  {retryCount > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Retry attempt: {retryCount}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <button 
+                    onClick={handleRetryAccounts}
+                    className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  >
+                    Retry
+                  </button>
+                  <button 
+                    onClick={() => setShowAddDialog(true)}
+                    className="px-6 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+                  >
+                    Connect New Account
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground">
+                  Connect your email account to start managing your inbox with AI-powered intelligence.
+                </p>
+                <button 
+                  onClick={() => setShowAddDialog(true)}
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                >
+                  Connect Email Account
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -504,35 +759,46 @@ export function EmailLayout() {
       {/* Main content: 3-panel layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Panel 1: Hey Sidebar (or traditional if mode is traditional) */}
-        {emailMode === 'hey' || emailMode === 'hybrid' ? (
-          <HeySidebar
-            selectedView={currentView}
-            folders={folders}
-            onViewChange={setCurrentView}
-            accounts={accounts}
-            selectedAccount={selectedAccount}
-            onAccountChange={handleAccountChange}
-            onAddAccount={() => setShowAddDialog(true)}
-            emailMode={emailMode}
-            unscreenedCount={unscreenedCount}
-            replyLaterCount={replyLaterCount}
-            setAsideCount={setAsideCount}
-          />
-        ) : (
-          <FolderSidebar
-            selectedFolder={selectedFolder}
-            folders={folders}
-            onFolderChange={handleFolderChange}
-            accounts={accounts}
-            selectedAccount={selectedAccount}
-            onAccountChange={handleAccountChange}
-            onAddAccount={() => setShowAddDialog(true)}
-          />
-        )}
+        <SectionErrorBoundary>
+          {emailMode === 'hey' || emailMode === 'hybrid' ? (
+            <HeySidebar
+              selectedView={currentView}
+              folders={folders}
+              onViewChange={setCurrentView}
+              accounts={accounts}
+              selectedAccount={selectedAccount}
+              onAccountChange={handleAccountChange}
+              onAddAccount={() => setShowAddDialog(true)}
+              emailMode={emailMode}
+              unscreenedCount={unscreenedCount}
+              replyLaterCount={replyLaterCount}
+              setAsideCount={setAsideCount}
+              onSyncReport={() => setShowSyncReport(true)}
+              onDownloadAll={handleDownloadAll}
+              onSyncFolders={handleSyncFolders}
+              onSettings={() => setShowSettingsSlideOver(true)}
+              calendarPath={calendarPath}
+              contactsPath={contactsPath}
+              folderSyncing={folderSyncing}
+            />
+          ) : (
+            <FolderSidebar
+              selectedFolder={selectedFolder}
+              folders={folders}
+              onFolderChange={handleFolderChange}
+              accounts={accounts}
+              selectedAccount={selectedAccount}
+              onAccountChange={handleAccountChange}
+              onAddAccount={() => setShowAddDialog(true)}
+            />
+          )}
+        </SectionErrorBoundary>
 
         {/* Panel 2: Rendered view (cards, viewer, or Hey views) */}
         <div className="flex-1 overflow-hidden">
-          {renderView()}
+          <SectionErrorBoundary>
+            {renderView()}
+          </SectionErrorBoundary>
         </div>
 
         {/* AI Copilot - Draggable Modal */}
@@ -553,23 +819,11 @@ export function EmailLayout() {
         {!copilotOpen && (
           <button
             onClick={() => setCopilotOpen(true)}
-            className="fixed right-4 bottom-4 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center z-40"
+            className="fixed right-4 bottom-4 bg-primary text-primary-foreground rounded-full shadow-lg hover:scale-105 transition-all flex items-center gap-2 px-4 py-3 z-40 group"
             title="Open AI Copilot"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-              />
-            </svg>
+            <User className="h-5 w-5" />
+            <span className="text-sm font-medium">Ask me anything</span>
           </button>
         )}
       </div>
@@ -642,6 +896,27 @@ export function EmailLayout() {
         }}
         isFirstTime
       />
+
+      {/* Settings Slide Over */}
+      {selectedAccount && (
+        <SettingsSlideOver
+          account={selectedAccount}
+          folders={folders}
+          open={showSettingsSlideOver}
+          onClose={() => setShowSettingsSlideOver(false)}
+          onUpdate={loadEmails}
+        />
+      )}
+
+      {/* Sync Report Modal */}
+      {selectedAccount && (
+        <SyncReportModal
+          open={showSyncReport}
+          onOpenChange={setShowSyncReport}
+          accountId={selectedAccount.id}
+          accountEmail={selectedAccount.emailAddress}
+        />
+      )}
 
       {/* Toast notifications */}
       <Toaster />

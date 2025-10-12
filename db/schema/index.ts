@@ -1,5 +1,5 @@
-// export * from "./profiles-schema"; // TODO: Recreate this file
-// export * from "./pending-profiles-schema"; // TODO: Recreate this file
+export * from "./profiles-schema";
+// export * from "./pending-profiles-schema"; // TODO: Recreate this file if needed
 export * from "./crm-schema";
 export * from "./platform-schema";
 export * from "./support-schema";
@@ -24,3 +24,4 @@ export * from "./scheduled-emails-schema";
 export * from "./email-templates-schema";
 export * from "./email-signatures-schema";
 export * from "./calendar-schema";
+export * from "./contacts-reminders-schema";

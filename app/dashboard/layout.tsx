@@ -7,7 +7,6 @@ import React, { ReactNode } from "react";
 // import { getProfileByUserId, updateProfile } from "@/db/queries/profiles-queries"; // TODO: Recreate
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import Sidebar from "@/components/sidebar";
 // import { revalidatePath } from "next/cache";
 // import CancellationPopup from "@/components/cancellation-popup";
@@ -20,6 +19,7 @@ import { ImpersonationBanner } from "@/components/impersonation/impersonation-ba
 // import { createProfileAction } from "@/actions/profiles-actions"; // TODO: Recreate
 // import { claimPendingProfile } from "@/actions/whop-actions";
 import { BrowserFrame } from "@/components/ui/browser-frame";
+import { InstantSidebarToggle } from "@/components/instant-sidebar-toggle";
 
 // TODO: Recreate profiles system and restore this function
 // For now, using mock profile data
@@ -30,17 +30,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   if (!userId) {
     return redirect("/login");
-  }
-
-  // Check if current route is emails or calendar page - if so, render without sidebar
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
-  const isEmailsPage = pathname.includes("/emails");
-  const isCalendarPage = pathname.includes("/calendar");
-
-  // If emails or calendar page, render children without sidebar
-  if (isEmailsPage || isCalendarPage) {
-    return <>{children}</>;
   }
 
   // Get the current user to extract email
@@ -67,6 +56,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <>
+      {/* Instant client-side sidebar toggle (0ms delay) */}
+      <InstantSidebarToggle />
+      
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
@@ -76,19 +68,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         className="h-screen"
       >
         <div className="flex h-full bg-app-bg relative overflow-hidden">
-          {/* Sidebar component with mock profile data and user email */}
-          <Sidebar 
-            profile={mockProfile} 
-            userEmail={userEmail} 
-            whopMonthlyPlanId={process.env.WHOP_PLAN_ID_MONTHLY || ''}
-            whopYearlyPlanId={process.env.WHOP_PLAN_ID_YEARLY || ''}
-            isPlatformAdmin={isPlatformAdminUser}
-            currentView={viewSwitcherData.currentView}
-            availableOrganizations={viewSwitcherData.availableOrganizations}
-          />
+          {/* Sidebar - always rendered, hidden via CSS instantly when needed */}
+          <div className="app-sidebar">
+            <Sidebar 
+              profile={mockProfile} 
+              userEmail={userEmail} 
+              whopMonthlyPlanId={process.env.WHOP_PLAN_ID_MONTHLY || ''}
+              whopYearlyPlanId={process.env.WHOP_PLAN_ID_YEARLY || ''}
+              isPlatformAdmin={isPlatformAdminUser}
+              currentView={viewSwitcherData.currentView}
+              availableOrganizations={viewSwitcherData.availableOrganizations}
+            />
+          </div>
           
           {/* Main content area wrapped with client-side organization context */}
-          <div className="flex-1 overflow-auto relative">
+          <div className="flex-1 overflow-auto relative main-content-area">
             <DashboardClientWrapper>
               {children}
             </DashboardClientWrapper>

@@ -122,6 +122,7 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    immediatelyRender: false, // Fix SSR hydration issues
   });
 
   // Update editor content when prop changes externally

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, AlertCircle, Download, Mail, Folders } from 'lucide-react';
+import { CheckCircle, AlertCircle, Download, Mail, Folders, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SyncProgressModalProps {
@@ -38,6 +38,8 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
     estimatedTotal: 1000,
     isComplete: false,
   });
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
+  const [isStuck, setIsStuck] = useState(false);
 
   // Poll for sync status
   useEffect(() => {
@@ -47,6 +49,8 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
     }
 
     console.log('✅ Sync modal opened, starting to poll for status...');
+    setIsStuck(false);
+    setLastUpdateTime(Date.now());
 
     const pollInterval = setInterval(async () => {
       try {
@@ -55,7 +59,20 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
         if (response.ok) {
           const data = await response.json();
           console.log('📊 Sync status received:', data);
+          
+          // Check if progress has changed
+          if (data.totalFetched !== status.totalFetched || data.currentPage !== status.currentPage) {
+            setLastUpdateTime(Date.now());
+            setIsStuck(false);
+          }
+          
           setStatus(data);
+          
+          // Check if stuck (no progress for 30 seconds)
+          if (Date.now() - lastUpdateTime > 30000 && !data.isComplete) {
+            console.warn('⚠️ Sync appears stuck - no progress for 30 seconds');
+            setIsStuck(true);
+          }
           
           // Close modal when complete
           if (data.isComplete) {
@@ -72,11 +89,20 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
       }
     }, 500); // Poll every 500ms for real-time updates
 
+    // Auto-close if stuck for too long
+    const stuckTimeout = setTimeout(() => {
+      if (!status.isComplete && status.totalFetched === 0) {
+        console.warn('⚠️ Auto-closing sync modal - no progress detected');
+        onOpenChange(false);
+      }
+    }, 60000); // 60 seconds
+
     return () => {
       console.log('🛑 Stopping sync status polling');
       clearInterval(pollInterval);
+      clearTimeout(stuckTimeout);
     };
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, status.totalFetched, status.currentPage, lastUpdateTime]);
 
   const progress = status.estimatedTotal > 0 
     ? Math.min(100, (status.totalFetched / status.estimatedTotal) * 100)
@@ -86,9 +112,18 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5 animate-pulse text-primary" />
-            Syncing Emails
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Download className="h-5 w-5 animate-pulse text-primary" />
+              Syncing Emails
+            </div>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Close (sync continues in background)"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </DialogTitle>
         </DialogHeader>
 
@@ -99,6 +134,19 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
             {accountEmail}
           </div>
 
+          {/* Stuck Warning */}
+          {isStuck && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm">
+              <div className="flex items-center gap-2 text-orange-900">
+                <AlertCircle className="h-4 w-4" />
+                <span className="font-medium">Sync may be stuck</span>
+              </div>
+              <p className="text-xs text-orange-700 mt-1">
+                No progress for 30 seconds. You can close this and try again later.
+              </p>
+            </div>
+          )}
+
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -106,10 +154,10 @@ export function SyncProgressModal({ open, onOpenChange, accountEmail }: SyncProg
                 {status.isComplete ? 'Complete!' : 'Syncing...'}
               </span>
               <span className="text-muted-foreground">
-                {Math.round(progress)}%
+                {progress > 0 ? `${Math.round(progress)}%` : `${status.totalFetched} emails`}
               </span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress || (status.totalFetched > 0 ? 50 : 0)} className="h-2" />
           </div>
 
           {/* Current Status */}

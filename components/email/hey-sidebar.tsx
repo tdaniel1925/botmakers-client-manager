@@ -7,6 +7,7 @@
 import { Inbox, Send, FileText, Trash2, Archive, Star, Folder, Mail, Plus, ChevronDown, Filter, Newspaper, Receipt, Clock, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { SidebarStickyFooter } from './sidebar-sticky-footer';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,13 @@ interface HeySidebarProps {
   unscreenedCount?: number;
   replyLaterCount?: number;
   setAsideCount?: number;
+  onSyncReport: () => void;
+  onDownloadAll: () => void;
+  onSyncFolders: () => void;
+  onSettings: () => void;
+  calendarPath: string;
+  contactsPath: string;
+  folderSyncing: boolean;
 }
 
 // Folder type to icon mapping
@@ -117,6 +125,13 @@ export function HeySidebar({
   unscreenedCount = 0,
   replyLaterCount = 0,
   setAsideCount = 0,
+  onSyncReport,
+  onDownloadAll,
+  onSyncFolders,
+  onSettings,
+  calendarPath,
+  contactsPath,
+  folderSyncing,
 }: HeySidebarProps) {
   const isHeyMode = emailMode === 'hey' || emailMode === 'hybrid';
 
@@ -185,11 +200,6 @@ export function HeySidebar({
                       <span className="truncate text-sm flex-1 text-left">
                         {selectedAccount.emailAddress}
                       </span>
-                      {getAccountUnreadCount(selectedAccount.id) > 0 && (
-                        <Badge variant="secondary" className="text-xs flex-shrink-0 ml-2">
-                          {getAccountUnreadCount(selectedAccount.id)}
-                        </Badge>
-                      )}
                       <ChevronDown className="h-4 w-4 flex-shrink-0 ml-auto opacity-50" />
                     </>
                   ) : (
@@ -204,7 +214,6 @@ export function HeySidebar({
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[240px]" align="start">
               {accounts.map((account, index) => {
-                const unreadCount = getAccountUnreadCount(account.id);
                 return (
                   <DropdownMenuItem
                     key={account.id}
@@ -223,11 +232,6 @@ export function HeySidebar({
                         )}`}
                       />
                       <span className="truncate flex-1">{account.emailAddress}</span>
-                      {unreadCount > 0 && (
-                        <Badge variant="secondary" className="text-xs ml-auto flex-shrink-0">
-                          {unreadCount}
-                        </Badge>
-                      )}
                     </div>
                   </DropdownMenuItem>
                 );
@@ -429,6 +433,18 @@ export function HeySidebar({
           </div>
         )}
       </div>
+
+      {/* Sticky App Controls Footer */}
+      <SidebarStickyFooter
+        selectedAccount={selectedAccount}
+        onSyncReport={onSyncReport}
+        onDownloadAll={onDownloadAll}
+        onSyncFolders={onSyncFolders}
+        onSettings={onSettings}
+        calendarPath={calendarPath}
+        contactsPath={contactsPath}
+        folderSyncing={folderSyncing}
+      />
     </div>
   );
 }

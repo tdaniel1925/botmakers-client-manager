@@ -7,9 +7,10 @@
 import { useState } from 'react';
 import { EmailCard } from './email-card';
 import { EmailViewer } from './email-viewer';
+import { EmailSearchBar } from './email-search-bar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Newspaper, CheckCheck, RefreshCw } from 'lucide-react';
+import { Newspaper, CheckCheck, RefreshCw, Loader2 } from 'lucide-react';
 import type { SelectEmail } from '@/db/schema/email-schema';
 import { markAsReadAction } from '@/actions/email-operations-actions';
 
@@ -37,9 +38,25 @@ export function FeedView({
   registerForPrefetch,
 }: FeedViewProps) {
   const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter to Feed emails only
-  const feedEmails = emails.filter(email => email.heyView === 'feed');
+  let feedEmails = emails.filter(email => email.heyView === 'feed');
+  
+  // Apply search filter
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    feedEmails = feedEmails.filter(email => {
+      const subject = email.subject?.toLowerCase() || '';
+      const from = typeof email.fromAddress === 'string' 
+        ? email.fromAddress.toLowerCase()
+        : email.fromAddress?.email?.toLowerCase() || '';
+      const bodyText = email.bodyText?.toLowerCase() || '';
+      
+      return subject.includes(query) || from.includes(query) || bodyText.includes(query);
+    });
+  }
+  
   const unreadCount = feedEmails.filter(e => !e.isRead).length;
 
   const handleMarkAllRead = async () => {
@@ -57,25 +74,18 @@ export function FeedView({
 
   // Show EmailViewer if an email is selected
   if (selectedEmail) {
+    const currentIndex = feedEmails.findIndex(e => e.id === selectedEmail.id);
     return (
       <div className="h-full flex flex-col">
-        {/* Back button header */}
-        <div className="border-b bg-background p-3 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEmailClick(null as any)}
-            className="gap-2"
-          >
-            ← Back to The Feed
-          </Button>
-        </div>
-        
         {/* Email Viewer */}
         <div className="flex-1 overflow-auto">
           <EmailViewer
             email={selectedEmail}
             onClose={() => onEmailClick(null as any)}
+            emails={feedEmails}
+            currentIndex={currentIndex}
+            onNavigate={onEmailClick}
+            onCompose={onComposeWithDraft}
           />
         </div>
       </div>
@@ -84,53 +94,40 @@ export function FeedView({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Actions & Search Bar */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
-              <Newspaper className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">The Feed</h2>
-              <p className="text-xs text-muted-foreground">
-                Newsletters, updates, and bulk mail
-              </p>
-            </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-2">
+          {/* Center: Search Bar */}
+          <div className="flex-1 max-w-md">
+            <EmailSearchBar
+              onSearchChange={setSearchQuery}
+              placeholder="Search..."
+            />
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* Right: Mark All Read */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {unreadCount > 0 && (
-              <>
-                <Badge variant="secondary" className="font-semibold">
-                  {unreadCount} unread
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleMarkAllRead}
-                  disabled={markingAllRead}
-                  className="font-semibold"
-                >
-                  <CheckCheck className="mr-2 h-4 w-4" />
-                  Mark All Read
-                </Button>
-              </>
-            )}
-            {onRefresh && (
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={onRefresh}
+                variant="outline"
+                onClick={handleMarkAllRead}
+                disabled={markingAllRead}
+                className="text-xs h-7"
               >
-                <RefreshCw className="h-4 w-4" />
+                {markingAllRead ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <CheckCheck className="h-3 w-3 mr-1" />
+                )}
+                Mark All Read
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Email List - Larger cards for Feed */}
+      {/* Email List */}
       <div className="flex-1 overflow-y-auto">
         {feedEmails.length === 0 ? (
           <div className="flex items-center justify-center h-full p-8">

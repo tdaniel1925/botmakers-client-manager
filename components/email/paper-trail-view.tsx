@@ -59,25 +59,18 @@ export function PaperTrailView({
 
   // Show EmailViewer if an email is selected
   if (selectedEmail) {
+    const currentIndex = filteredEmails.findIndex(e => e.id === selectedEmail.id);
     return (
       <div className="h-full flex flex-col">
-        {/* Back button header */}
-        <div className="border-b bg-background p-3 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEmailClick(null as any)}
-            className="gap-2"
-          >
-            ← Back to Paper Trail
-          </Button>
-        </div>
-        
         {/* Email Viewer */}
         <div className="flex-1 overflow-auto">
           <EmailViewer
             email={selectedEmail}
             onClose={() => onEmailClick(null as any)}
+            emails={filteredEmails}
+            currentIndex={currentIndex}
+            onNavigate={onEmailClick}
+            onCompose={onComposeWithDraft}
           />
         </div>
       </div>
@@ -86,53 +79,24 @@ export function PaperTrailView({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Compact Search & Filters */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center">
-              <Receipt className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">Paper Trail</h2>
-              <p className="text-xs text-muted-foreground">
-                Receipts, confirmations, and transactions
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="font-semibold">
-              {paperTrailEmails.length} total
-            </Badge>
-            {onRefresh && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={onRefresh}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-
         {/* Search Bar */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pt-2 pb-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search receipts, invoices, confirmations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-8 h-8 text-sm"
             />
           </div>
         </div>
 
         {/* Category Filter */}
-        <div className="flex gap-1 px-4 pb-3">
+        <div className="flex gap-1 px-4 pb-2">
           <Button
             size="sm"
             variant={categoryFilter === 'all' ? 'default' : 'ghost'}

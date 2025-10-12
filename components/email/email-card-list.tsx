@@ -7,12 +7,22 @@
 
 import { useState, useEffect } from 'react';
 import { EmailCard } from './email-card';
-import { Search, Filter, CheckSquare } from 'lucide-react';
+import { Search, Filter, CheckSquare, Star, Paperclip, Calendar } from 'lucide-react';
 import type { SelectEmail } from '@/db/schema/email-schema';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { getThreadCountsAction } from '@/actions/email-operations-actions';
 import { useEmailPrefetch } from '@/hooks/use-email-prefetch';
+import { searchEmails, parseSearchQuery, highlightSearchTerm, type SearchFilters } from '@/lib/email-search';
+import { 
+  bulkMarkAsReadAction, 
+  bulkStarAction, 
+  bulkArchiveAction, 
+  bulkTrashAction, 
+  bulkDeleteAction 
+} from '@/actions/bulk-email-actions';
+import { useToast } from '@/components/ui/use-toast';
 
 interface EmailCardListProps {
   emails: SelectEmail[];
@@ -27,6 +37,9 @@ interface EmailCardListProps {
     body?: string;
     replyTo?: any;
   }) => void;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+  hasMore?: boolean;
 }
 
 export function EmailCardList({
@@ -37,61 +50,65 @@ export function EmailCardList({
   folder,
   accountId,
   onComposeWithDraft,
+  onLoadMore,
+  loadingMore = false,
+  hasMore = false,
 }: EmailCardListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
   const [activePopupEmailId, setActivePopupEmailId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({});
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  
+  const { toast } = useToast();
 
   // Initialize prefetch hook for instant AI data loading
   const { registerEmailCard, prefetchEmail } = useEmailPrefetch(emails, true);
 
-  // Filter emails by folder AND search query (client-side - instant!)
+  // Filter emails by folder AND search query with advanced filters (client-side - instant!)
   const filterStartTime = performance.now();
-  const filteredEmails = emails.filter((email) => {
-    // First filter by folder
-    let matchesFolder = true;
-    
-    // Email folderName is stored in DB (may be case-sensitive based on provider)
+  
+  // First filter by folder
+  let folderFiltered = emails.filter((email) => {
     const emailFolderName = email.folderName || '';
     
     // System folders are identified by uppercase constants
     if (folder === 'INBOX') {
-      // Inbox: check folderName case-insensitively OR boolean flags
-      matchesFolder = emailFolderName.toUpperCase() === 'INBOX' || 
+      return emailFolderName.toUpperCase() === 'INBOX' || 
         (!emailFolderName && !email.isArchived && !email.isTrash && !email.isSent && !email.isDraft);
     } else if (folder === 'SENT') {
-      matchesFolder = emailFolderName.toUpperCase() === 'SENT' || email.isSent === true;
+      return emailFolderName.toUpperCase() === 'SENT' || email.isSent === true;
     } else if (folder === 'DRAFTS') {
-      matchesFolder = emailFolderName.toUpperCase() === 'DRAFTS' || email.isDraft === true;
+      return emailFolderName.toUpperCase() === 'DRAFTS' || email.isDraft === true;
     } else if (folder === 'STARRED') {
-      matchesFolder = email.isStarred === true;
+      return email.isStarred === true;
     } else if (folder === 'ARCHIVE') {
-      matchesFolder = emailFolderName.toUpperCase() === 'ARCHIVE' || email.isArchived === true;
+      return emailFolderName.toUpperCase() === 'ARCHIVE' || email.isArchived === true;
     } else if (folder === 'TRASH') {
-      matchesFolder = emailFolderName.toUpperCase() === 'TRASH' || email.isTrash === true;
+      return emailFolderName.toUpperCase() === 'TRASH' || email.isTrash === true;
     } else if (folder === 'SPAM') {
-      matchesFolder = emailFolderName.toUpperCase() === 'SPAM' || email.isSpam === true;
+      return emailFolderName.toUpperCase() === 'SPAM' || email.isSpam === true;
     } else {
-      // For custom folders, match by exact folder name (case-sensitive)
-      // The folder parameter will be the actual folder name (e.g., "Calendar", "Contacts")
-      matchesFolder = emailFolderName === folder;
+      return emailFolderName === folder;
     }
-    
-    if (!matchesFolder) return false;
-    
-    // Then filter by search query
-    if (!searchQuery) return true;
-
-    const query = searchQuery.toLowerCase();
-    const subject = email.subject?.toLowerCase() || '';
-    const from = typeof email.fromAddress === 'object' 
-      ? email.fromAddress.email?.toLowerCase() || ''
-      : email.fromAddress?.toLowerCase() || '';
-
-    return subject.includes(query) || from.includes(query);
   });
+
+  // Then apply search with advanced filters
+  let filteredEmails = folderFiltered;
+  if (searchQuery || Object.keys(searchFilters).length > 0) {
+    const { text, filters: parsedFilters } = parseSearchQuery(searchQuery);
+    const combinedFilters = { ...searchFilters, ...parsedFilters };
+    
+    filteredEmails = searchEmails(folderFiltered, {
+      query: text,
+      filters: combinedFilters,
+      includeBody: true, // Full-text search including body
+      caseSensitive: false,
+    });
+  }
   
   const filterTime = performance.now() - filterStartTime;
   console.log(`⚡ Filtered ${emails.length} emails to ${filteredEmails.length} for folder "${folder}" in ${filterTime.toFixed(2)}ms`);
@@ -128,6 +145,31 @@ export function EmailCardList({
       });
   }, [accountId, filteredEmails.length]);
 
+  // Infinite scroll: Load more emails when scrolling near bottom
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || loadingMore) return;
+
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      const scrollHeight = target.scrollHeight;
+      const scrollTop = target.scrollTop;
+      const clientHeight = target.clientHeight;
+
+      // Trigger load when within 300px of bottom
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        onLoadMore();
+      }
+    };
+
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [onLoadMore, hasMore, loadingMore]);
+
   const handleSelectEmail = (emailId: string) => {
     const newSelected = new Set(selectedEmails);
     if (newSelected.has(emailId)) {
@@ -144,6 +186,146 @@ export function EmailCardList({
     } else {
       setSelectedEmails(new Set(filteredEmails.map((e) => e.id)));
     }
+  };
+
+  const handleBulkMarkRead = async () => {
+    setBulkActionLoading(true);
+    const emailIds = Array.from(selectedEmails);
+    const result = await bulkMarkAsReadAction(emailIds, true);
+    
+    if (result.success) {
+      toast({
+        title: 'Marked as Read',
+        description: `${result.updatedCount} email${result.updatedCount > 1 ? 's' : ''} marked as read`,
+      });
+      setSelectedEmails(new Set());
+      window.location.reload(); // Refresh to show changes
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Failed to mark emails as read',
+        variant: 'destructive',
+      });
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkMarkUnread = async () => {
+    setBulkActionLoading(true);
+    const emailIds = Array.from(selectedEmails);
+    const result = await bulkMarkAsReadAction(emailIds, false);
+    
+    if (result.success) {
+      toast({
+        title: 'Marked as Unread',
+        description: `${result.updatedCount} email${result.updatedCount > 1 ? 's' : ''} marked as unread`,
+      });
+      setSelectedEmails(new Set());
+      window.location.reload();
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Failed to mark emails as unread',
+        variant: 'destructive',
+      });
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkStar = async () => {
+    setBulkActionLoading(true);
+    const emailIds = Array.from(selectedEmails);
+    const result = await bulkStarAction(emailIds, true);
+    
+    if (result.success) {
+      toast({
+        title: 'Starred',
+        description: `${result.updatedCount} email${result.updatedCount > 1 ? 's' : ''} starred`,
+      });
+      setSelectedEmails(new Set());
+      window.location.reload();
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Failed to star emails',
+        variant: 'destructive',
+      });
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkArchive = async () => {
+    setBulkActionLoading(true);
+    const emailIds = Array.from(selectedEmails);
+    const result = await bulkArchiveAction(emailIds);
+    
+    if (result.success) {
+      toast({
+        title: 'Archived',
+        description: `${result.updatedCount} email${result.updatedCount > 1 ? 's' : ''} archived`,
+      });
+      setSelectedEmails(new Set());
+      window.location.reload();
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Failed to archive emails',
+        variant: 'destructive',
+      });
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkTrash = async () => {
+    if (!confirm(`Move ${selectedEmails.size} email${selectedEmails.size > 1 ? 's' : ''} to trash?`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    const emailIds = Array.from(selectedEmails);
+    const result = await bulkTrashAction(emailIds);
+    
+    if (result.success) {
+      toast({
+        title: 'Moved to Trash',
+        description: `${result.updatedCount} email${result.updatedCount > 1 ? 's' : ''} moved to trash`,
+      });
+      setSelectedEmails(new Set());
+      window.location.reload();
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Failed to move emails to trash',
+        variant: 'destructive',
+      });
+    }
+    setBulkActionLoading(false);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Permanently delete ${selectedEmails.size} email${selectedEmails.size > 1 ? 's' : ''}? This cannot be undone.`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    const emailIds = Array.from(selectedEmails);
+    const result = await bulkDeleteAction(emailIds);
+    
+    if (result.success) {
+      toast({
+        title: 'Deleted',
+        description: `${result.updatedCount} email${result.updatedCount > 1 ? 's' : ''} permanently deleted`,
+      });
+      setSelectedEmails(new Set());
+      window.location.reload();
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'Failed to delete emails',
+        variant: 'destructive',
+      });
+    }
+    setBulkActionLoading(false);
   };
 
   const getFolderTitle = () => {
@@ -191,9 +373,18 @@ export function EmailCardList({
               Select
             </Button>
 
-            <Button variant="outline" size="sm">
+            <Button 
+              variant={showFilters ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <Filter className="h-4 w-4 mr-2" />
-              Filter
+              Filters
+              {Object.keys(searchFilters).length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {Object.keys(searchFilters).length}
+                </Badge>
+              )}
             </Button>
           </div>
         </div>
@@ -203,31 +394,128 @@ export function EmailCardList({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search emails..."
+            placeholder="Search emails (supports: from:, to:, has:attachments, is:starred)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
 
+        {/* Filter Chips */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant={searchFilters.hasAttachments ? 'default' : 'outline'}
+              onClick={() => setSearchFilters(prev => ({
+                ...prev,
+                hasAttachments: !prev.hasAttachments ? true : undefined
+              }))}
+              className="gap-1"
+            >
+              <Paperclip className="h-3 w-3" />
+              Has Attachments
+            </Button>
+            
+            <Button
+              size="sm"
+              variant={searchFilters.isStarred ? 'default' : 'outline'}
+              onClick={() => setSearchFilters(prev => ({
+                ...prev,
+                isStarred: !prev.isStarred ? true : undefined
+              }))}
+              className="gap-1"
+            >
+              <Star className="h-3 w-3" />
+              Starred
+            </Button>
+            
+            <Button
+              size="sm"
+              variant={searchFilters.isUnread ? 'default' : 'outline'}
+              onClick={() => setSearchFilters(prev => ({
+                ...prev,
+                isUnread: !prev.isUnread ? true : undefined
+              }))}
+              className="gap-1"
+            >
+              Unread
+            </Button>
+
+            {Object.keys(searchFilters).length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSearchFilters({})}
+                className="text-muted-foreground"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Bulk Actions Bar */}
         {bulkMode && selectedEmails.size > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+          <div className="flex items-center gap-2 p-2 bg-muted rounded-md flex-wrap">
             <span className="text-sm font-medium">{selectedEmails.size} selected</span>
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBulkMarkRead}
+              disabled={bulkActionLoading}
+            >
               Mark Read
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBulkMarkUnread}
+              disabled={bulkActionLoading}
+            >
+              Mark Unread
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBulkStar}
+              disabled={bulkActionLoading}
+            >
+              Star
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBulkArchive}
+              disabled={bulkActionLoading}
+            >
               Archive
             </Button>
-            <Button variant="ghost" size="sm">
-              Delete
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBulkTrash}
+              disabled={bulkActionLoading}
+              className="text-orange-600"
+            >
+              Trash
             </Button>
+            {folder === 'TRASH' && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={bulkActionLoading}
+                className="text-red-600"
+              >
+                Delete Forever
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Email Cards */}
+      {/* Email Cards - Use virtual scrolling for large lists (>200 emails) */}
       <div className="flex-1 overflow-y-auto">
         {filteredEmails.length === 0 ? (
           <div className="h-full flex items-center justify-center">
@@ -243,6 +531,7 @@ export function EmailCardList({
             </div>
           </div>
         ) : (
+          // Email list with infinite scroll (Gmail-style pagination)
           <div className="divide-y min-w-0">
             {bulkMode && (
               <div className="sticky top-0 bg-background border-b px-4 py-2 flex items-center gap-3 z-10">
@@ -284,6 +573,39 @@ export function EmailCardList({
                 registerForPrefetch={registerEmailCard}
               />
             ))}
+            
+            {/* Infinite scroll loading indicator */}
+            {loadingMore && (
+              <div className="p-8 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-sm text-muted-foreground">Loading more emails...</p>
+              </div>
+            )}
+            
+            {/* Load More button (backup if scroll doesn't trigger) */}
+            {hasMore && !loadingMore && filteredEmails.length > 0 && (
+              <div className="p-4 text-center border-t">
+                <Button
+                  onClick={onLoadMore}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Load More Emails
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Showing {filteredEmails.length} emails
+                </p>
+              </div>
+            )}
+            
+            {/* No more emails indicator */}
+            {!hasMore && filteredEmails.length > 0 && (
+              <div className="p-4 text-center border-t">
+                <p className="text-sm text-muted-foreground">
+                  ✓ All emails loaded ({filteredEmails.length} total)
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

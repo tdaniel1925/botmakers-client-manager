@@ -10,27 +10,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   ArrowLeft, 
-  Calendar, 
   RefreshCw, 
-  Plus, 
-  Download, 
-  Folder, 
-  Loader2,
-  Settings,
-  PenSquare
+  PenSquare,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { SelectEmailAccount } from '@/db/schema/email-schema';
-import { AddEmailAccountDialog } from './add-email-account-dialog';
-import { SettingsSlideOver } from './settings/settings-slide-over';
-import { syncNylasEmailsAction, syncNylasFoldersAction } from '@/actions/email-nylas-actions';
+import { syncNylasEmailsAction } from '@/actions/email-nylas-actions';
 
 interface EmailHeaderProps {
   accounts: SelectEmailAccount[];
@@ -51,11 +37,9 @@ export function EmailHeader({
   const isPlatform = pathname?.startsWith('/platform');
   const dashboardPath = isPlatform ? '/platform/dashboard' : '/dashboard';
   const calendarPath = isPlatform ? '/platform/calendar' : '/dashboard/calendar';
+  const helpPath = isPlatform ? '/platform/emails/help' : '/dashboard/emails/help';
 
   const [refreshing, setRefreshing] = useState(false);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showSettingsSlideOver, setShowSettingsSlideOver] = useState(false);
-  const [folderSyncing, setFolderSyncing] = useState(false);
 
   // Toast notification utility
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -95,36 +79,6 @@ export function EmailHeader({
     }
   };
 
-  const handleFullSync = async () => {
-    if (!selectedAccount) return;
-    
-    // Call parent's refresh function which opens progress modal and syncs
-    await onRefresh();
-  };
-
-  const handleSyncFolders = async () => {
-    if (!selectedAccount) return;
-    
-    setFolderSyncing(true);
-    try {
-      const result = await syncNylasFoldersAction(selectedAccount.id);
-      if (result.success) {
-        showToast(`✅ Synced ${result.syncedCount} folders!`, 'success');
-        await onRefresh();
-      } else {
-        showToast(`❌ Folder sync failed: ${result.error}`, 'error');
-      }
-    } catch (error) {
-      showToast('❌ An error occurred during folder sync', 'error');
-    } finally {
-      setFolderSyncing(false);
-    }
-  };
-
-  const handleAddSuccess = () => {
-    onRefresh();
-  };
-
   return (
     <>
       <div className="border-b bg-background px-4 py-2.5">
@@ -145,39 +99,8 @@ export function EmailHeader({
             <h1 className="text-lg font-bold">Email Client</h1>
           </div>
 
-          {/* Center: Account & Controls */}
+          {/* Center: Quick Actions (now has space for search box) */}
           <div className="flex-1 flex items-center gap-2 justify-center max-w-3xl mx-auto">
-            {/* Account Selector */}
-            <Select
-              value={selectedAccount?.id}
-              onValueChange={(value) => {
-                const account = accounts.find((acc) => acc.id === value);
-                if (account) {
-                  onAccountChange(account);
-                }
-              }}
-            >
-              <SelectTrigger className="w-[240px]">
-                <SelectValue placeholder="Select account" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        account.status === 'active' ? 'bg-green-500' :
-                        account.status === 'syncing' ? 'bg-blue-500' :
-                        account.status === 'error' ? 'bg-red-500' :
-                        'bg-gray-400'
-                      }`} />
-                      <span className="truncate">{account.emailAddress}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Action Buttons */}
             <Button
               variant="default"
               size="sm"
@@ -200,88 +123,21 @@ export function EmailHeader({
               <span className="hidden md:inline">Sync</span>
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddDialog(true)}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden md:inline">Add</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFullSync}
-              disabled={!selectedAccount}
-              className="gap-2"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden lg:inline">Download All</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSyncFolders}
-              disabled={folderSyncing || !selectedAccount}
-              className="gap-2"
-            >
-              {folderSyncing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Folder className="h-4 w-4" />
-              )}
-              <span className="hidden lg:inline">Sync Folders</span>
-            </Button>
+            {/* Space reserved for future search box */}
           </div>
 
-          {/* Right: Settings & Calendar */}
+          {/* Right: Help Only */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSettingsSlideOver(true)}
-              disabled={!selectedAccount}
-              className="gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="hidden lg:inline">Settings</span>
-            </Button>
-
-            <Link href={calendarPath}>
+            <Link href={helpPath}>
               <Button variant="outline" size="sm" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden lg:inline">Calendar</span>
+                <HelpCircle className="h-4 w-4" />
+                <span className="hidden lg:inline">Help</span>
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Progress Indicator */}
-        {folderSyncing && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Syncing folders...</span>
-          </div>
-        )}
       </div>
-
-      {/* Dialogs */}
-      <AddEmailAccountDialog
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        onSuccess={handleAddSuccess}
-      />
-
-      {selectedAccount && (
-        <SettingsSlideOver
-          open={showSettingsSlideOver}
-          onOpenChange={setShowSettingsSlideOver}
-          accountId={selectedAccount.id}
-        />
-      )}
     </>
   );
 }

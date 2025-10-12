@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { undoScreeningAction } from '@/actions/undo-screening-action';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -80,10 +81,6 @@ export function ScreenEmailCard({
     };
     
     const message = toastMessages[decision];
-    toast({
-      title: message.title,
-      description: message.description,
-    });
     
     // Update database FIRST - this is critical!
     console.log(`🔄 Updating database for ${emailAddress}...`);
@@ -97,6 +94,32 @@ export function ScreenEmailCard({
       await new Promise(resolve => setTimeout(resolve, 200));
       
       console.log(`🔄 Now refreshing email list...`);
+      
+      // Show success toast with undo action
+      toast({
+        title: message.title,
+        description: message.description,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            const undoResult = await undoScreeningAction(emailAddress);
+            if (undoResult.success) {
+              toast({
+                title: 'Screening Undone',
+                description: `${name} returned to Screener`,
+              });
+              // Trigger refresh to show the sender back in screener
+              window.location.reload();
+            } else {
+              toast({
+                title: 'Error',
+                description: undoResult.error || 'Failed to undo',
+                variant: 'destructive',
+              });
+            }
+          }
+        },
+      });
       
       // NOW remove from UI and trigger refresh (after DB is fully committed)
       onScreened(emailAddress);

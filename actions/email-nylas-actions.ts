@@ -80,10 +80,14 @@ export async function syncNylasEmailsAction(
       return { error: 'Account not connected to Nylas' };
     }
 
-    // Update sync status
+    // Update sync status with timestamp
     await db
       .update(emailAccountsTable)
-      .set({ status: 'syncing' })
+      .set({ 
+        status: 'syncing',
+        syncStatus: 'syncing',
+        lastSyncAt: new Date()
+      })
       .where(eq(emailAccountsTable.id, accountId));
 
     let syncedCount = 0;
@@ -420,10 +424,20 @@ export async function syncNylasEmailsAction(
     // Update sync status to error
     await db
       .update(emailAccountsTable)
-      .set({ status: 'error' })
+      .set({ 
+        status: 'error',
+        syncStatus: 'error',
+        lastSyncAt: new Date()
+      })
       .where(eq(emailAccountsTable.id, accountId));
 
-    return { error: error.message || 'Failed to sync emails' };
+    const { updateSyncStatus } = await import('@/app/api/email/sync-status/route');
+    updateSyncStatus(userId, {
+      isComplete: true,
+      errors: errorCount + 1,
+    });
+
+    return { success: false, error: error.message || 'Failed to sync emails' };
   }
 }
 

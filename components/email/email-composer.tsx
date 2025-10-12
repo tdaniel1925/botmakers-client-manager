@@ -16,6 +16,12 @@ import { VersionHistoryPanel } from "./version-history-panel";
 import { ToneSelector } from "./tone-selector";
 import { saveDraft, sendDraftEmail } from "@/actions/email-composer-actions";
 import { useDebounce } from "@/hooks/use-debounce";
+import { 
+  saveDraft as saveLocalDraft, 
+  getDraft as getLocalDraft, 
+  deleteDraft as deleteLocalDraft,
+  getTimeSinceLastSave 
+} from "@/lib/draft-persistence";
 
 interface EmailComposerProps {
   open: boolean;
@@ -75,18 +81,52 @@ export function EmailComposer({
   const [isSending, setIsSending] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [localSaveTimestamp, setLocalSaveTimestamp] = useState<number>(Date.now());
   
-  // Auto-save
-  const debouncedBody = useDebounce(body, 2000);
-  const debouncedSubject = useDebounce(subject, 2000);
-  const debouncedTo = useDebounce(to, 2000);
+  // Auto-save (reduced to 5 seconds for localStorage backup)
+  const debouncedBody = useDebounce(body, 5000);
+  const debouncedSubject = useDebounce(subject, 5000);
+  const debouncedTo = useDebounce(to, 5000);
   
   const hasUnsavedChanges = useRef(false);
+  const localDraftId = useRef(`draft_${accountId}_${userId}_${Date.now()}`);
 
-  // Auto-save effect
+  // Restore draft from localStorage on mount
   useEffect(() => {
-    if (hasUnsavedChanges.current && to.trim() && subject.trim()) {
+    if (open && !initialDraftId && !initialBody) {
+      const savedDraft = getLocalDraft(localDraftId.current);
+      if (savedDraft && savedDraft.accountId === accountId) {
+        // Ask user if they want to restore
+        if (confirm(`Found unsaved draft from ${getTimeSinceLastSave(savedDraft.timestamp)}. Restore it?`)) {
+          setTo(savedDraft.to);
+          setCc(savedDraft.cc || '');
+          setBcc(savedDraft.bcc || '');
+          setSubject(savedDraft.subject);
+          setBody(savedDraft.body);
+          setLocalSaveTimestamp(savedDraft.timestamp);
+        } else {
+          deleteLocalDraft(localDraftId.current);
+        }
+      }
+    }
+  }, [open]);
+
+  // Auto-save effect (database + localStorage)
+  useEffect(() => {
+    if (hasUnsavedChanges.current && to.trim()) {
       handleAutoSave();
+      // Also save to localStorage as backup
+      saveLocalDraft(localDraftId.current, {
+        to,
+        cc,
+        bcc,
+        subject,
+        body,
+        accountId,
+        replyTo,
+        timestamp: Date.now(),
+      });
+      setLocalSaveTimestamp(Date.now());
     }
   }, [debouncedBody, debouncedSubject, debouncedTo]);
 

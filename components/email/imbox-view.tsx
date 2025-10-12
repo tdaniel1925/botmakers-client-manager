@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { EmailCard } from './email-card';
 import { EmailViewer } from './email-viewer';
+import { EmailSearchBar } from './email-search-bar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Inbox, RefreshCw, Sparkles } from 'lucide-react';
@@ -36,6 +37,7 @@ export function ImboxView({
   registerForPrefetch,
 }: ImboxViewProps) {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Filter to Imbox emails only
   const imboxEmails = emails.filter(email => {
@@ -53,33 +55,41 @@ export function ImboxView({
 
   console.log(`📥 Imbox View: Showing ${imboxEmails.length} of ${emails.length} total emails`);
 
-  const filteredEmails = filter === 'unread' 
+  // Apply unread filter
+  let filteredEmails = filter === 'unread' 
     ? imboxEmails.filter(e => !e.isRead)
     : imboxEmails;
+
+  // Apply search filter
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    filteredEmails = filteredEmails.filter(email => {
+      const subject = email.subject?.toLowerCase() || '';
+      const from = typeof email.fromAddress === 'string' 
+        ? email.fromAddress.toLowerCase()
+        : email.fromAddress?.email?.toLowerCase() || '';
+      const bodyText = email.bodyText?.toLowerCase() || '';
+      
+      return subject.includes(query) || from.includes(query) || bodyText.includes(query);
+    });
+  }
 
   const unreadCount = imboxEmails.filter(e => !e.isRead).length;
 
   // Show EmailViewer if an email is selected
   if (selectedEmail) {
+    const currentIndex = imboxEmails.findIndex(e => e.id === selectedEmail.id);
     return (
       <div className="h-full flex flex-col">
-        {/* Back button header */}
-        <div className="border-b bg-background p-3 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEmailClick(null as any)}
-            className="gap-2"
-          >
-            ← Back to Imbox
-          </Button>
-        </div>
-        
         {/* Email Viewer */}
         <div className="flex-1 overflow-auto">
           <EmailViewer
             email={selectedEmail}
             onClose={() => onEmailClick(null as any)}
+            emails={imboxEmails}
+            currentIndex={currentIndex}
+            onNavigate={onEmailClick}
+            onCompose={onComposeWithDraft}
           />
         </div>
       </div>
@@ -88,57 +98,36 @@ export function ImboxView({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Filter Tabs & Search - Compact */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center">
-              <Inbox className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">Imbox</h2>
-              <p className="text-xs text-muted-foreground">
-                Important mail from people you care about
-              </p>
-            </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-2">
+          {/* Left: Filter Tabs */}
+          <div className="flex gap-1 flex-shrink-0">
+            <Button
+              size="sm"
+              variant={filter === 'all' ? 'default' : 'ghost'}
+              onClick={() => setFilter('all')}
+              className="rounded-full text-xs h-7"
+            >
+              All ({imboxEmails.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={filter === 'unread' ? 'default' : 'ghost'}
+              onClick={() => setFilter('unread')}
+              className="rounded-full text-xs h-7"
+            >
+              Unread ({unreadCount})
+            </Button>
           </div>
           
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <Badge variant="secondary" className="font-semibold">
-                {unreadCount} unread
-              </Badge>
-            )}
-            {onRefresh && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={onRefresh}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            )}
+          {/* Center: Search Bar */}
+          <div className="flex-1 max-w-md">
+            <EmailSearchBar
+              onSearchChange={setSearchQuery}
+              placeholder="Search..."
+            />
           </div>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex gap-1 px-4 pb-3">
-          <Button
-            size="sm"
-            variant={filter === 'all' ? 'default' : 'ghost'}
-            onClick={() => setFilter('all')}
-            className="rounded-full"
-          >
-            All ({imboxEmails.length})
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === 'unread' ? 'default' : 'ghost'}
-            onClick={() => setFilter('unread')}
-            className="rounded-full"
-          >
-            Unread ({unreadCount})
-          </Button>
         </div>
       </div>
 

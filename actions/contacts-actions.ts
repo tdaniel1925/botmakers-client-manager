@@ -1,368 +1,471 @@
-"use server";
+/**
+ * Contacts Server Actions
+ * CRUD operations for contact management
+ */
 
-import {
-  getContacts,
-  getContactById,
-  createContact,
-  updateContact,
-  deleteContact,
-  bulkDeleteContacts,
-  getContactCountByStatus,
-} from "@/db/queries/contacts-queries";
-import { InsertContact, SelectContact } from "@/db/schema";
-import { ActionResult } from "@/types/actions/actions-types";
-import { revalidatePath } from "next/cache";
+'use server';
+
 import { auth } from "@clerk/nextjs/server";
-import { getUserRole } from "@/db/queries/organizations-queries";
-import { canAccessResource, canEditResource, canDeleteResource } from "@/lib/rbac";
-import { validateContact, formatValidationErrors } from "@/lib/validation-utils"; // ✅ FIX BUG-019
-import { withSelfHealing } from "@/lib/self-healing/error-interceptor"; // ✅ Self-healing integration
+import { db } from "@/db/db";
+import { emailContactsTable, contactGroupsTable, contactGroupMembersTable } from "@/db/schema";
+import { eq, and, or, like, desc, sql } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
-export const getContactsAction = withSelfHealing(
-  async function getContactsAction(
-  organizationId: string,
-  options?: {
-    search?: string;
-    status?: string;
-    ownerId?: string;
-    limit?: number;
-    offset?: number;
-    sortBy?: "createdAt" | "updatedAt" | "firstName" | "company";
-    sortOrder?: "asc" | "desc";
-  }
-): Promise<ActionResult<{ contacts: SelectContact[]; total: number }>> {
+type ActionResult = {
+  success: boolean;
+  error?: string;
+  data?: any;
+};
+
+// ============================================================================
+// CONTACTS CRUD
+// ============================================================================
+
+/**
+ * Get all contacts for current user
+ */
+export async function getContactsAction(options?: {
+  searchQuery?: string;
+  groupId?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ActionResult> {
   try {
     const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
-    }
-    
-    const userRole = await getUserRole(userId, organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
-    }
-    
-    // If user is sales_rep, only show their own contacts
-    let queryOptions = { ...options };
-    if (userRole.role === "sales_rep") {
-      queryOptions.ownerId = userId;
-    }
-    
-    const result = await getContacts(organizationId, queryOptions);
-    return { isSuccess: true, message: "Contacts retrieved successfully", data: result };
-  } catch (error) {
-    console.error("Error getting contacts:", error);
-    return { isSuccess: false, message: "Failed to get contacts" };
-  }
-},
-{ source: 'getContactsAction', category: 'database' }
-);
+    if (!userId) return { success: false, error: 'Unauthorized' };
 
-export const getContactByIdAction = withSelfHealing(
-  async function getContactByIdAction(
-  contactId: string,
-  organizationId: string
-): Promise<ActionResult<SelectContact | null>> {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
-    }
-    
-    const contact = await getContactById(contactId, organizationId);
-    
-    if (!contact) {
-      return { isSuccess: false, message: "Contact not found" };
-    }
-    
-    const userRole = await getUserRole(userId, organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
-    }
-    
-    // Check if user has permission to view this contact
-    if (!canAccessResource(userRole.role as any, contact.ownerId, userId)) {
-      return { isSuccess: false, message: "Permission denied" };
-    }
-    
-    return { isSuccess: true, message: "Contact retrieved successfully", data: contact };
-  } catch (error) {
-    console.error("Error getting contact:", error);
-    return { isSuccess: false, message: "Failed to get contact" };
-  }
-},
-{ source: 'getContactByIdAction', category: 'database' }
-);
+    const { searchQuery, groupId, limit = 100, offset = 0 } = options || {};
 
-export const createContactAction = withSelfHealing(
-  async function createContactAction(
-  data: InsertContact
-): Promise<ActionResult<SelectContact>> {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
-    }
-    
-    // ✅ FIX BUG-019: Validate required fields before creation
-    const validation = validateContact({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email || undefined,
-      phone: data.phone || undefined,
-      organizationId: data.organizationId,
-    });
-    
-    if (!validation.isValid) {
-      return {
-        isSuccess: false,
-        message: formatValidationErrors(validation.errors),
-      };
-    }
-    
-    const userRole = await getUserRole(userId, data.organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
-    }
-    
-    const contactData = {
-      ...data,
-      ownerId: data.ownerId || userId,
-      createdBy: userId,
-    };
-    
-    const newContact = await createContact(contactData);
-    revalidatePath("/dashboard/contacts");
-    return { isSuccess: true, message: "Contact created successfully", data: newContact };
-  } catch (error) {
-    console.error("Error creating contact:", error);
-    return { isSuccess: false, message: "Failed to create contact" };
-  }
-},
-{ source: 'createContactAction', category: 'database' }
-);
+    let query = db
+      .select()
+      .from(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.userId, userId),
+        eq(emailContactsTable.isBlocked, false)
+      ));
 
-export const updateContactAction = withSelfHealing(
-  async function updateContactAction(
-  contactId: string,
-  organizationId: string,
-  data: Partial<InsertContact>
-): Promise<ActionResult<SelectContact>> {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
+    // Apply search filter
+    if (searchQuery) {
+      query = query.where(
+        or(
+          like(emailContactsTable.name, `%${searchQuery}%`),
+          like(emailContactsTable.email, `%${searchQuery}%`),
+          like(emailContactsTable.company, `%${searchQuery}%`)
+        )
+      ) as any;
     }
-    
-    const contact = await getContactById(contactId, organizationId);
-    
-    if (!contact) {
-      return { isSuccess: false, message: "Contact not found" };
-    }
-    
-    // ✅ FIX BUG-019: Validate fields before update (only if provided)
-    if (data.firstName !== undefined || data.lastName !== undefined || data.email !== undefined || data.phone !== undefined) {
-      const validation = validateContact({
-        firstName: data.firstName !== undefined ? data.firstName : contact.firstName,
-        lastName: data.lastName !== undefined ? data.lastName : contact.lastName,
-        email: data.email !== undefined ? data.email || undefined : contact.email || undefined,
-        phone: data.phone !== undefined ? data.phone || undefined : contact.phone || undefined,
-        organizationId: organizationId,
-      });
+
+    // Apply group filter
+    if (groupId) {
+      const groupMembers = await db
+        .select({ contactId: contactGroupMembersTable.contactId })
+        .from(contactGroupMembersTable)
+        .where(eq(contactGroupMembersTable.groupId, groupId));
       
-      if (!validation.isValid) {
-        return {
-          isSuccess: false,
-          message: formatValidationErrors(validation.errors),
-        };
+      const contactIds = groupMembers.map(m => m.contactId);
+      if (contactIds.length > 0) {
+        query = query.where(sql`${emailContactsTable.id} IN ${contactIds}`) as any;
       }
     }
-    
-    const userRole = await getUserRole(userId, organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
-    }
-    
-    // Check if user has permission to edit this contact
-    if (!canEditResource(userRole.role as any, contact.ownerId, userId)) {
-      return { isSuccess: false, message: "Permission denied" };
-    }
-    
-    const updatedContact = await updateContact(contactId, organizationId, data);
-    
-    if (!updatedContact) {
-      return { isSuccess: false, message: "Failed to update contact" };
-    }
-    
-    revalidatePath("/dashboard/contacts");
-    revalidatePath(`/dashboard/contacts/${contactId}`);
-    return { isSuccess: true, message: "Contact updated successfully", data: updatedContact };
-  } catch (error) {
-    console.error("Error updating contact:", error);
-    return { isSuccess: false, message: "Failed to update contact" };
-  }
-},
-{ source: 'updateContactAction', category: 'database' }
-);
 
-export const deleteContactAction = withSelfHealing(
-  async function deleteContactAction(
+    const contacts = await query
+      .orderBy(desc(emailContactsTable.lastEmailedAt))
+      .limit(limit)
+      .offset(offset);
+
+    return { success: true, data: contacts };
+  } catch (error: any) {
+    console.error('Get Contacts Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get a single contact by ID
+ */
+export async function getContactAction(contactId: string): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    const contact = await db
+      .select()
+      .from(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.id, contactId),
+        eq(emailContactsTable.userId, userId)
+      ))
+      .limit(1);
+
+    if (contact.length === 0) {
+      return { success: false, error: 'Contact not found' };
+    }
+
+    return { success: true, data: contact[0] };
+  } catch (error: any) {
+    console.error('Get Contact Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Create a new contact
+ */
+export async function createContactAction(contactData: {
+  email: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  company?: string;
+  jobTitle?: string;
+  notes?: string;
+  tags?: string[];
+  avatarUrl?: string;
+  linkedinUrl?: string;
+  twitterHandle?: string;
+  website?: string;
+  address?: any;
+  source?: 'email' | 'manual' | 'import' | 'calendar';
+  sourceEmailId?: string;
+  customFields?: Record<string, any>;
+}): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    // Check if contact already exists
+    const existing = await db
+      .select()
+      .from(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.userId, userId),
+        eq(emailContactsTable.email, contactData.email)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return { success: false, error: 'Contact with this email already exists' };
+    }
+
+    const newContact = await db
+      .insert(emailContactsTable)
+      .values({
+        userId,
+        ...contactData,
+        displayName: contactData.name || `${contactData.firstName || ''} ${contactData.lastName || ''}`.trim(),
+      })
+      .returning();
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true, data: newContact[0] };
+  } catch (error: any) {
+    console.error('Create Contact Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update an existing contact
+ */
+export async function updateContactAction(
   contactId: string,
-  organizationId: string
-): Promise<ActionResult<void>> {
+  updates: Partial<typeof emailContactsTable.$inferInsert>
+): Promise<ActionResult> {
   try {
     const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
-    }
-    
-    const contact = await getContactById(contactId, organizationId);
-    
-    if (!contact) {
-      return { isSuccess: false, message: "Contact not found" };
-    }
-    
-    const userRole = await getUserRole(userId, organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
-    }
-    
-    // Check if user has permission to delete this contact
-    if (!canDeleteResource(userRole.role as any, contact.ownerId, userId)) {
-      return { isSuccess: false, message: "Permission denied" };
-    }
-    
-    const success = await deleteContact(contactId, organizationId);
-    
-    if (!success) {
-      return { isSuccess: false, message: "Failed to delete contact" };
-    }
-    
-    revalidatePath("/dashboard/contacts");
-    return { isSuccess: true, message: "Contact deleted successfully" };
-  } catch (error) {
-    console.error("Error deleting contact:", error);
-    return { isSuccess: false, message: "Failed to delete contact" };
-  }
-},
-{ source: 'deleteContactAction', category: 'database' }
-);
+    if (!userId) return { success: false, error: 'Unauthorized' };
 
-export const bulkDeleteContactsAction = withSelfHealing(
-  async function bulkDeleteContactsAction(
-  contactIds: string[],
-  organizationId: string
-): Promise<ActionResult<number>> {
+    const updated = await db
+      .update(emailContactsTable)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(emailContactsTable.id, contactId),
+        eq(emailContactsTable.userId, userId)
+      ))
+      .returning();
+
+    if (updated.length === 0) {
+      return { success: false, error: 'Contact not found' };
+    }
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true, data: updated[0] };
+  } catch (error: any) {
+    console.error('Update Contact Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete a contact
+ */
+export async function deleteContactAction(contactId: string): Promise<ActionResult> {
   try {
     const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
-    }
-    
-    const userRole = await getUserRole(userId, organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
-    }
-    
-    // Only admins can bulk delete
-    if (userRole.role !== "admin") {
-      return { isSuccess: false, message: "Permission denied" };
-    }
-    
-    const deletedCount = await bulkDeleteContacts(contactIds, organizationId);
-    revalidatePath("/dashboard/contacts");
-    return { isSuccess: true, message: `${deletedCount} contacts deleted successfully`, data: deletedCount };
-  } catch (error) {
-    console.error("Error bulk deleting contacts:", error);
-    return { isSuccess: false, message: "Failed to delete contacts" };
-  }
-},
-{ source: 'bulkDeleteContactsAction', category: 'database' }
-);
+    if (!userId) return { success: false, error: 'Unauthorized' };
 
-export const getContactCountByStatusAction = withSelfHealing(
-  async function getContactCountByStatusAction(
-  organizationId: string
-): Promise<ActionResult<Record<string, number>>> {
+    await db
+      .delete(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.id, contactId),
+        eq(emailContactsTable.userId, userId)
+      ));
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Delete Contact Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Toggle favorite status
+ */
+export async function toggleContactFavoriteAction(contactId: string): Promise<ActionResult> {
   try {
     const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
-    }
-    
-    const counts = await getContactCountByStatus(organizationId);
-    return { isSuccess: true, message: "Contact counts retrieved successfully", data: counts };
-  } catch (error) {
-    console.error("Error getting contact counts:", error);
-    return { isSuccess: false, message: "Failed to get contact counts" };
-  }
-},
-{ source: 'getContactCountByStatusAction', category: 'database' }
-);
+    if (!userId) return { success: false, error: 'Unauthorized' };
 
-export const quickUpdateContactFieldAction = withSelfHealing(
-  async function quickUpdateContactFieldAction(
+    const contact = await db
+      .select({ isFavorite: emailContactsTable.isFavorite })
+      .from(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.id, contactId),
+        eq(emailContactsTable.userId, userId)
+      ))
+      .limit(1);
+
+    if (contact.length === 0) {
+      return { success: false, error: 'Contact not found' };
+    }
+
+    const updated = await db
+      .update(emailContactsTable)
+      .set({
+        isFavorite: !contact[0].isFavorite,
+        updatedAt: new Date(),
+      })
+      .where(eq(emailContactsTable.id, contactId))
+      .returning();
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true, data: updated[0] };
+  } catch (error: any) {
+    console.error('Toggle Contact Favorite Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Create contact from email
+ */
+export async function createContactFromEmailAction(data: {
+  email: string;
+  name: string;
+  emailId: string;
+}): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    // Check if contact already exists
+    const existing = await db
+      .select()
+      .from(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.userId, userId),
+        eq(emailContactsTable.email, data.email)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update email count
+      await db
+        .update(emailContactsTable)
+        .set({
+          emailCount: sql`${emailContactsTable.emailCount} + 1`,
+          lastEmailedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(emailContactsTable.id, existing[0].id));
+
+      return { success: true, data: existing[0], updated: true };
+    }
+
+    // Create new contact
+    const newContact = await db
+      .insert(emailContactsTable)
+      .values({
+        userId,
+        email: data.email,
+        name: data.name,
+        displayName: data.name,
+        source: 'email',
+        sourceEmailId: data.emailId,
+        emailCount: 1,
+        lastEmailedAt: new Date(),
+      })
+      .returning();
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true, data: newContact[0], created: true };
+  } catch (error: any) {
+    console.error('Create Contact From Email Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// CONTACT GROUPS CRUD
+// ============================================================================
+
+/**
+ * Get all contact groups
+ */
+export async function getContactGroupsAction(): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    const groups = await db
+      .select()
+      .from(contactGroupsTable)
+      .where(eq(contactGroupsTable.userId, userId))
+      .orderBy(contactGroupsTable.name);
+
+    return { success: true, data: groups };
+  } catch (error: any) {
+    console.error('Get Contact Groups Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Create a contact group
+ */
+export async function createContactGroupAction(data: {
+  name: string;
+  description?: string;
+  color?: string;
+}): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    const newGroup = await db
+      .insert(contactGroupsTable)
+      .values({
+        userId,
+        ...data,
+      })
+      .returning();
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true, data: newGroup[0] };
+  } catch (error: any) {
+    console.error('Create Contact Group Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Add contact to group
+ */
+export async function addContactToGroupAction(
   contactId: string,
-  organizationId: string,
-  field: string,
-  value: string
-): Promise<ActionResult<SelectContact>> {
+  groupId: string
+): Promise<ActionResult> {
   try {
     const { userId } = await auth();
-    
-    if (!userId) {
-      return { isSuccess: false, message: "Unauthorized" };
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    // Verify ownership
+    const contact = await db
+      .select()
+      .from(emailContactsTable)
+      .where(and(
+        eq(emailContactsTable.id, contactId),
+        eq(emailContactsTable.userId, userId)
+      ))
+      .limit(1);
+
+    if (contact.length === 0) {
+      return { success: false, error: 'Contact not found' };
     }
-    
-    const userRole = await getUserRole(userId, organizationId);
-    
-    if (!userRole) {
-      return { isSuccess: false, message: "User not found in organization" };
+
+    // Check if already in group
+    const existing = await db
+      .select()
+      .from(contactGroupMembersTable)
+      .where(and(
+        eq(contactGroupMembersTable.contactId, contactId),
+        eq(contactGroupMembersTable.groupId, groupId)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return { success: true, data: existing[0], alreadyExists: true };
     }
-    
-    const contact = await getContactById(contactId);
-    
-    if (!contact) {
-      return { isSuccess: false, message: "Contact not found" };
-    }
-    
-    const hasEditPermission = await canEditResource(
-      userId,
-      organizationId,
-      userRole.role,
-      contact.ownerId
-    );
-    
-    if (!hasEditPermission) {
-      return { isSuccess: false, message: "Permission denied" };
-    }
-    
-    // Only allow updating specific fields
-    const allowedFields = ['company', 'email', 'phone', 'title'];
-    if (!allowedFields.includes(field)) {
-      return { isSuccess: false, message: "Field not editable" };
-    }
-    
-    const updatedContact = await updateContact(contactId, { [field]: value });
-    revalidatePath("/dashboard/contacts");
-    return { isSuccess: true, message: "Contact updated successfully", data: updatedContact };
-  } catch (error) {
-    console.error("Error updating contact field:", error);
-    return { isSuccess: false, message: "Failed to update contact" };
+
+    const member = await db
+      .insert(contactGroupMembersTable)
+      .values({
+        contactId,
+        groupId,
+      })
+      .returning();
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true, data: member[0] };
+  } catch (error: any) {
+    console.error('Add Contact To Group Error:', error);
+    return { success: false, error: error.message };
   }
-},
-{ source: 'quickUpdateContactFieldAction', category: 'database' }
-);
+}
+
+/**
+ * Remove contact from group
+ */
+export async function removeContactFromGroupAction(
+  contactId: string,
+  groupId: string
+): Promise<ActionResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
+    await db
+      .delete(contactGroupMembersTable)
+      .where(and(
+        eq(contactGroupMembersTable.contactId, contactId),
+        eq(contactGroupMembersTable.groupId, groupId)
+      ));
+
+    revalidatePath('/platform/contacts');
+    revalidatePath('/dashboard/contacts');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Remove Contact From Group Error:', error);
+    return { success: false, error: error.message };
+  }
+}
