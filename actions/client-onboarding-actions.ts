@@ -47,6 +47,7 @@ export async function getOnboardingByTokenAction(
 
     return {
       isSuccess: true,
+      message: "Session loaded successfully",
       data: {
         session,
         project,
@@ -305,6 +306,7 @@ export async function getProgressAction(
 
     return {
       isSuccess: true,
+      message: "Progress loaded successfully",
       data: {
         currentStep: session.currentStep,
         completionPercentage: session.completionPercentage,
