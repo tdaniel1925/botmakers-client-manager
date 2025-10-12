@@ -324,5 +324,8 @@ export async function updateAutoCalculatedProgress(projectId: string): Promise<v
   }
 }
 
+// Alias for backward compatibility
+export const getProjectsByOrganizationId = getProjectsByOrganization;
+
 
 
