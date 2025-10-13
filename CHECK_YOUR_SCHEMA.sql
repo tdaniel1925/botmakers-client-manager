@@ -34,3 +34,4 @@ ORDER BY ordinal_position;
 -- Run this and send me the results so I can create perfect indexes for you!
 -- ============================================================================
 
+

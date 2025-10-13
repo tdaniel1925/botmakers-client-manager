@@ -219,7 +219,7 @@ async function handleMessageCreated(data: any) {
     // Execute email rules for this email
     try {
       const { executeRulesForEmail } = await import('@/lib/email/rule-executor');
-      await executeRulesForEmail(insertedEmail.id);
+      await executeRulesForEmail(insertedEmail.id as string);
       console.log('✅ Rules executed for webhook email');
     } catch (ruleError) {
       console.error('Error executing rules for webhook email:', ruleError);

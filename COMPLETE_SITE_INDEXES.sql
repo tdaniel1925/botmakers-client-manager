@@ -144,3 +144,4 @@ CREATE INDEX IF NOT EXISTS idx_calendars_user ON calendars(user_id);
 -- • All queries: Much snappier!
 -- ============================================================================
 
+

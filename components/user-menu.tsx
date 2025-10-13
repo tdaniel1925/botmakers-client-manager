@@ -36,9 +36,9 @@ export function UserMenu({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlan
   const { signOut } = useClerk();
 
   // Format the billing cycle end date
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | Date | null) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
@@ -67,7 +67,7 @@ export function UserMenu({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlan
                 {userEmail || "User"}
               </p>
               <p className="text-xs text-neutral-500">
-                {profile?.membership === "premium" ? "Premium" : "Free"} Plan
+                {profile?.membership === "pro" ? "Pro" : "Free"} Plan
               </p>
             </div>
             <ChevronUp className="hidden md:block w-4 h-4 text-neutral-400" />
@@ -91,7 +91,7 @@ export function UserMenu({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlan
                   {userEmail || "User"}
                 </p>
                 <p className="text-xs text-neutral-500">
-                  {profile?.membership === "premium" ? "Premium" : "Free"} Plan
+                  {profile?.membership === "pro" ? "Pro" : "Free"} Plan
                 </p>
               </div>
             </div>
@@ -135,7 +135,7 @@ export function UserMenu({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlan
                 </div>
               </div>
 
-              {profile.membership !== "premium" && (
+              {profile.membership !== "pro" && (
                 <Button
                   onClick={() => setShowUpgradePopup(true)}
                   className="w-full mt-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white"
@@ -168,7 +168,7 @@ export function UserMenu({ profile, userEmail, whopMonthlyPlanId, whopYearlyPlan
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onClick={() => signOut(() => window.location.href = "/")}
+            onClick={() => signOut(() => { window.location.href = "/"; })}
             className="text-red-600 focus:text-red-600"
           >
             <LogOut className="w-4 h-4 mr-2" />

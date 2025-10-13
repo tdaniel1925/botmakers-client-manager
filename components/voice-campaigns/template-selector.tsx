@@ -175,7 +175,7 @@ export function TemplateSelector({ onSelectTemplate, onSkip }: TemplateSelectorP
                 <div className="bg-gray-50 p-3 rounded">
                   <div className="text-gray-500">Target Duration</div>
                   <div className="font-medium">
-                    {selectedTemplate?.setupAnswers.call_duration_target} minutes
+                    {(selectedTemplate?.setupAnswers as any)?.call_duration_target} minutes
                   </div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded">

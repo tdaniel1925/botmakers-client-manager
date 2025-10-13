@@ -104,7 +104,7 @@ export function ProjectTasksList({
     if (!confirmed) return;
 
     let successCount = 0;
-    for (const taskId of selectedTasks) {
+    for (const taskId of Array.from(selectedTasks)) {
       const result = await deleteProjectTaskAction(taskId);
       if (result.isSuccess) successCount++;
     }

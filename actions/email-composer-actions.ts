@@ -67,8 +67,7 @@ export async function saveDraft(data: {
           bodyText: data.bodyText,
           bodyHtml: data.bodyHtml,
           threadId: data.threadId,
-          inReplyTo: data.inReplyTo,
-          references: data.references || [],
+          inReplyToEmailId: data.inReplyTo,
           isSent: false,
         })
         .returning();
@@ -246,18 +245,19 @@ export async function sendDraftEmail(draftId: string) {
     // Create email record (this would normally be done by Nylas webhook)
     await db.insert(emailsTable).values({
       accountId: draft.accountId,
+      messageId: `draft-${draftId}`, // Placeholder Message-ID
       nylasMessageId: `draft-${draftId}`, // Placeholder
       threadId: draft.threadId,
       subject: draft.subject,
-      from: "user@example.com", // TODO: Get from account
-      to: draft.toAddresses,
-      cc: draft.ccAddresses || [],
-      bcc: draft.bccAddresses || [],
+      fromAddress: { email: "user@example.com" }, // TODO: Get from account
+      toAddresses: draft.toAddresses,
+      ccAddresses: draft.ccAddresses || [],
+      bccAddresses: draft.bccAddresses || [],
       bodyText: draft.bodyText,
       bodyHtml: draft.bodyHtml,
-      sentAt: new Date(),
-      inReplyTo: draft.inReplyTo,
-      references: draft.references || [],
+      receivedAt: new Date(),
+      inReplyTo: draft.inReplyToEmailId,
+      references: [],
     });
 
     revalidatePath("/dashboard/emails");
@@ -269,4 +269,5 @@ export async function sendDraftEmail(draftId: string) {
     return { success: false, error: "Failed to send email" };
   }
 }
+
 

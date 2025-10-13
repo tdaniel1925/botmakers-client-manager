@@ -91,3 +91,4 @@ CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action_type, created_a
 -- • Overall App: 50-80% faster
 -- ============================================================================
 
+

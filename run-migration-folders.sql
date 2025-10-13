@@ -34,3 +34,4 @@ CREATE INDEX IF NOT EXISTS "email_folders_folder_type_idx" ON "email_folders" US
 CREATE INDEX IF NOT EXISTS "email_folders_nylas_folder_id_idx" ON "email_folders" USING btree ("nylas_folder_id");
 
 
+

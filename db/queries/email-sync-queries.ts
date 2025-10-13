@@ -12,7 +12,7 @@ import {
   type InsertEmailAISummary,
   type SelectEmailAISummary,
 } from "../schema/email-schema";
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 
 // ============================================================================
 // Sync Logs - Create
@@ -212,11 +212,20 @@ export async function deleteSyncLog(id: string): Promise<void> {
 export async function deleteOldSyncLogs(daysToKeep: number = 30): Promise<number> {
   const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
   
-  const result = await db
+  // Get count before deleting
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(emailSyncLogsTable)
+    .where(lte(emailSyncLogsTable.startedAt, cutoffDate));
+  
+  const count = Number(countResult[0]?.count || 0);
+  
+  // Delete old logs
+  await db
     .delete(emailSyncLogsTable)
     .where(lte(emailSyncLogsTable.startedAt, cutoffDate));
   
-  return result.rowCount || 0;
+  return count;
 }
 
 // ============================================================================
@@ -310,11 +319,20 @@ export async function deleteAISummary(id: string): Promise<void> {
 export async function deleteExpiredAISummaries(): Promise<number> {
   const now = new Date();
   
-  const result = await db
+  // Get count before deleting
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(emailAISummariesTable)
+    .where(lte(emailAISummariesTable.expiresAt, now));
+  
+  const count = Number(countResult[0]?.count || 0);
+  
+  // Delete expired summaries
+  await db
     .delete(emailAISummariesTable)
     .where(lte(emailAISummariesTable.expiresAt, now));
   
-  return result.rowCount || 0;
+  return count;
 }
 
 // ============================================================================

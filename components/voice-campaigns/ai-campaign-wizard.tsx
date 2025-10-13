@@ -134,21 +134,22 @@ export function AICampaignWizard({ projectId, onComplete, onCancel }: AICampaign
       // Create campaign
       toast.info('Creating voice campaign...');
       
-      const result = await createVoiceCampaignAction({
-        name: config.campaignName,
-        projectId,
-        type: config.campaignType,
+      const setupAnswers = {
+        campaign_name: config.campaignName,
+        agent_name: config.campaignName,
+        campaign_type: config.campaignType,
         systemPrompt: config.systemPrompt,
         firstMessage: config.firstMessage,
-        mustCollectFields: config.qualifyingQuestions,
-        voiceProvider: 'vapi',
+        voicemailMessage: `Hi, this is ${config.campaignName}. Please leave a message and we'll get back to you.`,
+        business_context: '',
+        voice_preference: 'auto',
         model: 'gpt-4o-mini',
-        phoneNumberSource: phoneSelection.source as any,
-        preferredPhoneNumber: phoneSelection.twilioNumber,
-        twilioPhoneNumber: phoneSelection.twilioNumber,
-        areaCode: phoneSelection.areaCode,
-        // Contacts, SMS, email, and scheduling configured post-creation
-      });
+        phone_source: phoneSelection.source,
+        area_code: phoneSelection.areaCode,
+        must_collect_fields: config.qualifyingQuestions,
+      };
+      
+      const result = await createVoiceCampaignAction(projectId, 'vapi', setupAnswers as any);
 
       if (result.error) {
         throw new Error(result.error);

@@ -52,7 +52,7 @@ export default async function PlatformAnalyticsPage() {
             {Object.entries(stats?.organizationsByStatus || {}).map(([status, count]) => (
               <div key={status} className="flex justify-between items-center">
                 <span className="capitalize text-gray-700">{status}</span>
-                <span className="font-semibold">{count}</span>
+                <span className="font-semibold">{String(count)}</span>
               </div>
             ))}
           </div>

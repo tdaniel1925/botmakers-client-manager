@@ -345,3 +345,4 @@ Nylas API has rate limits. Wait 5 minutes, then try again.
 
 **The sync will now get ALL your emails! Click Sync and watch the PowerShell terminal!** 🚀✨
 
+

@@ -190,8 +190,8 @@ export function getSearchSuggestions(
 
   // Add matching subjects (first 3 words)
   emails.forEach(email => {
-    if (email.subject?.toLowerCase().includes(lowerQuery)) {
-      const words = email.subject.split(' ').slice(0, 3).join(' ');
+    if ((email.subject as any)?.toLowerCase().includes(lowerQuery)) {
+      const words = (email.subject as any).split(' ').slice(0, 3).join(' ');
       if (words.length > query.length) {
         suggestions.add(words);
       }
@@ -246,4 +246,6 @@ export function parseSearchQuery(query: string): {
 
   return { text, filters };
 }
+
+
 

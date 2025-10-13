@@ -327,13 +327,13 @@ export async function getOrganizationUsageStats(organizationId: string) {
       minutesUsed: activeSubscription.minutesUsedThisCycle,
       minutesRemaining: Math.max(
         0,
-        activeSubscription.minutesIncludedThisCycle - activeSubscription.minutesUsedThisCycle
+        (activeSubscription.minutesIncludedThisCycle || 0) - (activeSubscription.minutesUsedThisCycle || 0)
       ),
       overageMinutes: activeSubscription.overageMinutesThisCycle,
       overageCost: activeSubscription.overageCostThisCycle,
       totalCost,
       percentageUsed: Math.round(
-        (activeSubscription.minutesUsedThisCycle / activeSubscription.minutesIncludedThisCycle) * 100
+        ((activeSubscription.minutesUsedThisCycle || 0) / (activeSubscription.minutesIncludedThisCycle || 1)) * 100
       ),
     },
     callCount: usageRecords.length,

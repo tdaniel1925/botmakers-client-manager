@@ -72,3 +72,4 @@ COMMENT ON COLUMN emails.is_set_aside IS 'Temporarily set aside (like desk pile)
 COMMENT ON COLUMN emails.is_bubbled_up IS 'Manually resurfaced to top of Imbox';
 COMMENT ON COLUMN emails.custom_subject IS 'User-renamed subject line (Hey feature)';
 
+

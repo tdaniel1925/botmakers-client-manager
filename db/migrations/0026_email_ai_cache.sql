@@ -16,3 +16,4 @@ COMMENT ON COLUMN emails.ai_quick_replies IS 'Pre-generated AI quick reply sugge
 COMMENT ON COLUMN emails.ai_smart_actions IS 'Pre-generated AI smart actions (array of action objects)';
 COMMENT ON COLUMN emails.ai_generated_at IS 'Timestamp when AI analysis was generated';
 
+

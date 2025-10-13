@@ -179,3 +179,4 @@ For production at scale, consider:
 
 **You can now safely refresh the page during a long sync!** 🚀✨
 
+

@@ -117,3 +117,4 @@ export function formatAttachmentsForAI(extractedContents: ExtractedContent[]): s
   return `\n\n=== EMAIL ATTACHMENTS ===\n${formattedAttachments}\n=== END ATTACHMENTS ===`;
 }
 
+

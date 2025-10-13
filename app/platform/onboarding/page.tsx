@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { getOnboardingSessionsAction, getOnboardingAnalyticsAction } from "@/actions/onboarding-actions";
 import { OnboardingSessionsList } from "@/components/platform/onboarding-sessions-list";
-import { OnboardingStatsCards } from "@/components/platform/onboarding-stats-cards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Clock, AlertCircle, Ban } from "lucide-react";
@@ -96,7 +95,7 @@ export default async function PlatformOnboardingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <OnboardingSessionsList sessions={sessions} />
+          <OnboardingSessionsList sessions={sessions || []} />
         </CardContent>
       </Card>
     </div>

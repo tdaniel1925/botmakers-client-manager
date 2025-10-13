@@ -74,7 +74,7 @@ export async function getCampaignByProviderAssistantId(
     .from(voiceCampaignsTable)
     .where(
       and(
-        eq(voiceCampaignsTable.provider, provider),
+        eq(voiceCampaignsTable.provider, provider as any),
         eq(voiceCampaignsTable.providerAssistantId, assistantId)
       )
     )

@@ -302,7 +302,7 @@ function renderField(
         <Input
           id={question.id}
           type="number"
-          value={(value as number) || ""}
+          value={(value as any) || ""}
           placeholder={question.placeholder}
           min={question.validation?.min}
           max={question.validation?.max}

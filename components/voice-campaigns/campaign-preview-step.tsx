@@ -123,7 +123,7 @@ export function CampaignPreviewStep({ answers, phoneSelection, scheduleConfig, c
             </div>
             <div>
               <p className="text-sm text-gray-600">AI Model</p>
-              <p className="font-semibold">{answers.model || "GPT-4o"}</p>
+              <p className="font-semibold">{(answers as any).model || "GPT-4o"}</p>
             </div>
           </CardContent>
         </Card>
@@ -311,11 +311,11 @@ export function CampaignPreviewStep({ answers, phoneSelection, scheduleConfig, c
             </p>
           </div>
           
-          {answers.key_info_to_collect && (
+          {(answers as any).key_info_to_collect && (
             <div>
               <p className="text-sm text-gray-600 mb-2">Information to Collect</p>
               <p className="text-sm bg-gray-50 p-3 rounded-lg border">
-                {answers.key_info_to_collect}
+                {(answers as any).key_info_to_collect}
               </p>
             </div>
           )}

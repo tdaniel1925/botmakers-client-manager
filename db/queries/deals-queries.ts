@@ -42,7 +42,11 @@ export async function getDeals(
   
   const total = Number(countResult[0]?.count || 0);
   
-  // Build query with contact name
+  // Apply sorting
+  const sortColumn = options?.sortBy || "createdAt";
+  const sortOrder = options?.sortOrder || "desc";
+  
+  // Build query with contact name, sorting, and pagination
   let query = db
     .select({
       id: dealsTable.id,
@@ -63,23 +67,12 @@ export async function getDeals(
     })
     .from(dealsTable)
     .leftJoin(contactsTable, eq(dealsTable.contactId, contactsTable.id))
-    .where(and(...conditions));
+    .where(and(...conditions))
+    .orderBy(sortOrder === "asc" ? asc(dealsTable[sortColumn]) : desc(dealsTable[sortColumn]))
+    .limit(options?.limit || 100)
+    .$dynamic();
   
-  // Apply sorting
-  const sortColumn = options?.sortBy || "createdAt";
-  const sortOrder = options?.sortOrder || "desc";
-  
-  if (sortOrder === "asc") {
-    query = query.orderBy(asc(dealsTable[sortColumn]));
-  } else {
-    query = query.orderBy(desc(dealsTable[sortColumn]));
-  }
-  
-  // Apply pagination
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-  
+  // Apply offset if provided
   if (options?.offset) {
     query = query.offset(options.offset);
   }

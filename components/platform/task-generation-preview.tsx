@@ -72,12 +72,12 @@ export function TaskGenerationPreview({
 
     if (result.success && result.data) {
       setTasks(result.data.tasks || []);
-      setSummary(result.data.summary);
-      setGroupedTasks(result.data.groupedByPriority);
+      setSummary((result.data as any).summary || null);
+      setGroupedTasks((result.data as any).groupedByPriority || {});
       // Select all tasks by default
       setSelectedTasks(new Set(result.data.tasks.map((_: any, i: number) => i)));
     } else {
-      toast.error(result.error || "Failed to generate tasks");
+      toast.error((result as any).error || "Failed to generate tasks");
       setOpen(false);
     }
     setLoading(false);

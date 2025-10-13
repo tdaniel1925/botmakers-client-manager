@@ -67,7 +67,7 @@ export async function generateTasksFromOnboardingAction(sessionId: string) {
     });
 
     // Get task generation rules for project type
-    const projectType = session.projectType || project.description || "Generic";
+    const projectType = session.onboardingType || project.description || "Generic";
     const rules = getRulesForProjectType(projectType);
 
     // Create generation context
@@ -160,7 +160,6 @@ export async function createGeneratedTasksAction(
             status: task.status || "todo",
             assignedTo: task.assignedTo || null,
             dueDate: task.dueDate || null,
-            priority: task.priority || "medium",
             sourceType: "onboarding_response",
             sourceId: sessionId,
             sourceMetadata: task.sourceMetadata,
@@ -292,7 +291,6 @@ export async function regenerateTasksAction(sessionId: string) {
             status: task.status || "todo",
             assignedTo: task.assignedTo || null,
             dueDate: task.dueDate || null,
-            priority: task.priority || "medium",
             sourceType: "onboarding_response",
             sourceId: sessionId,
             sourceMetadata: task.sourceMetadata,

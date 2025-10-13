@@ -33,7 +33,6 @@ export async function resetStuckSyncAction(accountId: string) {
       .update(emailAccountsTable)
       .set({
         status: 'active',
-        syncStatus: 'active',
         lastSyncAt: new Date(),
       })
       .where(eq(emailAccountsTable.id, accountId));
@@ -66,7 +65,7 @@ export async function resetAllStuckSyncsAction() {
       .where(
         and(
           eq(emailAccountsTable.userId, userId),
-          eq(emailAccountsTable.syncStatus, 'syncing'),
+          eq(emailAccountsTable.status, 'syncing'),
           lt(emailAccountsTable.lastSyncAt, thirtyMinutesAgo)
         )
       );
@@ -81,7 +80,6 @@ export async function resetAllStuckSyncsAction() {
         .update(emailAccountsTable)
         .set({
           status: 'error',
-          syncStatus: 'error',
           lastSyncAt: new Date(),
         })
         .where(eq(emailAccountsTable.id, account.id));
@@ -95,4 +93,5 @@ export async function resetAllStuckSyncsAction() {
     return { success: false, error: error.message || 'Failed to reset stuck syncs' };
   }
 }
+
 

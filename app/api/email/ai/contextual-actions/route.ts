@@ -158,7 +158,7 @@ Rules:
     const userPrompt = `Subject: ${subject}
 
 Content:
-${emailContent.substring(0, 3000)}`;
+${(emailContent as any).substring(0, 3000)}`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',
@@ -212,4 +212,5 @@ ${emailContent.substring(0, 3000)}`;
     );
   }
 }
+
 

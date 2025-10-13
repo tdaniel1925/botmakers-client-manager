@@ -8,7 +8,7 @@ import {
   InsertSupportMessage,
 } from "../schema/support-schema";
 import { organizationsTable } from "../schema/crm-schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, getTableColumns } from "drizzle-orm";
 
 /**
  * Create a new support ticket
@@ -29,7 +29,7 @@ export async function getAllSupportTickets(): Promise<(SelectSupportTicket & { o
   try {
     const tickets = await db
       .select({
-        ...supportTicketsTable,
+        ...getTableColumns(supportTicketsTable),
         organizationName: organizationsTable.name,
       })
       .from(supportTicketsTable)
@@ -71,7 +71,7 @@ export async function getSupportTicketById(ticketId: string) {
   try {
     const result = await db
       .select({
-        ...supportTicketsTable,
+        ...getTableColumns(supportTicketsTable),
         organizationName: organizationsTable.name,
       })
       .from(supportTicketsTable)

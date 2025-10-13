@@ -292,7 +292,7 @@ export default async function AnalyticsPage() {
                         <div
                           className="bg-purple-600 h-2 rounded-full"
                           style={{
-                            width: `${(count / activityMetrics.data.totalActivities) * 100}%`,
+                            width: `${(count / (activityMetrics.data?.totalActivities || 1)) * 100}%`,
                           }}
                         />
                       </div>

@@ -15,7 +15,7 @@ const exportHandlers = {
     const headers = ['id', 'name', 'email', 'phone', 'company', 'status', 'createdAt'];
     const items = data.map(contact => ({
       id: contact.id,
-      name: contact.name,
+      name: `${contact.firstName} ${contact.lastName}`,
       email: contact.email || '',
       phone: contact.phone || '',
       company: contact.company || '',
@@ -32,15 +32,15 @@ const exportHandlers = {
       limit: 1000,
     });
 
-    const headers = ['id', 'title', 'value', 'stage', 'contactName', 'createdAt', 'closedAt'];
+    const headers = ['id', 'title', 'value', 'stage', 'contactId', 'createdAt', 'closedAt'];
     const items = data.map(deal => ({
       id: deal.id,
       title: deal.title,
       value: deal.value || 0,
       stage: deal.stage || '',
-      contactName: deal.contactName || '',
+      contactId: deal.contactId || '',
       createdAt: deal.createdAt?.toISOString() || '',
-      closedAt: deal.closedAt?.toISOString() || '',
+      closedAt: deal.actualCloseDate?.toISOString() || '',
     }));
 
     return { headers, items };
@@ -52,13 +52,13 @@ const exportHandlers = {
       limit: 1000,
     });
 
-    const headers = ['id', 'type', 'title', 'description', 'status', 'dueDate', 'createdAt'];
+    const headers = ['id', 'type', 'subject', 'description', 'completed', 'dueDate', 'createdAt'];
     const items = data.map(activity => ({
       id: activity.id,
       type: activity.type || '',
-      title: activity.title || '',
+      subject: activity.subject || '',
       description: activity.description || '',
-      status: activity.status || '',
+      completed: activity.completed ? 'Yes' : 'No',
       dueDate: activity.dueDate?.toISOString() || '',
       createdAt: activity.createdAt?.toISOString() || '',
     }));

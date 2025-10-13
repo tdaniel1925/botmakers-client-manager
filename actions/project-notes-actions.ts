@@ -51,15 +51,14 @@ export async function addProjectNoteAction(
 
     // Log action
     await logOrganizationChange(
-      'project.note_added',
+      'create',
       project.organizationId,
       {
+        action: 'project.note_added',
         projectId,
         noteId: note.id,
         contentLength: content.length,
-      },
-      'project',
-      projectId
+      }
     );
 
     return {
@@ -99,6 +98,7 @@ export async function getProjectNotesAction(
 
     return {
       isSuccess: true,
+      message: "Project notes retrieved successfully.",
       data: notes,
     };
   } catch (error) {
@@ -137,14 +137,13 @@ export async function deleteProjectNoteAction(
     // Log action
     if (project) {
       await logOrganizationChange(
-        'project.note_deleted',
+        'delete',
         project.organizationId,
         {
+          action: 'project.note_deleted',
           projectId: note.projectId,
           noteId,
-        },
-        'project',
-        note.projectId
+        }
       );
     }
 

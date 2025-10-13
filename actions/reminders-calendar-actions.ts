@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 type ActionResult = {
   success: boolean;
   error?: string;
+  message?: string;
   data?: any;
 };
 
@@ -40,20 +41,21 @@ export async function getRemindersAction(options?: {
 
     const { status, emailId, limit = 100 } = options || {};
 
-    let query = db
-      .select()
-      .from(aiEmailRemindersTable)
-      .where(eq(aiEmailRemindersTable.userId, userId));
+    // Build conditions
+    const conditions = [eq(aiEmailRemindersTable.userId, userId)];
 
     if (status) {
-      query = query.where(eq(aiEmailRemindersTable.status, status)) as any;
+      conditions.push(eq(aiEmailRemindersTable.status, status));
     }
 
     if (emailId) {
-      query = query.where(eq(aiEmailRemindersTable.emailId, emailId)) as any;
+      conditions.push(eq(aiEmailRemindersTable.emailId, emailId));
     }
 
-    const reminders = await query
+    const reminders = await db
+      .select()
+      .from(aiEmailRemindersTable)
+      .where(and(...conditions))
       .orderBy(desc(aiEmailRemindersTable.reminderAt))
       .limit(limit);
 
@@ -262,24 +264,25 @@ export async function getCalendarEventsAction(options?: {
 
     const { calendarId, startDate, endDate, limit = 100 } = options || {};
 
-    let query = db
-      .select()
-      .from(calendarEventsTable)
-      .where(eq(calendarEventsTable.userId, userId));
+    // Build conditions
+    const conditions = [eq(calendarEventsTable.userId, userId)];
 
     if (calendarId) {
-      query = query.where(eq(calendarEventsTable.calendarId, calendarId)) as any;
+      conditions.push(eq(calendarEventsTable.calendarId, calendarId));
     }
 
     if (startDate) {
-      query = query.where(gte(calendarEventsTable.startTime, startDate)) as any;
+      conditions.push(gte(calendarEventsTable.startTime, startDate));
     }
 
     if (endDate) {
-      query = query.where(lte(calendarEventsTable.startTime, endDate)) as any;
+      conditions.push(lte(calendarEventsTable.startTime, endDate));
     }
 
-    const events = await query
+    const events = await db
+      .select()
+      .from(calendarEventsTable)
+      .where(and(...conditions))
       .orderBy(calendarEventsTable.startTime)
       .limit(limit);
 

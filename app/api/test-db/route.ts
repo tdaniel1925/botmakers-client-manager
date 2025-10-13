@@ -47,9 +47,9 @@ export async function GET() {
       accountCount: accounts.length,
       firstAccountEmail: accounts[0].emailAddress,
       emailCount: emails.length,
-      sampleEmails: emails.slice(0, 3).map(e => ({ 
-        subject: e.subject, 
-        from: typeof e.fromAddress === 'object' ? e.fromAddress.email : e.fromAddress 
+      sampleEmails: emails.slice(0, 3).map(e => ({
+        subject: e.subject,
+        from: typeof e.fromAddress === 'object' && e.fromAddress ? (e.fromAddress as any).email : e.fromAddress
       }))
     });
     
@@ -62,5 +62,6 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
 
 

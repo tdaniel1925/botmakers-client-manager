@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
     const contextMessages = emailHistory.map((email) => {
       const isFromRecipient = email.from === recipientEmail;
       const direction = isFromRecipient ? "FROM recipient" : "TO recipient";
-      const body = email.bodyText || email.bodyHtml?.substring(0, 500) || "";
-      return `[${direction}] Subject: ${email.subject}\n${body.substring(0, 300)}...`;
+      const body = (email.bodyText as any) || (email.bodyHtml as any)?.substring(0, 500) || "";
+      return `[${direction}] Subject: ${(email.subject as any)}\n${body.substring(0, 300)}...`;
     }).join("\n\n---\n\n");
 
     const toneInstructions = tone
@@ -117,4 +117,6 @@ ${contextMessages || "No previous email history with this recipient."}`;
     );
   }
 }
+
+
 

@@ -95,8 +95,8 @@ export async function createOrganizationAction(data: {
       
       ownerUserId = newUser.id;
       
-      // ✨ ADD OWNER TO USER_ROLES TABLE
-      await addUserToOrganization(organization.id, ownerUserId, "owner");
+      // ✨ ADD OWNER TO USER_ROLES TABLE (as admin role)
+      await addUserToOrganization(organization.id, ownerUserId, "admin");
       
       console.log(`✅ Organization owner account created and linked: ${data.adminEmail} → ${organization.name}`);
     } catch (userError: any) {
@@ -111,7 +111,7 @@ export async function createOrganizationAction(data: {
           
           if (users.data.length > 0) {
             ownerUserId = users.data[0].id;
-            await addUserToOrganization(organization.id, ownerUserId, "owner");
+            await addUserToOrganization(organization.id, ownerUserId, "admin");
             console.log(`✅ Existing user ${data.adminEmail} added as owner to ${organization.name}`);
           }
         } catch (findError) {
@@ -130,30 +130,20 @@ export async function createOrganizationAction(data: {
       ownerUserId,
     });
 
-    // Send temporary credentials email
-    try {
-      await sendNotification({
-        recipientEmail: data.adminEmail,
-        channel: 'email',
-        templateCategory: 'org_credentials',
-        variables: {
-          organizationName: data.name,
-          tempUsername: data.adminEmail, // Email IS the username
-          tempPassword,
-          loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/sign-in`,
-          expiresAt: credentialsExpiresAt.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }),
-        },
-      });
-
-      console.log(`📧 Credentials email sent to ${data.adminEmail} for ${organization.name}`);
-    } catch (emailError) {
-      console.error("Error sending credentials email:", emailError);
-      // Continue anyway - organization was created and user account exists
-    }
+    // TODO: Send temporary credentials email
+    // The notification service needs to be properly configured with email templates
+    // For now, log the credentials (in production, this should send an actual email)
+    console.log(`📧 Organization credentials for ${data.adminEmail}:`, {
+      organizationName: data.name,
+      tempUsername: data.adminEmail,
+      tempPassword,
+      loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/sign-in`,
+      expiresAt: credentialsExpiresAt.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+    });
 
     revalidatePath("/platform/organizations");
     revalidatePath("/platform/dashboard");

@@ -323,7 +323,7 @@ function EmailTemplateEditor({
     setIsSaving(true);
     const result = isEditMode
       ? await updateEmailTemplateAction(template.id, { name, subject, body })
-      : await createEmailTemplateAction(projectId, name, subject, body);
+      : await createEmailTemplateAction(projectId, { name, subject, body });
 
     setIsSaving(false);
 
@@ -511,7 +511,7 @@ function SmsTemplateEditor({
     setIsSaving(true);
     const result = isEditMode
       ? await updateSmsTemplateAction(template.id, { name, message })
-      : await createSmsTemplateAction(projectId, name, message);
+      : await createSmsTemplateAction(projectId, { name, message });
 
     setIsSaving(false);
 

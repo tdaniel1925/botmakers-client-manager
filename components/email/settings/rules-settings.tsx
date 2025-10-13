@@ -98,7 +98,7 @@ export function RulesSettings({ account, folders, onUpdate }: RulesSettingsProps
           onUpdate?.();
         }
       } else {
-        const result = await createRuleAction(account.id, ruleData);
+        const result = await createRuleAction({ ...ruleData, accountId: account.id });
         if (result.success) {
           await loadRules();
           handleCancelEdit();
@@ -552,5 +552,6 @@ function formatActions(actions: any): string {
 
   return parts.join(', ');
 }
+
 
 

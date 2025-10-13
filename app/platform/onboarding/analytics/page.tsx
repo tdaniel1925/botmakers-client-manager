@@ -33,7 +33,7 @@ export default async function OnboardingAnalyticsPage() {
   const sessionsByTemplate: Record<string, number> = {};
   const completionsByTemplate: Record<string, { total: number; completed: number }> = {};
 
-  sessions.forEach((session: any) => {
+  sessions?.forEach((session: any) => {
     const type = session.onboardingType || 'other';
     sessionsByTemplate[type] = (sessionsByTemplate[type] || 0) + 1;
     

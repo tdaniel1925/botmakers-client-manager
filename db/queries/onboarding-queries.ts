@@ -33,7 +33,7 @@ export async function createOnboardingSession(data: NewClientOnboardingSession) 
 /**
  * Get onboarding session by access token (for public access)
  */
-export async function getOnboardingSessionByToken(token: string) {
+export async function getOnboardingSessionByToken(token: string): Promise<ClientOnboardingSession | null> {
   const sessions = await db
     .select()
     .from(clientOnboardingSessionsTable)
@@ -46,7 +46,7 @@ export async function getOnboardingSessionByToken(token: string) {
 /**
  * Get onboarding session by ID
  */
-export async function getOnboardingSessionById(id: string) {
+export async function getOnboardingSessionById(id: string): Promise<ClientOnboardingSession | null> {
   const sessions = await db
     .select()
     .from(clientOnboardingSessionsTable)
@@ -59,7 +59,7 @@ export async function getOnboardingSessionById(id: string) {
 /**
  * Get onboarding session by project ID
  */
-export async function getOnboardingSessionByProjectId(projectId: string) {
+export async function getOnboardingSessionByProjectId(projectId: string): Promise<ClientOnboardingSession | null> {
   const sessions = await db
     .select()
     .from(clientOnboardingSessionsTable)

@@ -41,7 +41,7 @@ export async function scoreThreadImportanceAction(threadId: string) {
     const userEmail = emails[0]?.userId || userId;
 
     // Calculate importance
-    const scoreResult = calculateThreadImportance(thread, emails, userEmail);
+    const scoreResult = calculateThreadImportance(thread, emails, userEmail as string);
 
     // Update thread with score
     await db
@@ -271,5 +271,6 @@ export async function getEmailsByCategoryAction(category: string) {
     return { success: false, error: error.message || 'Failed to get emails' };
   }
 }
+
 
 

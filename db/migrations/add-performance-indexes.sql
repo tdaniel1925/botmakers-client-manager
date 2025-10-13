@@ -46,3 +46,4 @@ VACUUM ANALYZE emails;
 -- ✅ Folder switching will be instant
 -- ✅ Filtering by read/unread/starred will be instant
 
+

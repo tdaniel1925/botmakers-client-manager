@@ -149,8 +149,8 @@ export function getSearchSuggestions(
 
   // Extract common subjects
   emails.forEach((email) => {
-    if (email.subject?.toLowerCase().includes(query.toLowerCase())) {
-      suggestions.add(email.subject);
+    if ((email.subject as any)?.toLowerCase().includes(query.toLowerCase())) {
+      suggestions.add(email.subject as any);
     }
   });
 
@@ -226,7 +226,7 @@ export function advancedSearch(
   // Filter by subject
   if (filters.subject) {
     results = results.filter((email) =>
-      email.subject?.toLowerCase().includes(filters.subject!.toLowerCase())
+      (email.subject as any)?.toLowerCase().includes(filters.subject!.toLowerCase())
     );
   }
 
@@ -259,4 +259,5 @@ export function advancedSearch(
 
   return results;
 }
+
 

@@ -20,7 +20,7 @@ import {
   linkProjectTypeToTemplate,
 } from '../db/queries/onboarding-templates-queries';
 import { ONBOARDING_TEMPLATES, getTemplateById as getStaticTemplate } from '../lib/onboarding-templates';
-import type { ActionResult } from '../types/actions';
+import type { ActionResult } from '../types/actions/actions-types';
 import type { OnboardingTemplateLibrary, NewOnboardingTemplateLibrary } from '../db/schema/onboarding-schema';
 
 /**

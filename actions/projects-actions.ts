@@ -616,6 +616,7 @@ export async function getProjectProgressAction(projectId: string): Promise<Actio
 
     return {
       isSuccess: true,
+      message: "Project progress retrieved successfully.",
       data: progressData,
     };
   } catch (error) {

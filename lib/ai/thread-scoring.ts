@@ -65,7 +65,7 @@ function calculateSenderImportance(
   
   // Higher score for domain-matched emails (same company)
   const userDomain = userEmail.split('@')[1];
-  const hasSameDomain = participants.some(p => {
+  const hasSameDomain = participants.some((p: any) => {
     const email = typeof p === 'object' ? p.email : p;
     return email.includes(`@${userDomain}`);
   });
@@ -81,7 +81,7 @@ function calculateSenderImportance(
 
   // Check for known professional domains
   const professionalDomains = ['gmail.com', 'outlook.com', 'yahoo.com', 'hotmail.com'];
-  const hasCustomDomain = participants.some(p => {
+  const hasCustomDomain = participants.some((p: any) => {
     const email = typeof p === 'object' ? p.email : p;
     const domain = email.split('@')[1];
     return !professionalDomains.includes(domain);
@@ -336,5 +336,6 @@ export function categorizeEmail(email: SelectEmail): {
   // Default: no clear category
   return { category: null, confidence: 0 };
 }
+
 
 

@@ -63,7 +63,7 @@ export function ProjectProgressOverview({ projects }: ProjectProgressOverviewPro
       <CardContent>
         <div className="space-y-6">
           {activeProjects.slice(0, 5).map((project) => {
-            const progress = project.progress || 0;
+            const progress = project.autoCalculatedProgress || 0;
             const isOverdue = project.endDate && new Date(project.endDate) < new Date();
 
             return (

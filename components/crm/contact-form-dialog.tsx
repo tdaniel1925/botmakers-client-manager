@@ -43,23 +43,18 @@ export function ContactFormDialog({ organizationId, contact, trigger, onSuccess 
     try {
       if (contact) {
         // Update existing contact
-        const result = await updateContactAction(contact.id, organizationId, formData);
-        if (result.isSuccess) {
+        const result = await updateContactAction(contact.id, formData);
+        if (result.success) {
           toast({ title: "Success", description: "Contact updated successfully" });
           setOpen(false);
           onSuccess?.();
         } else {
-          toast({ title: "Error", description: result.message, variant: "destructive" });
+          toast({ title: "Error", description: result.error || "Failed to update contact", variant: "destructive" });
         }
       } else {
         // Create new contact
-        const result = await createContactAction({
-          ...formData,
-          organizationId,
-          ownerId: "", // Will be set by the action
-          createdBy: "", // Will be set by the action
-        });
-        if (result.isSuccess) {
+        const result = await createContactAction(formData);
+        if (result.success) {
           toast({ title: "Success", description: "Contact created successfully" });
           setOpen(false);
           setFormData({
@@ -74,7 +69,7 @@ export function ContactFormDialog({ organizationId, contact, trigger, onSuccess 
           });
           onSuccess?.();
         } else {
-          toast({ title: "Error", description: result.message, variant: "destructive" });
+          toast({ title: "Error", description: result.error || "Failed to create contact", variant: "destructive" });
         }
       }
     } catch (error) {

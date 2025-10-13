@@ -123,11 +123,6 @@ export async function getEmailAction(emailId: string): Promise<ActionResult<{ em
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: {
-        account: true,
-        thread: true,
-        attachments: true,
-      },
     });
 
     if (!email) {
@@ -135,7 +130,11 @@ export async function getEmailAction(emailId: string): Promise<ActionResult<{ em
     }
 
     // Verify ownership through account
-    if (email.account.userId !== userId) {
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
       return { success: false, error: 'Unauthorized' };
     }
 
@@ -168,11 +167,18 @@ export async function markEmailReadAction(
     // Verify ownership
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { success: false, error: 'Email not found' };
+    }
+
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { success: false, error: 'Unauthorized' };
     }
 
     await db
@@ -211,11 +217,18 @@ export async function toggleStarEmailAction(emailId: string): Promise<ActionResu
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { success: false, error: 'Email not found' };
+    }
+
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { success: false, error: 'Unauthorized' };
     }
 
     await db
@@ -254,11 +267,18 @@ export async function archiveEmailAction(emailId: string): Promise<ActionResult>
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { success: false, error: 'Email not found' };
+    }
+
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { success: false, error: 'Unauthorized' };
     }
 
     await db
@@ -297,11 +317,18 @@ export async function deleteEmailAction(emailId: string): Promise<ActionResult> 
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { success: false, error: 'Email not found' };
+    }
+
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { success: false, error: 'Unauthorized' };
     }
 
     if (email.folder === 'TRASH') {
@@ -348,12 +375,16 @@ export async function bulkEmailOperationAction(
     }
 
     // Verify all emails belong to user
-    const emailList = await db.query.emailsTable.findMany({
-      where: sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`,
-      with: { account: true },
-    });
+    const emailList = await db
+      .select({
+        email: emailsTable,
+        account: emailAccountsTable,
+      })
+      .from(emailsTable)
+      .innerJoin(emailAccountsTable, eq(emailsTable.accountId, emailAccountsTable.id))
+      .where(sql`${emailsTable.id} IN (${sql.join(emailIds.map((id) => sql`${id}`), sql`, `)})`);
 
-    if (emailList.some((email) => email.account.userId !== userId)) {
+    if (emailList.some((row) => row.account.userId !== userId)) {
       return { success: false, error: 'Unauthorized' };
     }
 

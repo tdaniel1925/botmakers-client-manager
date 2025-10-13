@@ -78,14 +78,14 @@ export async function getThreadContextAction(emailId: string): Promise<ActionRes
       if (e.fromAddress) {
         const from = typeof e.fromAddress === 'string' 
           ? e.fromAddress 
-          : e.fromAddress.email;
+          : (e.fromAddress as any).email;
         participants.add(from);
       }
     });
 
     const firstEmail = threadEmails[threadEmails.length - 1];
     const threadAge = firstEmail?.receivedAt
-      ? formatDistanceToNow(new Date(firstEmail.receivedAt), { addSuffix: false })
+      ? formatDistanceToNow(new Date(firstEmail.receivedAt as any), { addSuffix: false })
       : 'Unknown';
 
     const result = {
@@ -133,7 +133,7 @@ export async function getSenderInsightsAction(emailId: string): Promise<ActionRe
 
     const senderEmail = typeof email.fromAddress === 'string'
       ? email.fromAddress
-      : email.fromAddress?.email;
+      : (email.fromAddress as any)?.email;
 
     if (!senderEmail) {
       return { success: false, error: 'Sender not found' };
@@ -202,7 +202,7 @@ export async function getRelatedEmailsAction(emailId: string): Promise<ActionRes
 
     const senderEmail = typeof email.fromAddress === 'string'
       ? email.fromAddress
-      : email.fromAddress?.email;
+      : (email.fromAddress as any)?.email;
 
     if (!senderEmail) {
       return { success: false };
@@ -342,23 +342,23 @@ export async function generateQuickRepliesAction(emailId: string): Promise<Actio
     }
     
     // Check for questions
-    if (email.bodyText?.includes('?') || email.subject?.includes('?')) {
+    if ((email.bodyText as any)?.includes('?') || (email.subject as any)?.includes('?')) {
       replies.push('Thank you for reaching out. Let me get back to you with the details.');
     }
 
     // Check for meeting/schedule
     if (
-      email.bodyText?.toLowerCase().includes('meeting') ||
-      email.bodyText?.toLowerCase().includes('schedule') ||
-      email.subject?.toLowerCase().includes('meeting')
+      (email.bodyText as any)?.toLowerCase().includes('meeting') ||
+      (email.bodyText as any)?.toLowerCase().includes('schedule') ||
+      (email.subject as any)?.toLowerCase().includes('meeting')
     ) {
       replies.push('That time works for me. I\'ve added it to my calendar.');
     }
 
     // Check for thanks/appreciation
     if (
-      email.bodyText?.toLowerCase().includes('thank') ||
-      email.subject?.toLowerCase().includes('thank')
+      (email.bodyText as any)?.toLowerCase().includes('thank') ||
+      (email.subject as any)?.toLowerCase().includes('thank')
     ) {
       replies.push('You\'re welcome! Happy to help.');
     }

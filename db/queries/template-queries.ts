@@ -5,7 +5,7 @@
 
 import { db } from '@/db/db';
 import { notificationTemplatesTable } from '@/db/schema/templates-schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 /**
  * Get all templates
@@ -201,7 +201,7 @@ export async function incrementTemplateUsage(id: string) {
     await db
       .update(notificationTemplatesTable)
       .set({
-        usageCount: db.$count(notificationTemplatesTable.usageCount) + 1,
+        usageCount: sql`${notificationTemplatesTable.usageCount} + 1`,
       })
       .where(eq(notificationTemplatesTable.id, id));
     

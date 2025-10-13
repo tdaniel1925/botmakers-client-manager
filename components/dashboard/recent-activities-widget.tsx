@@ -70,7 +70,7 @@ export function RecentActivitiesWidget({ activities }: RecentActivitiesWidgetPro
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{activity.title}</p>
+                  <p className="font-medium text-sm truncate">{activity.subject}</p>
                   {activity.description && (
                     <p className="text-sm text-neutral-600 line-clamp-2 mt-1">
                       {activity.description}

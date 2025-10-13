@@ -58,7 +58,7 @@ export default function ClientReviewPage({ params }: ClientReviewPageProps) {
 
   const handleResponseChange = (fieldId: string, value: any) => {
     setResponses(prev => ({ ...prev, [fieldId]: value }));
-    setEditedFields(prev => new Set([...prev, fieldId]));
+    setEditedFields(prev => new Set(Array.from(prev).concat(fieldId)));
   };
 
   const handleSubmit = async () => {

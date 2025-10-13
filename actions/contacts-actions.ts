@@ -15,6 +15,9 @@ type ActionResult = {
   success: boolean;
   error?: string;
   data?: any;
+  updated?: boolean;
+  created?: boolean;
+  alreadyExists?: boolean;
 };
 
 // ============================================================================
@@ -36,39 +39,41 @@ export async function getContactsAction(options?: {
 
     const { searchQuery, groupId, limit = 100, offset = 0 } = options || {};
 
-    let query = db
-      .select()
-      .from(emailContactsTable)
-      .where(and(
-        eq(emailContactsTable.userId, userId),
-        eq(emailContactsTable.isBlocked, false)
-      ));
+    // Build conditions array
+    const conditions = [
+      eq(emailContactsTable.userId, userId),
+      eq(emailContactsTable.isBlocked, false)
+    ];
 
     // Apply search filter
     if (searchQuery) {
-      query = query.where(
+      conditions.push(
         or(
           like(emailContactsTable.name, `%${searchQuery}%`),
           like(emailContactsTable.email, `%${searchQuery}%`),
           like(emailContactsTable.company, `%${searchQuery}%`)
-        )
-      ) as any;
+        )!
+      );
     }
 
     // Apply group filter
+    let contactIds: string[] | null = null;
     if (groupId) {
       const groupMembers = await db
         .select({ contactId: contactGroupMembersTable.contactId })
         .from(contactGroupMembersTable)
         .where(eq(contactGroupMembersTable.groupId, groupId));
       
-      const contactIds = groupMembers.map(m => m.contactId);
+      contactIds = groupMembers.map(m => m.contactId);
       if (contactIds.length > 0) {
-        query = query.where(sql`${emailContactsTable.id} IN ${contactIds}`) as any;
+        conditions.push(sql`${emailContactsTable.id} IN (${sql.join(contactIds.map(id => sql`${id}`), sql`, `)})`);
       }
     }
 
-    const contacts = await query
+    const contacts = await db
+      .select()
+      .from(emailContactsTable)
+      .where(and(...conditions))
       .orderBy(desc(emailContactsTable.lastEmailedAt))
       .limit(limit)
       .offset(offset);

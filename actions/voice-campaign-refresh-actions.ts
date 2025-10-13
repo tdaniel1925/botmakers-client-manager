@@ -39,7 +39,7 @@ export async function refreshCampaignPhoneNumberAction(campaignId: string) {
     // Fetch phone number details from provider
     if (campaign.providerPhoneNumberId) {
       try {
-        const phoneDetails = await providerInstance.makeRequest<any>(
+        const phoneDetails = await (providerInstance as any).makeRequest(
           `/phone-number/${campaign.providerPhoneNumberId}`
         );
         

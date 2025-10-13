@@ -106,7 +106,7 @@ export default function ActivitiesPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(activity =>
-        activity.title?.toLowerCase().includes(query) ||
+        activity.subject?.toLowerCase().includes(query) ||
         activity.description?.toLowerCase().includes(query) ||
         activity.contactName?.toLowerCase().includes(query) ||
         activity.dealTitle?.toLowerCase().includes(query)
@@ -184,7 +184,7 @@ export default function ActivitiesPage() {
     const csvContent = [
       headers.join(','),
       ...displayActivities.map(activity => [
-        `"${activity.title || 'N/A'}"`,
+        `"${activity.subject || 'N/A'}"`,
         activity.type || 'N/A',
         `"${activity.description || 'N/A'}"`,
         `"${activity.contactName || 'N/A'}"`,

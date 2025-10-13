@@ -26,22 +26,18 @@ export async function getEmailSignaturesAction(accountId?: string): Promise<Acti
       return { success: false, error: 'Unauthorized' };
     }
 
-    let query = db
-      .select()
-      .from(emailSignaturesTable)
-      .where(eq(emailSignaturesTable.userId, userId));
-
-    // Filter by account if provided
+    // Build conditions
+    const conditions = [eq(emailSignaturesTable.userId, userId)];
+    
     if (accountId) {
-      query = query.where(
-        and(
-          eq(emailSignaturesTable.userId, userId),
-          eq(emailSignaturesTable.accountId, accountId)
-        )
-      );
+      conditions.push(eq(emailSignaturesTable.accountId, accountId));
     }
 
-    const signatures = await query.orderBy(desc(emailSignaturesTable.updatedAt));
+    const signatures = await db
+      .select()
+      .from(emailSignaturesTable)
+      .where(and(...conditions))
+      .orderBy(desc(emailSignaturesTable.updatedAt));
 
     return {
       success: true,
@@ -247,4 +243,5 @@ export async function deleteEmailSignatureAction(id: string): Promise<ActionResu
     };
   }
 }
+
 

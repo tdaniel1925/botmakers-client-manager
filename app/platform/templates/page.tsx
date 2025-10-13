@@ -146,7 +146,7 @@ export default function TemplatesPage() {
         await loadTemplates();
         setIsEditorOpen(false);
       } else {
-        toast.error(result.error || 'Failed to save template');
+        toast.error(String(result.error) || 'Failed to save template');
       }
     } catch (error) {
       toast.error('Failed to save template');
@@ -171,10 +171,10 @@ export default function TemplatesPage() {
           sampleData
         );
 
-        if (result.isSuccess) {
+        if ('isSuccess' in result ? result.isSuccess : result.success) {
           toast.success(`Test email sent to ${testEmail}`);
         } else {
-          toast.error(result.message || 'Failed to send test email');
+          toast.error(('message' in result ? result.message : ('error' in result ? result.error : 'Unknown error')) || 'Failed to send test email');
         }
       } else {
         const testPhone = prompt('Enter test phone number (with country code):');
@@ -186,10 +186,10 @@ export default function TemplatesPage() {
           sampleData
         );
 
-        if (result.isSuccess) {
+        if ('isSuccess' in result ? result.isSuccess : result.success) {
           toast.success(`Test SMS sent to ${testPhone}`);
         } else {
-          toast.error(result.message || 'Failed to send test SMS');
+          toast.error(('message' in result ? result.message : ('error' in result ? result.error : 'Unknown error')) || 'Failed to send test SMS');
         }
       }
     } catch (error) {
@@ -206,7 +206,7 @@ export default function TemplatesPage() {
         toast.success('Template duplicated successfully');
         await loadTemplates();
       } else {
-        toast.error(result.error || 'Failed to duplicate template');
+        toast.error(String(result.error) || 'Failed to duplicate template');
       }
     } catch (error) {
       toast.error('Failed to duplicate template');
@@ -234,7 +234,7 @@ export default function TemplatesPage() {
         toast.success('Template deleted successfully');
         await loadTemplates();
       } else {
-        toast.error(result.error || 'Failed to delete template');
+        toast.error(String(result.error) || 'Failed to delete template');
       }
     } catch (error) {
       toast.error('Failed to delete template');

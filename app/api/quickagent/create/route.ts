@@ -19,10 +19,10 @@ export async function POST(request: Request) {
     
     const organization = await createOrganization({
       name: businessName,
+      slug: businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       email: userEmail,
       plan: "free",
       status: "trial",
-      industry: industrySlug === "insurance-agents" ? "Insurance" : "Other",
       description: `QuickAgent for ${businessName}`,
     });
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       organizationId: organization.id,
       description: `AI lead qualification agent for ${businessName}`,
       status: "active",
-      priority: "high",
+      createdBy: "quickagent-system", // System-generated project
     });
 
     console.log("Created project:", project.id);
@@ -68,22 +68,32 @@ export async function POST(request: Request) {
       : "inbound"; // Default to inbound for safety
 
     // 6. Create Voice Campaign
-    const campaignResult = await createVoiceCampaignAction({
-      name: `${businessName} - Lead Qualification Agent`,
-      projectId: project.id,
-      type: normalizedType,
+    const setupAnswers: any = {
+      campaign_name: `${businessName} - Lead Qualification Agent`,
+      agent_name: `${businessName} Agent`,
+      company_name: businessName,
+      campaign_type: normalizedType,
+      business_context: conversationData.business_description || `Lead qualification for ${businessName}`,
+      voice_preference: "auto",
+      model: "gpt-4o-mini",
+      phone_source: "twilio",
+      area_code: phoneNumber ? phoneNumber.substring(1, 4) : undefined,
+    };
+    
+    const aiConfig = {
       systemPrompt,
       firstMessage,
-      mustCollectFields: conversationData.qualifying_questions || conversationData.qualifyingQuestions || [],
-      voiceProvider: "vapi",
-      model: "gpt-4o-mini",
-      // Phone number provisioning
-      phoneNumberSource: "twilio",
-      preferredPhoneNumber: phoneNumber,
-    });
+      voicemailMessage: `Hi, this is ${businessName}. Please leave a message and we'll get back to you.`,
+    };
+    
+    const campaignResult = await createVoiceCampaignAction(
+      project.id,
+      "vapi",
+      { ...setupAnswers, ...aiConfig }
+    );
 
-    if (!campaignResult.success) {
-      throw new Error("Failed to create campaign");
+    if ('error' in campaignResult) {
+      throw new Error(campaignResult.error || "Failed to create campaign");
     }
 
     console.log("Created campaign:", campaignResult.campaign.id);

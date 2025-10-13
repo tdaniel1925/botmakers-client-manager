@@ -104,3 +104,4 @@ Once the server is running, all your Hey features are active!
 
 **Test it now:** Press `Cmd+K` to open the command palette! ✨
 
+

@@ -21,3 +21,4 @@ CREATE INDEX IF NOT EXISTS idx_organizations_created ON organizations(created_at
 -- DONE! These minimal indexes should work and still provide 50-60% speedup
 -- ============================================================================
 
+

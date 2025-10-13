@@ -11,7 +11,14 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import { organizationSubscriptionsTable } from "@/db/schema/billing-schema";
 
-const paypalProvider = new PayPalPaymentProvider();
+// Lazy-load provider to avoid module-level initialization issues during build
+let paypalProvider: PayPalPaymentProvider | null = null;
+function getPayPalProvider() {
+  if (!paypalProvider) {
+    paypalProvider = new PayPalPaymentProvider();
+  }
+  return paypalProvider;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +26,7 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("paypal-transmission-sig") || "";
 
     // Verify webhook signature
-    const event = await paypalProvider.verifyWebhook(body, signature);
+    const event = await getPayPalProvider().verifyWebhook(body, signature);
 
     if (!event) {
       console.error("[PayPal Webhook] Signature verification failed");
@@ -93,7 +100,7 @@ async function handleSubscriptionActivated(event: any) {
     const existingSubscription = await db
       .select()
       .from(organizationSubscriptionsTable)
-      .where(eq(organizationSubscriptionsTable.providerSubscriptionId, subscription.id))
+      .where(eq(organizationSubscriptionsTable.externalSubscriptionId, subscription.id))
       .limit(1);
 
     if (existingSubscription.length === 0) {
@@ -122,7 +129,7 @@ async function handleSubscriptionUpdated(event: any) {
     const existingSubscription = await db
       .select()
       .from(organizationSubscriptionsTable)
-      .where(eq(organizationSubscriptionsTable.providerSubscriptionId, subscription.id))
+      .where(eq(organizationSubscriptionsTable.externalSubscriptionId, subscription.id))
       .limit(1);
 
     if (existingSubscription.length === 0) {
@@ -157,7 +164,7 @@ async function handleSubscriptionCanceled(event: any) {
     const existingSubscription = await db
       .select()
       .from(organizationSubscriptionsTable)
-      .where(eq(organizationSubscriptionsTable.providerSubscriptionId, subscription.id))
+      .where(eq(organizationSubscriptionsTable.externalSubscriptionId, subscription.id))
       .limit(1);
 
     if (existingSubscription.length === 0) {
@@ -187,7 +194,7 @@ async function handleSubscriptionSuspended(event: any) {
     const existingSubscription = await db
       .select()
       .from(organizationSubscriptionsTable)
-      .where(eq(organizationSubscriptionsTable.providerSubscriptionId, subscription.id))
+      .where(eq(organizationSubscriptionsTable.externalSubscriptionId, subscription.id))
       .limit(1);
 
     if (existingSubscription.length === 0) {

@@ -58,7 +58,16 @@ export async function createOnboardingSessionAction(
         project.description || '',
         project.name
       );
-      finalTemplateType = analysis.projectType;
+      // Map AI result to allowed template types
+      const projectTypeMap: Record<string, 'auto' | 'web_design' | 'voice_ai' | 'software_dev'> = {
+        'web_design': 'web_design',
+        'voice_ai': 'voice_ai',
+        'software_dev': 'software_dev',
+        'custom': 'software_dev', // Fallback
+        'marketing': 'web_design', // Fallback
+        'other': 'software_dev', // Fallback
+      };
+      finalTemplateType = projectTypeMap[analysis.projectType] || 'software_dev';
     }
 
     // Get template
@@ -66,6 +75,7 @@ export async function createOnboardingSessionAction(
     if (!template) {
       // Fallback to generic template
       template = getLocalTemplateById('generic');
+      finalTemplateType = 'software_dev'; // Set to a valid type when using fallback
     }
 
     steps = template?.steps || [];
@@ -74,12 +84,16 @@ export async function createOnboardingSessionAction(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Ensure finalTemplateType is never 'auto' at this point
+    const onboardingType: 'custom' | 'other' | 'web_design' | 'voice_ai' | 'software_dev' | 'marketing' = 
+      finalTemplateType === 'auto' ? 'software_dev' : finalTemplateType as any;
+
     // Create session
     const session = await createOnboardingSession({
       projectId,
       organizationId: project.organizationId,
       templateId: undefined, // We're using local templates for now
-      onboardingType: finalTemplateType,
+      onboardingType,
       status: 'pending',
       steps: steps as any, // JSONB
       responses: {},
@@ -94,16 +108,15 @@ export async function createOnboardingSessionAction(
 
     // Log action
     await logOrganizationChange(
-      'onboarding.created',
+      'create',
       project.organizationId,
       {
+        action: 'onboarding.created',
         sessionId: session.id,
         projectId,
         projectName: project.name,
         templateType: finalTemplateType,
-      },
-      'onboarding',
-      session.id
+      }
     );
 
     return {
@@ -171,15 +184,14 @@ export async function sendOnboardingInvitationAction(
 
     // Log action
     await logOrganizationChange(
-      'onboarding.invitation_sent',
+      'update',
       session.organizationId,
       {
+        action: 'onboarding.invitation_sent',
         sessionId,
         clientEmail,
         clientName,
-      },
-      'onboarding',
-      sessionId
+      }
     );
 
     return {
@@ -222,6 +234,7 @@ export async function getOnboardingSessionsAction(
 
     return {
       isSuccess: true,
+      message: "Sessions fetched successfully.",
       data: sessions,
     };
   } catch (error) {
@@ -255,6 +268,7 @@ export async function getOnboardingSessionDetailsAction(
 
     return {
       isSuccess: true,
+      message: "Session details fetched successfully.",
       data: {
         session,
         project,
@@ -288,9 +302,7 @@ export async function regenerateOnboardingTokenAction(
     const onboardingUrl = `${appUrl}/onboarding/${updated.accessToken}`;
 
     // Log action
-    await logPlatformAction('onboarding.token_regenerated', {
-      sessionId,
-    });
+    await logPlatformAction('onboarding.token_regenerated', 'onboarding', sessionId);
 
     return {
       isSuccess: true,
@@ -328,11 +340,12 @@ export async function deleteOnboardingSessionAction(sessionId: string): Promise<
 
     // Log action
     await logOrganizationChange(
-      'onboarding.deleted',
+      'delete',
       session.organizationId,
-      { sessionId },
-      'onboarding',
-      sessionId
+      {
+        action: 'onboarding.deleted',
+        sessionId,
+      }
     );
 
     return {
@@ -372,6 +385,7 @@ export async function getOnboardingAnalyticsAction(): Promise<ActionResult<any>>
 
     return {
       isSuccess: true,
+      message: "Analytics fetched successfully.",
       data: stats,
     };
   } catch (error) {
@@ -390,6 +404,7 @@ export async function getAvailableTemplatesAction(): Promise<ActionResult<any[]>
   try {
     return {
       isSuccess: true,
+      message: "Templates fetched successfully.",
       data: ONBOARDING_TEMPLATES,
     };
   } catch (error) {
@@ -430,14 +445,13 @@ export async function resetOnboardingSessionAction(
       
       // Log deletion
       await logOrganizationChange(
-        'onboarding.deleted',
+        'delete',
         project.organizationId,
         {
+          action: 'onboarding.deleted',
           sessionId: projectSession.id,
           reason: 'reset',
-        },
-        'onboarding',
-        projectSession.id
+        }
       );
     }
 
@@ -452,7 +466,16 @@ export async function resetOnboardingSessionAction(
         project.description || '',
         project.name
       );
-      finalTemplateType = analysis.projectType;
+      // Map AI result to allowed template types
+      const projectTypeMap: Record<string, 'auto' | 'web_design' | 'voice_ai' | 'software_dev'> = {
+        'web_design': 'web_design',
+        'voice_ai': 'voice_ai',
+        'software_dev': 'software_dev',
+        'custom': 'software_dev', // Fallback
+        'marketing': 'web_design', // Fallback
+        'other': 'software_dev', // Fallback
+      };
+      finalTemplateType = projectTypeMap[analysis.projectType] || 'software_dev';
     }
 
     // Get template
@@ -460,6 +483,7 @@ export async function resetOnboardingSessionAction(
     if (!template) {
       // Fallback to generic template
       template = getLocalTemplateById('generic');
+      finalTemplateType = 'software_dev'; // Set to a valid type when using fallback
     }
 
     steps = template?.steps || [];
@@ -468,12 +492,16 @@ export async function resetOnboardingSessionAction(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Ensure finalTemplateType is never 'auto' at this point
+    const onboardingType: 'custom' | 'other' | 'web_design' | 'voice_ai' | 'software_dev' | 'marketing' = 
+      finalTemplateType === 'auto' ? 'software_dev' : finalTemplateType as any;
+
     // Create new session
     const newSession = await createOnboardingSession({
       projectId,
       organizationId: project.organizationId,
       templateId: undefined,
-      onboardingType: finalTemplateType,
+      onboardingType,
       status: 'pending',
       steps: steps as any,
       responses: {},
@@ -488,15 +516,14 @@ export async function resetOnboardingSessionAction(
 
     // Log action
     await logOrganizationChange(
-      'onboarding.reset',
+      'create',
       project.organizationId,
       {
+        action: 'onboarding.reset',
         sessionId: newSession.id,
         templateType: finalTemplateType,
         oldSessionId: projectSession?.id,
-      },
-      'onboarding',
-      newSession.id
+      }
     );
 
     return {

@@ -179,10 +179,8 @@ export const createOrganizationContactAction = withSelfHealing(
         return { isSuccess: false, message: "Access denied" };
       }
       
-      // Only admins and members can create contacts
-      if (userRole.role !== "admin" && userRole.role !== "member") {
-        return { isSuccess: false, message: "Insufficient permissions" };
-      }
+      // All organization members with roles can create contacts
+      // (userRole.role can be "manager" or "sales_rep")
       
       // Validate required fields
       if (!data.firstName || !data.lastName) {
@@ -253,10 +251,8 @@ export const updateOrganizationContactAction = withSelfHealing(
         return { isSuccess: false, message: "Access denied" };
       }
       
-      // Only admins and members can update contacts
-      if (userRole.role !== "admin" && userRole.role !== "member") {
-        return { isSuccess: false, message: "Insufficient permissions" };
-      }
+      // All organization members with roles can update contacts
+      // (userRole.role can be "manager" or "sales_rep")
       
       const contact = await getContactById(contactId);
       
@@ -307,8 +303,9 @@ export const deleteOrganizationContactAction = withSelfHealing(
       
       const userRole = await getUserRole(userId, organizationId);
       
-      if (!userRole || userRole.role !== "admin") {
-        return { isSuccess: false, message: "Admin access required" };
+      // Allow managers to delete contacts (role can be "manager" or "sales_rep")
+      if (!userRole) {
+        return { isSuccess: false, message: "Access denied" };
       }
       
       const contact = await getContactById(contactId);

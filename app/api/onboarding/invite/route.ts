@@ -80,7 +80,8 @@ export async function POST(request: Request) {
       clientEmail,
       clientName,
       projectName: project.name,
-      onboardingUrl,
+      onboardingLink: onboardingUrl,
+      estimatedMinutes: 10, // Default estimated time
     });
 
     return NextResponse.json({

@@ -89,7 +89,7 @@ async function generateQuickRepliesAI(email: EmailForAI): Promise<string[]> {
       ? email.fromAddress.name || senderEmail.split('@')[0]
       : senderEmail.split('@')[0];
 
-    const emailBody = email.bodyText?.substring(0, 800) || email.bodyHtml?.substring(0, 800) || '';
+    const emailBody = (email.bodyText as any)?.substring(0, 800) || (email.bodyHtml as any)?.substring(0, 800) || '';
 
     const prompt = `You are writing quick reply suggestions for an email. Analyze the email and generate 3 SPECIFIC, CONTEXTUAL replies that directly address what the sender said or asked.
 
@@ -219,8 +219,8 @@ function generateContextualFallbackReplies(email: EmailForAI): string[] {
 async function generateSmartActionsAI(email: EmailForAI): Promise<SmartAction[]> {
   try {
     const emailContent = `
-Subject: ${email.subject}
-Body: ${email.bodyText?.substring(0, 600) || email.bodyHtml?.substring(0, 600)}
+Subject: ${(email.subject as any)}
+Body: ${(email.bodyText as any)?.substring(0, 600) || (email.bodyHtml as any)?.substring(0, 600)}
 Has Attachments: ${email.hasAttachments}
 `;
 
@@ -360,4 +360,5 @@ export async function needsAIGeneration(emailId: string): Promise<boolean> {
   const daysSince = (Date.now() - new Date(email.aiGeneratedAt).getTime()) / (1000 * 60 * 60 * 24);
   return daysSince > 7;
 }
+
 

@@ -176,7 +176,7 @@ async function buildEmailContext(
     // Get unique senders
     const uniqueSenders = new Set(
       recentEmails.map(e => 
-        typeof e.fromAddress === 'object' ? e.fromAddress.email : e.fromAddress
+        typeof e.fromAddress === 'object' && e.fromAddress ? (e.fromAddress as any).email : e.fromAddress
       ).filter(Boolean)
     );
 
@@ -195,13 +195,13 @@ async function buildEmailContext(
       })),
       selectedEmail: selectedEmail ? {
         id: selectedEmail.id,
-        from: typeof selectedEmail.fromAddress === 'object' 
-          ? selectedEmail.fromAddress.email 
+        from: typeof selectedEmail.fromAddress === 'object' && selectedEmail.fromAddress
+          ? (selectedEmail.fromAddress as any).email
           : selectedEmail.fromAddress,
         to: selectedEmail.toAddresses,
         subject: selectedEmail.subject,
         snippet: selectedEmail.snippet,
-        bodyText: selectedEmail.bodyText?.substring(0, 5000), // Limit body size
+        bodyText: (selectedEmail.bodyText as any)?.substring(0, 5000), // Limit body size
         receivedAt: selectedEmail.receivedAt,
         isRead: selectedEmail.isRead,
         isImportant: selectedEmail.isImportant,
@@ -211,7 +211,7 @@ async function buildEmailContext(
       } : null,
       recentEmails: recentEmails.slice(0, 20).map(e => ({
         id: e.id,
-        from: typeof e.fromAddress === 'object' ? e.fromAddress.email : e.fromAddress,
+        from: typeof e.fromAddress === 'object' && e.fromAddress ? (e.fromAddress as any).email : e.fromAddress,
         subject: e.subject,
         snippet: e.snippet,
         receivedAt: e.receivedAt,

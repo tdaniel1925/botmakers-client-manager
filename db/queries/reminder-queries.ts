@@ -150,12 +150,14 @@ export async function getReminderStats() {
     },
     opened: reminders.filter((r) => r.openedAt !== null).length,
     clicked: reminders.filter((r) => r.clickedAt !== null).length,
+    openRate: "0%",
+    clickRate: "0%",
   };
 
   // Calculate rates
   const sentCount = stats.byStatus.sent;
-  stats["openRate"] = sentCount > 0 ? ((stats.opened / sentCount) * 100).toFixed(1) + "%" : "0%";
-  stats["clickRate"] = sentCount > 0 ? ((stats.clicked / sentCount) * 100).toFixed(1) + "%" : "0%";
+  stats.openRate = sentCount > 0 ? ((stats.opened / sentCount) * 100).toFixed(1) + "%" : "0%";
+  stats.clickRate = sentCount > 0 ? ((stats.clicked / sentCount) * 100).toFixed(1) + "%" : "0%";
 
   return stats;
 }

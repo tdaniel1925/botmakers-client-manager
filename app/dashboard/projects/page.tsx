@@ -45,7 +45,7 @@ export default function OrganizationProjectsPage() {
     const csvContent = [
       headers.join(','),
       ...projects.map(project => [
-        `"${project.title}"`,
+        `"${project.name}"`,
         project.status || 'N/A',
         `"${project.description || 'N/A'}"`,
         project.organizationId,

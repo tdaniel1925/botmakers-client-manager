@@ -267,14 +267,13 @@ export async function completeOnboardingAction(
 
     // Log action
     await logOrganizationChange(
-      'onboarding.completed',
+      'update',
       session.organizationId,
       {
+        action: 'onboarding.completed',
         sessionId: session.id,
         projectId: session.projectId,
-      },
-      'onboarding',
-      session.id
+      }
     );
 
     return {

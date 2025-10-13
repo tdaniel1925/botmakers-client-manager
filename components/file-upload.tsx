@@ -154,7 +154,7 @@ export function FileUpload({
             category,
           });
         } else {
-          await startUpload(fileList);
+          await startUpload(fileList, undefined as any);
         }
       } catch (error) {
         console.error('Upload exception:', error);

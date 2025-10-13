@@ -62,7 +62,7 @@ export function CodeEditor({
       {availableVariables.length > 0 && (
         <div className="flex items-center justify-between p-2 bg-gray-50 border-b">
           <div className="text-sm text-gray-600">
-            Click to insert variables: {{variableName}}
+            Click to insert variables: {"{variableName}"}
           </div>
           <DropdownMenu open={showVariables} onOpenChange={setShowVariables}>
             <DropdownMenuTrigger asChild>

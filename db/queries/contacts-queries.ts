@@ -15,8 +15,6 @@ export async function getContacts(
     sortOrder?: "asc" | "desc";
   }
 ): Promise<{ contacts: SelectContact[]; total: number }> {
-  let query = db.select().from(contactsTable).where(eq(contactsTable.organizationId, organizationId));
-  
   // Apply filters
   const conditions = [eq(contactsTable.organizationId, organizationId)];
   
@@ -39,8 +37,6 @@ export async function getContacts(
     conditions.push(eq(contactsTable.ownerId, options.ownerId));
   }
   
-  query = db.select().from(contactsTable).where(and(...conditions));
-  
   // Get total count
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
@@ -53,17 +49,16 @@ export async function getContacts(
   const sortColumn = options?.sortBy || "createdAt";
   const sortOrder = options?.sortOrder || "desc";
   
-  if (sortOrder === "asc") {
-    query = query.orderBy(asc(contactsTable[sortColumn]));
-  } else {
-    query = query.orderBy(desc(contactsTable[sortColumn]));
-  }
+  // Build query with sorting and pagination
+  let query = db
+    .select()
+    .from(contactsTable)
+    .where(and(...conditions))
+    .orderBy(sortOrder === "asc" ? asc(contactsTable[sortColumn]) : desc(contactsTable[sortColumn]))
+    .limit(options?.limit || 100)
+    .$dynamic();
   
-  // Apply pagination
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-  
+  // Apply offset if provided
   if (options?.offset) {
     query = query.offset(options.offset);
   }

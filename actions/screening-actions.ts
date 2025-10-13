@@ -172,7 +172,7 @@ export async function screenSender(
     revalidatePath('/platform/emails');
     revalidatePath('/dashboard/emails');
     
-    return { success: true, updatedCount: verifiedEmails.length };
+    return { success: true, data: { updatedCount: verifiedEmails.length } };
   } catch (error) {
     console.error('Error screening sender:', error);
     return { success: false, error: 'Failed to screen sender' };

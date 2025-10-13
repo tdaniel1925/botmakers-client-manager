@@ -69,7 +69,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   // Auto-save progress whenever state changes
   useEffect(() => {
     if (currentStep !== "generating" && currentStep !== "testing" && currentStep !== "complete") {
-      saveWizardProgress(projectId, selectedProvider, currentStep, answers);
+      saveWizardProgress(projectId, selectedProvider, currentStep as any, answers);
     }
   }, [projectId, selectedProvider, currentStep, answers]);
   
@@ -77,9 +77,9 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   const handleResumeProgress = () => {
     const savedProgress = loadWizardProgress(projectId);
     if (savedProgress) {
-      setSelectedProvider(savedProgress.provider);
+      // setSelectedProvider is not available since provider is always 'vapi'
       setAnswers(savedProgress.answers);
-      setCurrentStep(savedProgress.currentStep);
+      setCurrentStep(savedProgress.currentStep as any);
       setShowResumeBanner(false);
       toast.success("Progress restored!");
     }
@@ -148,7 +148,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
   const handleGenerateCampaign = async () => {
     if (!selectedProvider) return;
     
-    setCurrentStep("generating");
+    setCurrentStep("generating" as any);
     setError(null);
     
     startTransition(async () => {
@@ -170,7 +170,7 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
         
         if (result.error) {
           setError(result.error);
-          setCurrentStep("basic-info");
+          setCurrentStep("basic-info" as any);
           toast.error("Error Occurred", {
             description: result.error || "Sorry, please try again later.",
             action: {
@@ -180,14 +180,14 @@ export function CampaignWizard({ projectId, onComplete, onCancel }: CampaignWiza
           });
         } else {
           setGeneratedCampaign(result);
-          setCurrentStep("testing");
+          setCurrentStep("testing" as any);
           toast.success("Campaign created successfully!", {
             description: "Your AI agent is ready to start making calls."
           });
         }
       } catch (err: any) {
         setError(err.message || "Failed to create campaign");
-        setCurrentStep("questions");
+        setCurrentStep("questions" as any);
         toast.error("Error Occurred", {
           description: err.message || "Failed to create campaign. Please try again.",
           action: {

@@ -36,6 +36,18 @@ export default async function ManualOnboardingPage({ params }: ManualOnboardingP
     );
   }
 
+  if (!session.templateLibraryId) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">No template associated with this session</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const template = await getTemplateById(session.templateLibraryId);
 
   if (!template) {

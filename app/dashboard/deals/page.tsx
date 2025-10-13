@@ -77,9 +77,9 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-const formatDate = (dateString: string | null) => {
+const formatDate = (dateString: string | Date | null) => {
   if (!dateString) return "No date";
-  const date = new Date(dateString);
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
@@ -393,7 +393,7 @@ export default function DealsPage() {
       ...allFilteredDeals.map(deal => [
         `"${deal.title}"`,
         `"${deal.contactName || 'N/A'}"`,
-        stages.find(s => s.id === deal.stageId)?.name || 'Unknown',
+        deal.stage || 'Unknown',
         deal.value,
         `${deal.probability || 0}%`,
         deal.expectedCloseDate || 'N/A',
@@ -667,20 +667,15 @@ export default function DealsPage() {
 
       {/* Dialogs */}
       <DealFormDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
         onSuccess={handleSuccess}
         organizationId={organizationId}
       />
 
       {editDeal && (
         <DealFormDialog
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
           onSuccess={handleSuccess}
           organizationId={organizationId}
           deal={editDeal}
-          mode="edit"
         />
       )}
 

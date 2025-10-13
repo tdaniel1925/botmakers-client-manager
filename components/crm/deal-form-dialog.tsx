@@ -47,15 +47,16 @@ export function DealFormDialog({ organizationId, deal, trigger, onSuccess }: Dea
     // Load deal stages
     const stagesResult = await getDealStagesAction(organizationId);
     if (stagesResult.isSuccess && stagesResult.data) {
-      setStages(stagesResult.data);
-      if (!formData.stage && stagesResult.data.length > 0) {
-        setFormData(prev => ({ ...prev, stage: stagesResult.data[0].name }));
+      const stages = stagesResult.data;
+      setStages(stages);
+      if (!formData.stage && stages.length > 0) {
+        setFormData(prev => ({ ...prev, stage: stages[0].name }));
       }
     }
     
     // Load contacts
-    const contactsResult = await getContactsAction(organizationId, { limit: 100 });
-    if (contactsResult.isSuccess && contactsResult.data) {
+    const contactsResult = await getContactsAction({ limit: 100 });
+    if (contactsResult.success && contactsResult.data) {
       setContacts(contactsResult.data.contacts);
     }
   };

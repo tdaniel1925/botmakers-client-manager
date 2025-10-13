@@ -262,7 +262,7 @@ export async function getQuickSyncStatusAction(accountId: string): Promise<{
       success: true,
       totalInDatabase: dbCountResult[0]?.count || 0,
       lastSyncDate: account.lastSyncAt,
-      syncStatus: account.syncStatus || 'pending',
+      syncStatus: account.status === 'inactive' ? 'pending' : account.status,
     };
   } catch (error) {
     console.error('Error getting quick sync status:', error);
@@ -275,4 +275,5 @@ export async function getQuickSyncStatusAction(accountId: string): Promise<{
     };
   }
 }
+
 

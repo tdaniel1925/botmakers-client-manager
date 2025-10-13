@@ -83,9 +83,9 @@ export function CallHistoryTable({
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
-      call.callerNumber?.toLowerCase().includes(query) ||
-      call.recipientNumber?.toLowerCase().includes(query) ||
-      call.status?.toLowerCase().includes(query)
+      call.callerPhone?.toLowerCase().includes(query) ||
+      call.callerName?.toLowerCase().includes(query) ||
+      call.aiAnalysisStatus?.toLowerCase().includes(query)
     );
   });
 
@@ -151,10 +151,10 @@ export function CallHistoryTable({
                     <TableCell>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {new Date(call.timestamp).toLocaleDateString()}
+                          {call.callTimestamp ? new Date(call.callTimestamp).toLocaleDateString() : 'N/A'}
                         </div>
                         <div className="text-gray-500">
-                          {new Date(call.timestamp).toLocaleTimeString()}
+                          {call.callTimestamp ? new Date(call.callTimestamp).toLocaleTimeString() : 'N/A'}
                         </div>
                       </div>
                     </TableCell>
@@ -162,28 +162,28 @@ export function CallHistoryTable({
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-gray-400" />
                         <span className="font-mono text-sm">
-                          {call.callerNumber || call.recipientNumber || "Unknown"}
+                          {call.callerPhone || call.callerName || "Unknown"}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">{formatDuration(call.duration)}</span>
+                        <span className="text-sm">{formatDuration(call.callDurationSeconds)}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={getStatusColor(call.status || "unknown")}
+                        className={getStatusColor(call.aiAnalysisStatus || "unknown")}
                       >
-                        {call.status || "unknown"}
+                        {call.aiAnalysisStatus || "unknown"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">{formatCost(call.cost)}</span>
+                        <span className="text-sm">{formatCost(null)}</span>
                       </div>
                     </TableCell>
                     <TableCell>

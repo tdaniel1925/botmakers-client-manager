@@ -218,7 +218,7 @@ export function getDefaultSnippets(): Omit<InsertEmailSnippet, 'userId'>[] {
   return [
     {
       shortcut: ';meeting',
-      content: 'Hi {name},\n\nThanks for reaching out! I'd be happy to meet. How does {date} at {time} work for you?\n\nBest,',
+      content: 'Hi {name},\\n\\nThanks for reaching out! I\'d be happy to meet. How does {date} at {time} work for you?\\n\\nBest,',
       description: 'Meeting request response',
       category: 'meetings',
       variables: ['{name}', '{date}', '{time}'],
@@ -239,19 +239,20 @@ export function getDefaultSnippets(): Omit<InsertEmailSnippet, 'userId'>[] {
     },
     {
       shortcut: ';decline',
-      content: 'Thank you for thinking of me, but I won't be able to participate at this time. I appreciate your understanding.\n\nBest,',
+      content: 'Thank you for thinking of me, but I won\'t be able to participate at this time. I appreciate your understanding.\\n\\nBest,',
       description: 'Polite decline',
       category: 'responses',
       variables: [],
     },
     {
       shortcut: ';received',
-      content: 'Got it, thanks! I'll take a look and get back to you shortly.',
+      content: 'Got it, thanks! I\'ll take a look and get back to you shortly.',
       description: 'Acknowledge receipt',
       category: 'responses',
       variables: [],
     },
   ];
 }
+
 
 

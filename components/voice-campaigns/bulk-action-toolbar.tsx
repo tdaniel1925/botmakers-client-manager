@@ -44,7 +44,7 @@ export function BulkActionToolbar({
       } else {
         const { successful, failed } = result;
         toast.success(`Paused ${successful} campaign(s)`);
-        if (failed > 0) {
+        if (failed && failed > 0) {
           toast.error(`Failed to pause ${failed} campaign(s)`);
         }
         onComplete();
@@ -72,7 +72,7 @@ export function BulkActionToolbar({
       } else {
         const { successful, failed } = result;
         toast.success(`Resumed ${successful} campaign(s)`);
-        if (failed > 0) {
+        if (failed && failed > 0) {
           toast.error(`Failed to resume ${failed} campaign(s)`);
         }
         onComplete();
@@ -101,7 +101,7 @@ export function BulkActionToolbar({
       } else {
         const { successful, failed } = result;
         toast.success(`Deleted ${successful} campaign(s)`);
-        if (failed > 0) {
+        if (failed && failed > 0) {
           toast.error(`Failed to delete ${failed} campaign(s)`);
         }
         onComplete();
@@ -200,24 +200,7 @@ export function BulkActionToolbar({
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         title="Delete Multiple Campaigns"
-        description={
-          <>
-            <p className="mb-3">
-              You are about to delete <strong>{selectedCampaignIds.length} campaigns</strong>:
-            </p>
-            <ul className="list-disc pl-5 mb-3 max-h-32 overflow-y-auto text-sm">
-              {selectedCampaigns.slice(0, 10).map((campaign) => (
-                <li key={campaign.id}>{campaign.name}</li>
-              ))}
-              {selectedCampaigns.length > 10 && (
-                <li className="text-gray-500">...and {selectedCampaigns.length - 10} more</li>
-              )}
-            </ul>
-            <p className="text-sm text-gray-600">
-              This action cannot be undone. All campaign data, call history, and analytics will be permanently removed.
-            </p>
-          </>
-        }
+        description={`You are about to delete ${selectedCampaignIds.length} campaigns. This action cannot be undone. All campaign data, call history, and analytics will be permanently removed.`}
         confirmText="Delete All"
         variant="danger"
         requireTyping

@@ -62,3 +62,4 @@ CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id, created_at DESC
 -- • All pages: Much snappier!
 -- ============================================================================
 
+

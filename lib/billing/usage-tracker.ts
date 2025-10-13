@@ -88,10 +88,10 @@ export async function recordCallUsage(
     const minutesUsed = Math.ceil(durationInSeconds / 60);
     
     // 4. Check if within included minutes or overage
-    const currentUsage = subscription.minutesUsedThisCycle;
-    const includedMinutes = subscription.minutesIncludedThisCycle;
+    const currentUsage = subscription.minutesUsedThisCycle || 0;
+    const includedMinutes = subscription.minutesIncludedThisCycle || 0;
     const remainingIncludedMinutes = Math.max(0, includedMinutes - currentUsage);
-    
+
     // Determine if this usage is overage
     const isOverage = currentUsage >= includedMinutes;
     const overageMinutes = isOverage ? minutesUsed : Math.max(0, currentUsage + minutesUsed - includedMinutes);
@@ -167,8 +167,8 @@ export async function checkUsageLimit(organizationId: string): Promise<UsageStat
       return null;
     }
     
-    const minutesUsed = subscription.minutesUsedThisCycle;
-    const minutesIncluded = subscription.minutesIncludedThisCycle;
+    const minutesUsed = subscription.minutesUsedThisCycle || 0;
+    const minutesIncluded = subscription.minutesIncludedThisCycle || 1; // Prevent division by zero
     const minutesRemaining = Math.max(0, minutesIncluded - minutesUsed);
     const overageMinutes = Math.max(0, minutesUsed - minutesIncluded);
     const isInOverage = minutesUsed > minutesIncluded;
@@ -257,8 +257,8 @@ export async function estimateCallCost(
     if (!plan) return null;
     
     const estimatedMinutes = Math.ceil(estimatedDurationSeconds / 60);
-    const currentUsage = subscription.minutesUsedThisCycle;
-    const includedMinutes = subscription.minutesIncludedThisCycle;
+    const currentUsage = subscription.minutesUsedThisCycle || 0;
+    const includedMinutes = subscription.minutesIncludedThisCycle || 0;
     const remainingIncluded = Math.max(0, includedMinutes - currentUsage);
     
     const willBeOverage = remainingIncluded < estimatedMinutes;

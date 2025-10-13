@@ -52,7 +52,7 @@ export function useConfirm() {
         if (!open) handleCancel();
       }}
       title={options.title}
-      description={options.description}
+      description={options.description as string}
       confirmText={options.confirmText}
       cancelText={options.cancelText}
       variant={options.variant}

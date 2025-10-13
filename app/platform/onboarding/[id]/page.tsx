@@ -25,9 +25,9 @@ export default async function OnboardingDetailPage({ params }: OnboardingDetailP
     redirect('/sign-in');
   }
 
-  const session = await getOnboardingSessionById(params.id);
+  const sessionData = await getOnboardingSessionById(params.id);
 
-  if (!session) {
+  if (!sessionData) {
     return (
       <div className="container mx-auto py-8">
         <Card>
@@ -38,6 +38,9 @@ export default async function OnboardingDetailPage({ params }: OnboardingDetailP
       </div>
     );
   }
+
+  // Type assertion for jsonb fields that are inferred as unknown
+  const session = sessionData as any;
 
   const template = session.templateLibraryId ? await getTemplateById(session.templateLibraryId) : null;
   const project = session.projectId ? await getProjectById(session.projectId) : null;
@@ -79,7 +82,7 @@ export default async function OnboardingDetailPage({ params }: OnboardingDetailP
           <div>
             <h1 className="text-3xl font-bold">Onboarding Session Details</h1>
             <p className="text-muted-foreground mt-1">
-              {session.clientName || 'Unknown Client'}
+              Client Name Not Available
             </p>
           </div>
           
@@ -102,42 +105,9 @@ export default async function OnboardingDetailPage({ params }: OnboardingDetailP
                 Pending
               </Badge>
             )}
-            {session.status === 'pending_review' && (
-              <Badge className="bg-orange-600">
-                <Clock className="w-3 h-3 mr-1" />
-                Pending Review
-              </Badge>
-            )}
           </div>
         </div>
       </div>
-
-      {/* Completion Mode Alert */}
-      {session.completionMode !== 'client' && (
-        <Alert className="mb-6 border-purple-200 bg-purple-50">
-          <div className="flex items-center gap-2">
-            {getCompletionModeIcon(session.completionMode || 'client')}
-            <AlertTitle className="mb-0">
-              {getCompletionModeName(session.completionMode || 'client')}
-            </AlertTitle>
-          </div>
-          <AlertDescription className="mt-2">
-            {session.completionMode === 'manual' && (
-              <>
-                This onboarding was completed by an admin on behalf of the client.
-                {session.manuallyCompletedBy && ` Started by admin ${session.manuallyCompletedBy.slice(0, 8)}...`}
-                {session.finalizedByAdmin && ' • Finalized without client review'}
-              </>
-            )}
-            {session.completionMode === 'hybrid' && (
-              <>
-                This onboarding was completed collaboratively by admin and client.
-                See completion breakdown below for section-by-section attribution.
-              </>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Session Information */}
       <Card className="mb-6">
@@ -149,11 +119,11 @@ export default async function OnboardingDetailPage({ params }: OnboardingDetailP
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Client Name</p>
-              <p className="font-medium">{session.clientName || 'N/A'}</p>
+              <p className="font-medium">Client Name Not Available</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Client Email</p>
-              <p className="font-medium">{session.clientEmail || 'N/A'}</p>
+              <p className="font-medium">Client Email Not Available</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Project</p>

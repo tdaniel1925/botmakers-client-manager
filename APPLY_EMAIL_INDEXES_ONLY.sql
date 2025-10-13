@@ -28,3 +28,4 @@ CREATE INDEX IF NOT EXISTS idx_email_accounts_status ON email_accounts(status);
 -- • Switching folders: Instant
 -- ============================================================================
 
+

@@ -385,3 +385,4 @@ Users can now quickly search through their emails in any Hey view with a clean, 
 **Performance**: ✅ Fast & Responsive
 **Ready to Use**: ✅
 
+

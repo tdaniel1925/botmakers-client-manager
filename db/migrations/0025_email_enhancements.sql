@@ -34,3 +34,4 @@ CREATE INDEX IF NOT EXISTS idx_email_signatures_user_id ON email_signatures(user
 CREATE INDEX IF NOT EXISTS idx_email_signatures_account_id ON email_signatures(account_id);
 CREATE INDEX IF NOT EXISTS idx_email_signatures_default ON email_signatures(user_id, is_default) WHERE is_default = TRUE;
 
+

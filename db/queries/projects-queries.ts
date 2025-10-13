@@ -8,7 +8,7 @@ import {
   InsertProjectTask,
 } from "../schema/projects-schema";
 import { organizationsTable } from "../schema/crm-schema";
-import { eq, desc, and, count, sql } from "drizzle-orm"; // ✅ FIX BUG-017: Added sql for atomic progress calculation
+import { eq, desc, and, count, sql, getTableColumns } from "drizzle-orm"; // ✅ FIX BUG-017: Added sql for atomic progress calculation
 
 /**
  * Create a new project
@@ -56,7 +56,7 @@ export async function getAllProjects(): Promise<(SelectProject & { organizationN
   try {
     const projects = await db
       .select({
-        ...projectsTable,
+        ...getTableColumns(projectsTable),
         organizationName: organizationsTable.name,
       })
       .from(projectsTable)
@@ -76,11 +76,11 @@ export async function getAllProjects(): Promise<(SelectProject & { organizationN
 /**
  * Get project by ID with organization info
  */
-export async function getProjectById(projectId: string) {
+export async function getProjectById(projectId: string): Promise<(SelectProject & { organizationName: string }) | null> {
   try {
     const result = await db
       .select({
-        ...projectsTable,
+        ...getTableColumns(projectsTable),
         organizationName: organizationsTable.name,
       })
       .from(projectsTable)

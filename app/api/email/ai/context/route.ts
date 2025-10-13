@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // Find common topics (simple keyword extraction from subjects)
     const subjectWords = emails
-      .map(e => e.subject?.toLowerCase().split(/\s+/) || [])
+      .map(e => (e.subject as any)?.toLowerCase().split(/\s+/) || [])
       .flat()
       .filter(w => w.length > 4); // Filter out short words
     
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const recentEmails = emails.slice(0, 5).map(e => ({
       id: e.id,
       subject: e.subject,
-      preview: e.bodyText?.substring(0, 100) || "",
+      preview: (e.bodyText as any)?.substring(0, 100) || "",
       date: e.receivedAt,
       isFromRecipient: e.from === recipientEmail,
     }));
@@ -102,4 +102,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 

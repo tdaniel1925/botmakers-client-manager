@@ -576,11 +576,10 @@ export async function clearTemplatesAction() {
     
     // Log this critical action for audit trail
     await logAudit({
-      userId,
       action: 'templates_cleared',
-      resourceType: 'notification_templates',
-      resourceId: null,
-      metadata: { operation: 'delete_all' }
+      entityType: 'notification_templates',
+      entityId: undefined,
+      changes: { operation: 'delete_all' }
     });
     
     return { success: true, message: 'All templates cleared' };

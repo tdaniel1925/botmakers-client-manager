@@ -68,21 +68,20 @@ export async function GET(request: NextRequest) {
           const webhookUrl = `${request.nextUrl.origin}/api/webhooks/nylas`;
           console.log('🔔 Setting up webhook for reconnected account:', email);
           
-          const webhook = await createNylasWebhook({
-            triggers: ['message.created', 'message.updated', 'thread.replied', 'message.deleted'],
+          const webhook = await createNylasWebhook(
             webhookUrl,
-            description: `Email sync for ${email}`,
-          });
+            ['message.created', 'message.updated', 'thread.replied', 'message.deleted']
+          );
 
           await db
             .update(emailAccountsTable)
             .set({
-              webhookSubscriptionId: webhook.id,
+              webhookSubscriptionId: webhook.data.id,
               updatedAt: new Date(),
             })
             .where(eq(emailAccountsTable.id, existingAccount.id));
 
-          console.log('✅ Webhook setup successful:', webhook.id);
+          console.log('✅ Webhook setup successful:', webhook.data.id);
         } catch (webhookError) {
           console.error('⚠️ Failed to set up webhook (non-fatal):', webhookError);
         }
@@ -114,22 +113,21 @@ export async function GET(request: NextRequest) {
       const webhookUrl = `${request.nextUrl.origin}/api/webhooks/nylas`;
       console.log('🔔 Setting up webhook for new account:', email, 'URL:', webhookUrl);
       
-      const webhook = await createNylasWebhook({
-        triggers: ['message.created', 'message.updated', 'thread.replied', 'message.deleted'],
+      const webhook = await createNylasWebhook(
         webhookUrl,
-        description: `Email sync for ${email}`,
-      });
+        ['message.created', 'message.updated', 'thread.replied', 'message.deleted']
+      );
 
       // Save webhook ID to account
       await db
         .update(emailAccountsTable)
         .set({
-          webhookSubscriptionId: webhook.id,
+          webhookSubscriptionId: webhook.data.id,
           updatedAt: new Date(),
         })
         .where(eq(emailAccountsTable.id, newAccount.id));
 
-      console.log('✅ Webhook setup successful:', webhook.id);
+      console.log('✅ Webhook setup successful:', webhook.data.id);
     } catch (webhookError) {
       // Don't fail account creation if webhook fails
       console.error('⚠️ Failed to set up webhook (non-fatal):', webhookError);

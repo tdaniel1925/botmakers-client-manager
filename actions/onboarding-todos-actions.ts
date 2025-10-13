@@ -23,7 +23,7 @@ import {
 } from '../db/queries/onboarding-todos-queries';
 import { generateTodosFromOnboarding } from '../lib/ai-todo-generator';
 import { analyzeCompletedOnboarding } from '../lib/ai-onboarding-completion-analyzer';
-import type { ActionResult } from '../types/actions';
+import type { ActionResult } from '../types/actions/actions-types';
 import type { OnboardingTodo, NewOnboardingTodo } from '../db/schema/onboarding-schema';
 import { db } from '../db/db';
 import { clientOnboardingSessionsTable } from '../db/schema/onboarding-schema';

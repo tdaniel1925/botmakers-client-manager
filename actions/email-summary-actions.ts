@@ -29,10 +29,11 @@ export async function getEmailSummaryAction(email: SelectEmail): Promise<Summary
     return {
       success: false,
       error: 'Failed to generate summary',
-      summary: email.snippet || email.subject || 'No summary available',
+      summary: (email.snippet as any) || (email.subject as any) || 'No summary available',
     };
   }
 }
+
 
 
 

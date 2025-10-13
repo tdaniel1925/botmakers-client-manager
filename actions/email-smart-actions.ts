@@ -100,14 +100,14 @@ Be creative and relevant to the email content!`;
 }
 
 function buildEmailContext(email: SelectEmail): string {
-  const from = typeof email.fromAddress === 'object'
-    ? `${email.fromAddress.name || ''} <${email.fromAddress.email}>`
+  const from = typeof email.fromAddress === 'object' && email.fromAddress
+    ? `${(email.fromAddress as any).name || ''} <${(email.fromAddress as any).email}>`
     : email.fromAddress;
 
   return `
 From: ${from}
 Subject: ${email.subject}
-Content: ${email.bodyText?.substring(0, 1000) || email.snippet || '(No content)'}
+Content: ${(email.bodyText as any)?.substring(0, 1000) || email.snippet || '(No content)'}
 Has Attachments: ${email.hasAttachments ? 'Yes' : 'No'}
   `.trim();
 }

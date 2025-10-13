@@ -171,7 +171,7 @@ export function prioritizeTasks(todos: NewOnboardingTodo[]): NewOnboardingTodo[]
     const priorityDiff = priorityOrder[a.priority as keyof typeof priorityOrder] - 
                         priorityOrder[b.priority as keyof typeof priorityOrder];
     if (priorityDiff !== 0) return priorityDiff;
-    return a.orderIndex - b.orderIndex;
+    return (a.orderIndex || 0) - (b.orderIndex || 0);
   });
 }
 

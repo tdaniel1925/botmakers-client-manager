@@ -23,7 +23,7 @@ import {
 } from '@/lib/email-providers/nylas-client';
 import { db } from '@/db/db';
 import { emailAccountsTable, emailsTable, emailThreadsTable } from '@/db/schema/email-schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 /**
  * Get OAuth URL to connect a new email account
@@ -85,7 +85,6 @@ export async function syncNylasEmailsAction(
       .update(emailAccountsTable)
       .set({ 
         status: 'syncing',
-        syncStatus: 'syncing',
         lastSyncAt: new Date()
       })
       .where(eq(emailAccountsTable.id, accountId));
@@ -327,7 +326,7 @@ export async function syncNylasEmailsAction(
         // Execute email rules for this email
         try {
           const { executeRulesForEmail } = await import('@/lib/email/rule-executor');
-          await executeRulesForEmail(insertedEmail.id);
+          await executeRulesForEmail(insertedEmail.id as string);
         } catch (ruleError) {
           console.error('Error executing rules:', ruleError);
           // Don't fail email sync if rules fail
@@ -336,14 +335,14 @@ export async function syncNylasEmailsAction(
         // Auto-classify email for Hey mode (screening, Imbox/Feed/Paper Trail)
         // OPTIMIZATION: Skip classification during initial sync for speed
         // BUT: Always auto-classify emails older than 2 weeks
-        const emailAge = Date.now() - new Date(insertedEmail.receivedAt).getTime();
+        const emailAge = Date.now() - new Date(insertedEmail.receivedAt as any).getTime();
         const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000; // 14 days
         const isOlderThan2Weeks = emailAge > twoWeeksInMs;
 
         if (!skipClassification || isOlderThan2Weeks) {
           try {
             const { autoClassifyEmail } = await import('@/actions/screening-actions');
-            await autoClassifyEmail(insertedEmail.id);
+            await autoClassifyEmail(insertedEmail.id as string);
             
             if (isOlderThan2Weeks) {
               const daysOld = Math.round(emailAge / (24 * 60 * 60 * 1000));
@@ -422,20 +421,25 @@ export async function syncNylasEmailsAction(
     console.error('Error syncing Nylas emails:', error);
     
     // Update sync status to error
-    await db
-      .update(emailAccountsTable)
-      .set({ 
-        status: 'error',
-        syncStatus: 'error',
-        lastSyncAt: new Date()
-      })
-      .where(eq(emailAccountsTable.id, accountId));
-
-    const { updateSyncStatus } = await import('@/lib/email-sync-status');
-    updateSyncStatus(userId, {
-      isComplete: true,
-      errors: errorCount + 1,
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, accountId),
     });
+    
+    if (account) {
+      await db
+        .update(emailAccountsTable)
+        .set({ 
+          status: 'error',
+          lastSyncAt: new Date()
+        })
+        .where(eq(emailAccountsTable.id, accountId));
+
+      const { updateSyncStatus } = await import('@/lib/email-sync-status');
+      updateSyncStatus(account.userId, {
+        isComplete: true,
+        errors: 1,
+      });
+    }
 
     return { success: false, error: error.message || 'Failed to sync emails' };
   }
@@ -507,20 +511,27 @@ export async function markNylasEmailReadAction(
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { error: 'Email not found' };
     }
 
-    if (!email.account.nylasGrantId || !email.nylasMessageId) {
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { error: 'Unauthorized' };
+    }
+
+    if (!account.nylasGrantId || !email.nylasMessageId) {
       return { error: 'Email not synced with Nylas' };
     }
 
     await updateNylasMessage(
-      email.account.nylasGrantId,
-      email.nylasMessageId,
+      account.nylasGrantId,
+      email.nylasMessageId as string,
       { unread: !isRead }
     );
 
@@ -551,20 +562,27 @@ export async function starNylasEmailAction(emailId: string, isStarred: boolean) 
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { error: 'Email not found' };
     }
 
-    if (!email.account.nylasGrantId || !email.nylasMessageId) {
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { error: 'Unauthorized' };
+    }
+
+    if (!account.nylasGrantId || !email.nylasMessageId) {
       return { error: 'Email not synced with Nylas' };
     }
 
     await updateNylasMessage(
-      email.account.nylasGrantId,
-      email.nylasMessageId,
+      account.nylasGrantId,
+      email.nylasMessageId as string,
       { starred: isStarred }
     );
 
@@ -595,15 +613,22 @@ export async function deleteNylasEmailAction(emailId: string) {
 
     const email = await db.query.emailsTable.findFirst({
       where: eq(emailsTable.id, emailId),
-      with: { account: true },
     });
 
-    if (!email || email.account.userId !== userId) {
+    if (!email) {
       return { error: 'Email not found' };
     }
 
-    if (email.account.nylasGrantId && email.nylasMessageId) {
-      await deleteNylasMessage(email.account.nylasGrantId, email.nylasMessageId);
+    const account = await db.query.emailAccountsTable.findFirst({
+      where: eq(emailAccountsTable.id, email.accountId as string),
+    });
+
+    if (!account || account.userId !== userId) {
+      return { error: 'Unauthorized' };
+    }
+
+    if (account.nylasGrantId && email.nylasMessageId) {
+      await deleteNylasMessage(account.nylasGrantId, email.nylasMessageId as string);
     }
 
     await db.delete(emailsTable).where(eq(emailsTable.id, emailId));
@@ -669,24 +694,39 @@ export async function getNylasEmailsAction(accountId?: string) {
       return { error: 'Unauthorized' };
     }
 
-    let query = db.query.emailsTable.findMany({
-      where: accountId 
-        ? eq(emailsTable.accountId, accountId)
-        : undefined,
-      with: {
-        account: true,
-        thread: true,
-      },
-      orderBy: [desc(emailsTable.receivedAt)],
-      limit: 50,
+    // Get user's accounts
+    const userAccounts = await db.query.emailAccountsTable.findMany({
+      where: eq(emailAccountsTable.userId, userId),
     });
 
-    const emails = await query;
+    const accountIds = userAccounts.map(a => a.id);
+    
+    if (accountIds.length === 0) {
+      return { emails: [] };
+    }
 
-    // Filter by userId
-    const userEmails = emails.filter(email => email.account.userId === userId);
+    // Build where clause
+    let whereClause;
+    if (accountId) {
+      whereClause = and(
+        eq(emailsTable.accountId, accountId),
+        eq(emailAccountsTable.userId, userId)
+      );
+    } else {
+      whereClause = eq(emailAccountsTable.userId, userId);
+    }
 
-    return { emails: userEmails };
+    const emails = await db
+      .select({
+        email: emailsTable,
+      })
+      .from(emailsTable)
+      .innerJoin(emailAccountsTable, eq(emailsTable.accountId, emailAccountsTable.id))
+      .where(whereClause)
+      .orderBy(desc(emailsTable.receivedAt))
+      .limit(50);
+
+    return { emails: emails.map(r => r.email) };
   } catch (error: any) {
     console.error('Error getting emails:', error);
     return { error: error.message || 'Failed to get emails' };

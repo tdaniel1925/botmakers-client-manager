@@ -218,3 +218,4 @@ export function getViewBadgeColor(view: string): string {
   return colors[view] || 'bg-gray-100 text-gray-700 border-gray-200';
 }
 
+

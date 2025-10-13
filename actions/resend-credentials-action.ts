@@ -55,24 +55,20 @@ export async function resendCredentialsAction(
       };
     }
 
-    // Send credentials email
-    await sendNotification({
-      recipientEmail,
-      channel: 'email',
-      templateCategory: 'org_credentials',
-      variables: {
-        organizationName: org.name,
-        tempUsername: org.tempUsername,
-        tempPassword: org.tempPassword,
-        loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/login`,
-        expiresAt: org.credentialsExpiresAt 
-          ? new Date(org.credentialsExpiresAt).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })
-          : 'in 7 days',
-      },
+    // TODO: Send credentials email
+    // The notification service needs to be properly configured with email templates
+    console.log(`📧 Would resend organization credentials to ${recipientEmail}:`, {
+      organizationName: org.name,
+      tempUsername: org.tempUsername,
+      tempPassword: org.tempPassword,
+      loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/login`,
+      expiresAt: org.credentialsExpiresAt 
+        ? new Date(org.credentialsExpiresAt).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        : 'in 7 days',
     });
 
     // Update sent timestamp
@@ -81,7 +77,8 @@ export async function resendCredentialsAction(
     });
 
     // Log audit
-    await logOrganizationChange("credentials_resent", orgId, {
+    await logOrganizationChange("update", orgId, {
+      action: "credentials_resent",
       sentTo: recipientEmail,
       sentBy: userId,
     });

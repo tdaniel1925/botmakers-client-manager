@@ -104,8 +104,8 @@ export function PlanSelector({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((plan) => {
           const isCurrentPlan = plan.slug === currentPlanSlug;
-          const pricePerMonth = plan.priceMonthly / 100;
-          const overageRate = plan.perMinuteOverageRate / 100;
+          const pricePerMonth = plan.monthlyPrice / 100;
+          const overageRate = plan.overageRatePerMinute / 100;
           
           return (
             <Card
@@ -137,7 +137,7 @@ export function PlanSelector({
                     <span className="text-lg font-normal text-gray-500">/month</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {plan.freeMinutes.toLocaleString()} minutes included
+                    {plan.includedMinutes.toLocaleString()} minutes included
                   </div>
                   <div className="text-xs text-gray-500">
                     Overage: ${overageRate.toFixed(2)}/min

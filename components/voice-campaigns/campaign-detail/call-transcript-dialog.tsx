@@ -58,9 +58,9 @@ export function CallTranscriptDialog({
             <DialogTitle>Call Details</DialogTitle>
             <Badge
               variant="outline"
-              className={getStatusColor(callRecord.status || "unknown")}
+              className={getStatusColor(callRecord.aiAnalysisStatus || "unknown")}
             >
-              {callRecord.status || "unknown"}
+              {callRecord.aiAnalysisStatus || "unknown"}
             </Badge>
           </div>
         </DialogHeader>
@@ -72,7 +72,7 @@ export function CallTranscriptDialog({
             <div className="text-sm">
               <div className="text-gray-500">Date</div>
               <div className="font-medium">
-                {new Date(callRecord.timestamp).toLocaleDateString()}
+                {callRecord.callTimestamp ? new Date(callRecord.callTimestamp).toLocaleDateString() : 'N/A'}
               </div>
             </div>
           </div>
@@ -82,7 +82,7 @@ export function CallTranscriptDialog({
             <div className="text-sm">
               <div className="text-gray-500">Phone</div>
               <div className="font-mono font-medium">
-                {callRecord.callerNumber || callRecord.recipientNumber || "Unknown"}
+                {callRecord.callerPhone || callRecord.callerName || "Unknown"}
               </div>
             </div>
           </div>
@@ -91,7 +91,7 @@ export function CallTranscriptDialog({
             <Clock className="h-4 w-4 text-gray-400" />
             <div className="text-sm">
               <div className="text-gray-500">Duration</div>
-              <div className="font-medium">{formatDuration(callRecord.duration)}</div>
+              <div className="font-medium">{formatDuration(callRecord.callDurationSeconds)}</div>
             </div>
           </div>
 
@@ -99,7 +99,7 @@ export function CallTranscriptDialog({
             <DollarSign className="h-4 w-4 text-gray-400" />
             <div className="text-sm">
               <div className="text-gray-500">Cost</div>
-              <div className="font-medium">{formatCost(callRecord.cost)}</div>
+              <div className="font-medium">{formatCost(null)}</div>
             </div>
           </div>
         </div>

@@ -75,14 +75,14 @@ export function SMSNotificationSettings({ orgId }: SMSNotificationSettingsProps)
       const result = await updateSMSPreferencesAction({
         phoneNumber: phone,
         smsEnabled: enabled,
-        preferences,
+        preferences: preferences as Record<string, "email" | "both" | "sms">,
         orgId,
       });
 
       if (result.success) {
         toast.success('SMS preferences saved successfully!');
       } else {
-        toast.error(result.error || 'Failed to save preferences');
+        toast.error(String(result.error) || 'Failed to save preferences');
       }
     } catch (error) {
       console.error('Error saving preferences:', error);

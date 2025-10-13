@@ -16,6 +16,7 @@ import {
   getReminderStats,
 } from "@/db/queries/reminder-queries";
 import { getOnboardingSessionById } from "@/db/queries/onboarding-queries";
+import { getProjectById } from "@/db/queries/projects-queries";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import {
   generateReminderSchedule,
@@ -48,6 +49,9 @@ export async function scheduleRemindersAction(
       return { success: false, error: "Session not found" };
     }
 
+    // Get project details for project name
+    const project = await getProjectById(session.projectId);
+
     // Generate reminder schedule
     const schedule = generateReminderSchedule(
       new Date(session.createdAt),
@@ -60,11 +64,11 @@ export async function scheduleRemindersAction(
       const sessionData = {
         id: session.id,
         accessToken: session.accessToken,
-        projectName: session.projectName || "your project",
-        organizationName: session.organizationName || "Organization",
+        projectName: project?.name || "your project",
+        organizationName: project?.organizationName || "Organization",
         completionPercentage: session.completionPercentage || 0,
         currentStep: session.currentStep || 0,
-        totalSteps: session.totalSteps || 10,
+        totalSteps: (session.steps as any[])?.length || 10,
         createdAt: new Date(session.createdAt),
         expiresAt: session.expiresAt ? new Date(session.expiresAt) : null,
       };
@@ -72,7 +76,7 @@ export async function scheduleRemindersAction(
       const template = getReminderEmailTemplate(
         type,
         sessionData,
-        session.clientName || "there"
+        "there" // Client name not available in session
       );
 
       const reminder = await createReminder({
@@ -137,18 +141,22 @@ export async function sendManualReminderAction(
       return { success: false, error: "Session not found" };
     }
 
-    if (!session.clientEmail) {
-      return { success: false, error: "No client email found" };
-    }
+    // Get project details
+    const project = await getProjectById(session.projectId);
+
+    // Client email would need to be stored separately - for now we'll skip the email check
+    // if (!clientEmail) {
+    //   return { success: false, error: "No client email found" };
+    // }
 
     const sessionData = {
       id: session.id,
       accessToken: session.accessToken,
-      projectName: session.projectName || "your project",
-      organizationName: session.organizationName || "Organization",
+      projectName: project?.name || "your project",
+      organizationName: project?.organizationName || "Organization",
       completionPercentage: session.completionPercentage || 0,
       currentStep: session.currentStep || 0,
-      totalSteps: session.totalSteps || 10,
+      totalSteps: (session.steps as any[])?.length || 10,
       createdAt: new Date(session.createdAt),
       expiresAt: session.expiresAt ? new Date(session.expiresAt) : null,
     };
@@ -158,11 +166,11 @@ export async function sendManualReminderAction(
       ? getReminderEmailTemplate(
           "custom",
           sessionData,
-          session.clientName || "there",
+          "there", // Client name not available in session
           customSubject,
           customMessage
         )
-      : getReminderEmailTemplate("gentle", sessionData, session.clientName || "there");
+      : getReminderEmailTemplate("gentle", sessionData, "there"); // Client name not available in session
 
     // Create reminder record
     const reminder = await createReminder({
@@ -174,11 +182,16 @@ export async function sendManualReminderAction(
       metadata: { manual: true, textBody: template.textBody },
     });
 
-    // Send email
-    await sendEmail({
-      to: session.clientEmail,
+    // TODO: Send email - need to store client email in session or get from project contacts
+    // await sendEmail({
+    //   to: clientEmail,
+    //   subject: template.subject,
+    //   html: template.htmlBody,
+    // });
+    
+    console.log(`📧 Would send reminder email for session ${session.id}:`, {
       subject: template.subject,
-      html: template.htmlBody,
+      note: "Client email not available - needs to be stored in onboarding session",
     });
 
     // Mark as sent

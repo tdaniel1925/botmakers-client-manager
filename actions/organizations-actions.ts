@@ -17,7 +17,7 @@ import { ActionResult } from "@/types/actions/actions-types";
 import { revalidatePath } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
-export async function getUserOrganizationsAction(): Promise<ActionResult<(SelectOrganization & { role: string })[]>> {
+export async function getUserOrganizationsAction(): Promise<ActionResult<any[]>> {
   try {
     const { userId } = await auth();
     

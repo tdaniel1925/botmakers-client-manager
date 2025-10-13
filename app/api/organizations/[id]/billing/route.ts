@@ -50,7 +50,7 @@ export async function GET(
           eq(usageRecordsTable.organizationId, organizationId),
           eq(usageRecordsTable.subscriptionId, subscription.id),
           between(
-            usageRecordsTable.recordedAt,
+            usageRecordsTable.createdAt,
             subscription.currentPeriodStart,
             subscription.currentPeriodEnd
           )
@@ -62,9 +62,9 @@ export async function GET(
       return sum + parseFloat(record.minutesUsed.toString());
     }, 0);
 
-    const minutesRemaining = Math.max(0, plan.freeMinutes - totalMinutesUsed);
-    const overageMinutes = Math.max(0, totalMinutesUsed - plan.freeMinutes);
-    const overageCost = overageMinutes * plan.perMinuteOverageRate;
+    const minutesRemaining = Math.max(0, plan.includedMinutes - totalMinutesUsed);
+    const overageMinutes = Math.max(0, totalMinutesUsed - plan.includedMinutes);
+    const overageCost = overageMinutes * plan.overageRatePerMinute;
 
     // Get active campaigns count
     const projects = await db
@@ -92,16 +92,16 @@ export async function GET(
         id: plan.id,
         name: plan.name,
         slug: plan.slug,
-        priceMonthly: plan.priceMonthly,
-        freeMinutes: plan.freeMinutes,
-        perMinuteOverageRate: plan.perMinuteOverageRate,
+        priceMonthly: plan.monthlyPrice,
+        freeMinutes: plan.includedMinutes,
+        perMinuteOverageRate: plan.overageRatePerMinute,
         maxActiveCampaigns: plan.maxActiveCampaigns,
         features: plan.features || [],
       },
       subscription: {
         id: subscription.id,
         status: subscription.status,
-        provider: subscription.provider,
+        provider: subscription.paymentProvider,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
@@ -116,7 +116,7 @@ export async function GET(
       invoices: invoices.map(invoice => ({
         id: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
-        amountDue: invoice.amountDue,
+        amountDue: invoice.totalAmount,
         status: invoice.status,
         periodStart: invoice.periodStart,
         periodEnd: invoice.periodEnd,

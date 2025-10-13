@@ -58,8 +58,12 @@ export async function getActivities(
   
   const total = Number(countResult[0]?.count || 0);
   
+  // Apply sorting
+  const sortColumn = options?.sortBy || "dueDate";
+  const sortOrder = options?.sortOrder || "asc";
+  
   // Build query with related data
-  let query = db
+  let baseQuery = db
     .select({
       id: activitiesTable.id,
       type: activitiesTable.type,
@@ -81,30 +85,19 @@ export async function getActivities(
     .from(activitiesTable)
     .leftJoin(contactsTable, eq(activitiesTable.contactId, contactsTable.id))
     .leftJoin(dealsTable, eq(activitiesTable.dealId, dealsTable.id))
-    .where(and(...conditions));
+    .where(and(...conditions))
+    .orderBy(sortOrder === "asc" ? asc(activitiesTable[sortColumn]) : desc(activitiesTable[sortColumn]))
+    .limit(options?.limit || 100)
+    .$dynamic();
   
-  // Apply sorting
-  const sortColumn = options?.sortBy || "dueDate";
-  const sortOrder = options?.sortOrder || "asc";
-  
-  if (sortOrder === "asc") {
-    query = query.orderBy(asc(activitiesTable[sortColumn]));
-  } else {
-    query = query.orderBy(desc(activitiesTable[sortColumn]));
-  }
-  
-  // Apply pagination
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-  
+  // Apply offset if provided
   if (options?.offset) {
-    query = query.offset(options.offset);
+    baseQuery = baseQuery.offset(options.offset);
   }
   
-  const activities = await query;
+  const activities = await baseQuery;
   
-  return { activities, total };
+  return { activities: activities as any, total };
 }
 
 // Get activity by ID

@@ -84,7 +84,7 @@ export async function getCampaignContactsByStatus(
     .where(
       and(
         eq(campaignContactsTable.campaignId, campaignId),
-        eq(campaignContactsTable.callStatus, status)
+        eq(campaignContactsTable.callStatus, status as any)
       )
     )
     .orderBy(desc(campaignContactsTable.createdAt));

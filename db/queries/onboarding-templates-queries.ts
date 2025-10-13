@@ -5,7 +5,7 @@
 
 import { db } from "../db";
 import { onboardingTemplatesLibraryTable, projectTypesRegistryTable } from "../schema/onboarding-schema";
-import { eq, isNull, desc, sql } from "drizzle-orm";
+import { eq, isNull, desc, sql, and } from "drizzle-orm";
 import type { NewOnboardingTemplateLibrary, OnboardingTemplateLibrary } from "../schema/onboarding-schema";
 
 /**
@@ -41,8 +41,10 @@ export async function getTemplateByProjectType(projectType: string) {
   const [template] = await db
     .select()
     .from(onboardingTemplatesLibraryTable)
-    .where(eq(onboardingTemplatesLibraryTable.projectType, projectType))
-    .where(isNull(onboardingTemplatesLibraryTable.archivedAt))
+    .where(and(
+      eq(onboardingTemplatesLibraryTable.projectType, projectType),
+      isNull(onboardingTemplatesLibraryTable.archivedAt)
+    ))
     .orderBy(desc(onboardingTemplatesLibraryTable.timesUsed))
     .limit(1);
   
@@ -130,7 +132,7 @@ export async function updateTemplateStats(
     .update(onboardingTemplatesLibraryTable)
     .set({ 
       avgCompletionTime,
-      completionRate,
+      completionRate: completionRate.toString(),
     })
     .where(eq(onboardingTemplatesLibraryTable.id, id));
 }

@@ -143,7 +143,6 @@ export function AdminTodoReviewPanel({
         ...newTodo,
         type: showAddForm!,
         orderIndex: showAddForm === 'admin' ? adminTodos.length : clientTodos.length,
-        aiGenerated: false,
       });
       
       if (result.isSuccess && result.data) {
@@ -194,7 +193,6 @@ export function AdminTodoReviewPanel({
       title: "Approve To-Dos?",
       description: "Are you sure you want to approve these to-dos? They will be sent to the client and become visible in their onboarding workflow.",
       confirmText: "Approve & Send",
-      variant: "default",
     });
     
     if (!confirmed) return;

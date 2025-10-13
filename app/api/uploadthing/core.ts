@@ -35,7 +35,7 @@ export const ourFileRouter = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { maxFileSize: "16MB", maxFileCount: 10 },
     "text/plain": { maxFileSize: "4MB", maxFileCount: 10 },
     "text/csv": { maxFileSize: "4MB", maxFileCount: 10 },
-    "application/zip": { maxFileSize: "25MB", maxFileCount: 5 },
+    "application/zip": { maxFileSize: "32MB", maxFileCount: 5 },
   })
     .middleware(authenticatedMiddleware)
     .onUploadComplete(async ({ metadata, file }) => {
@@ -62,7 +62,7 @@ export const ourFileRouter = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { maxFileSize: "16MB", maxFileCount: 10 },
     "text/plain": { maxFileSize: "4MB", maxFileCount: 10 },
     "text/csv": { maxFileSize: "4MB", maxFileCount: 10 },
-    "application/zip": { maxFileSize: "25MB", maxFileCount: 5 },
+    "application/zip": { maxFileSize: "32MB", maxFileCount: 5 },
   })
     .input(z.object({ 
       token: z.string(),

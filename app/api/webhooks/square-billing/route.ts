@@ -11,7 +11,14 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import { organizationSubscriptionsTable } from "@/db/schema/billing-schema";
 
-const squareProvider = new SquarePaymentProvider();
+// Lazy-load provider to avoid module-level initialization issues during build
+let squareProvider: SquarePaymentProvider | null = null;
+function getSquareProvider() {
+  if (!squareProvider) {
+    squareProvider = new SquarePaymentProvider();
+  }
+  return squareProvider;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +26,7 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("x-square-signature") || "";
 
     // Verify webhook signature
-    const event = await squareProvider.verifyWebhook(body, signature);
+    const event = await getSquareProvider().verifyWebhook(body, signature);
 
     if (!event) {
       console.error("[Square Webhook] Signature verification failed");
@@ -85,7 +92,7 @@ async function handleSubscriptionUpdated(event: any) {
     const existingSubscription = await db
       .select()
       .from(organizationSubscriptionsTable)
-      .where(eq(organizationSubscriptionsTable.providerSubscriptionId, subscription.id))
+      .where(eq(organizationSubscriptionsTable.externalSubscriptionId, subscription.id))
       .limit(1);
 
     if (existingSubscription.length === 0) {
@@ -119,7 +126,7 @@ async function handleSubscriptionCanceled(event: any) {
     const existingSubscription = await db
       .select()
       .from(organizationSubscriptionsTable)
-      .where(eq(organizationSubscriptionsTable.providerSubscriptionId, subscription.id))
+      .where(eq(organizationSubscriptionsTable.externalSubscriptionId, subscription.id))
       .limit(1);
 
     if (existingSubscription.length === 0) {

@@ -6,8 +6,8 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 // TEMPORARY: Profiles system is disabled, return defaults
-const getProfileByUserId = async (userId: string) => null;
-const updateProfile = async (userId: string, data: any, options?: any) => null;
+const getProfileByUserId = async (userId: string): Promise<any> => null;
+const updateProfile = async (userId: string, data: any, options?: any): Promise<any> => null;
 
 // Constants
 const DEFAULT_USAGE_CREDITS = 1000; // Pro users get 1000 credits per cycle

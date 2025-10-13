@@ -275,3 +275,4 @@ If you want to further improve the email display:
 For now, the current changes make the email client work like a traditional email client with clean, selectable cards! ✨
 
 
+

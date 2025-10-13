@@ -41,7 +41,7 @@ export async function GET(
     if (industry) {
       console.log("   - Name:", industry.name);
       console.log("   - Setup Assistant ID:", industry.setupAssistantCampaignId);
-      console.log("   - Campaign loaded:", industry.setupAssistantCampaign ? "YES" : "NO");
+      console.log("   - Campaign loaded:", industry.setupAssistantCampaignId ? "YES" : "NO");
     }
     
     if (!industry) {
@@ -80,9 +80,9 @@ export async function GET(
       tagline: industry.tagline,
       description: industry.description,
       assistantId: industry.setupAssistantCampaignId,
-      vapiAssistantId: industry.setupAssistantCampaign?.providerAssistantId || null,
-      systemPrompt: industry.setupAssistantCampaign?.systemPrompt || null,
-      firstMessage: industry.setupAssistantCampaign?.firstMessage || null,
+      vapiAssistantId: (industry as any).setupAssistantCampaign?.providerAssistantId || null,
+      systemPrompt: (industry as any).setupAssistantCampaign?.systemPrompt || null,
+      firstMessage: (industry as any).setupAssistantCampaign?.firstMessage || null,
       config: industry.config,
     };
     

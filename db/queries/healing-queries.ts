@@ -281,8 +281,8 @@ export async function upsertHealingPattern(
   
   if (existing) {
     // Update existing pattern
-    const newSuccessCount = success ? existing.successCount + 1 : existing.successCount;
-    const newFailureCount = success ? existing.failureCount : existing.failureCount + 1;
+    const newSuccessCount = success ? (existing.successCount || 0) + 1 : (existing.successCount || 0);
+    const newFailureCount = success ? (existing.failureCount || 0) : (existing.failureCount || 0) + 1;
     const totalAttempts = newSuccessCount + newFailureCount;
     const newSuccessRate = (newSuccessCount / totalAttempts) * 100;
     

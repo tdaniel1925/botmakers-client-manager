@@ -171,8 +171,8 @@ export function ContactsList() {
 
   const openEditDialog = (contact: SelectContact) => {
     setFormData({
-      name: contact.name || '',
-      email: contact.email,
+      name: `${contact.firstName} ${contact.lastName}`.trim(),
+      email: contact.email || '',
       phone: contact.phone || '',
       company: contact.company || '',
       jobTitle: contact.jobTitle || '',
@@ -203,14 +203,15 @@ export function ContactsList() {
 
   const filteredContacts = contacts.filter(contact =>
     searchQuery
-      ? contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        contact.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ? `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.company?.toLowerCase().includes(searchQuery.toLowerCase())
       : true
   );
 
-  const favoriteContacts = filteredContacts.filter(c => c.isFavorite);
-  const regularContacts = filteredContacts.filter(c => !c.isFavorite);
+  // TODO: Add isFavorite field to schema
+  const favoriteContacts: any[] = []; // filteredContacts.filter(c => c.isFavorite);
+  const regularContacts = filteredContacts; // filteredContacts.filter(c => !c.isFavorite);
 
   return (
     <div className="h-full flex flex-col">
@@ -436,13 +437,13 @@ function ContactCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar>
-              <AvatarImage src={contact.avatarUrl || undefined} />
+              <AvatarImage src={undefined} />
               <AvatarFallback className="bg-gradient-to-br from-blue-400 to-cyan-400 text-white">
-                {getInitials(contact.name || contact.email)}
+                {getInitials(`${contact.firstName} ${contact.lastName}` || contact.email || '')}
               </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-base">{contact.name || contact.email}</CardTitle>
+              <CardTitle className="text-base">{`${contact.firstName} ${contact.lastName}`.trim() || contact.email}</CardTitle>
               {contact.company && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                   <Building className="h-3 w-3" />
@@ -460,7 +461,7 @@ function ContactCard({
             >
               <Star
                 className={`h-4 w-4 ${
-                  contact.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''
+                  false ? 'fill-yellow-400 text-yellow-400' : '' // TODO: Add isFavorite to schema
                 }`}
               />
             </Button>
@@ -485,9 +486,10 @@ function ContactCard({
             </a>
           </div>
         )}
-        {contact.emailCount && contact.emailCount > 0 && (
+        {/* TODO: Add emailCount to schema */}
+        {false && (
           <Badge variant="secondary" className="text-xs">
-            {contact.emailCount} {contact.emailCount === 1 ? 'email' : 'emails'}
+            0 emails
           </Badge>
         )}
         <div className="flex gap-2 pt-2">
@@ -514,4 +516,5 @@ function ContactCard({
     </Card>
   );
 }
+
 

@@ -12,20 +12,18 @@ import type { NewOnboardingTodo, OnboardingTodo } from "../schema/onboarding-sch
  * Get all todos for a session by type
  */
 export async function getTodosBySession(sessionId: string, type?: 'admin' | 'client') {
-  const query = db
-    .select()
-    .from(onboardingTodosTable)
-    .where(eq(onboardingTodosTable.sessionId, sessionId))
-    .orderBy(asc(onboardingTodosTable.orderIndex));
+  const conditions = [eq(onboardingTodosTable.sessionId, sessionId)];
   
   if (type) {
-    return query.where(and(
-      eq(onboardingTodosTable.sessionId, sessionId),
-      eq(onboardingTodosTable.type, type)
-    ));
+    conditions.push(eq(onboardingTodosTable.type, type));
   }
   
-  const todos = await query;
+  const todos = await db
+    .select()
+    .from(onboardingTodosTable)
+    .where(and(...conditions))
+    .orderBy(asc(onboardingTodosTable.orderIndex));
+  
   return todos;
 }
 

@@ -121,7 +121,7 @@ export async function summarizeEmail(
           .where(eq(emailAttachmentsTable.emailId, email.id));
         
         if (attachments.length > 0) {
-          const extractedContent = await extractMultipleAttachments(attachments);
+          const extractedContent = await extractMultipleAttachments(attachments as any);
           const attachmentContext = formatAttachmentsForAI(extractedContent);
           emailContent += attachmentContext;
         }
@@ -253,7 +253,7 @@ export async function summarizeThread(
 Message ${index + 1} - From: ${from}
 Subject: ${email.subject}
 Date: ${email.receivedAt?.toISOString()}
-Content: ${email.bodyText?.substring(0, 500) || email.snippet || ''}
+Content: ${(email.bodyText as any)?.substring(0, 500) || email.snippet || ''}
 ---`;
       })
       .join('\n');
@@ -530,6 +530,7 @@ export async function quickSummary(email: SelectEmail): Promise<string> {
     }
   });
 }
+
 
 
 

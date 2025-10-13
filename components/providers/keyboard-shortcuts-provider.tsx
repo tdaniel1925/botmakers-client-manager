@@ -27,133 +27,117 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
   const [helpOpen, setHelpOpen] = useState(false);
 
   // Global keyboard shortcuts
-  useKeyboardShortcuts([
+  useKeyboardShortcuts({
     // Command Palette
-    {
+    commandPaletteMeta: {
       key: "k",
-      meta: true,
+      metaKey: true,
       action: () => setCommandPaletteOpen(true),
       description: "Open command palette",
-      category: "General",
     },
-    {
+    commandPaletteCtrl: {
       key: "k",
-      ctrl: true,
+      ctrlKey: true,
       action: () => setCommandPaletteOpen(true),
       description: "Open command palette",
-      category: "General",
     },
     // Help
-    {
+    helpMeta: {
       key: "/",
-      meta: true,
+      metaKey: true,
       action: () => setHelpOpen(true),
       description: "Show keyboard shortcuts",
-      category: "General",
     },
-    {
+    helpCtrl: {
       key: "/",
-      ctrl: true,
+      ctrlKey: true,
       action: () => setHelpOpen(true),
       description: "Show keyboard shortcuts",
-      category: "General",
     },
     // Navigation
-    {
+    dashboardMeta: {
       key: "h",
-      meta: true,
+      metaKey: true,
       action: () => router.push("/dashboard"),
       description: "Go to Dashboard",
-      category: "Navigation",
     },
-    {
+    dashboardCtrl: {
       key: "h",
-      ctrl: true,
+      ctrlKey: true,
       action: () => router.push("/dashboard"),
       description: "Go to Dashboard",
-      category: "Navigation",
     },
-    {
+    contactsMeta: {
       key: "c",
-      meta: true,
-      shift: true,
+      metaKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/contacts"),
       description: "Go to Contacts",
-      category: "Navigation",
     },
-    {
+    contactsCtrl: {
       key: "c",
-      ctrl: true,
-      shift: true,
+      ctrlKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/contacts"),
       description: "Go to Contacts",
-      category: "Navigation",
     },
-    {
+    dealsMeta: {
       key: "d",
-      meta: true,
-      shift: true,
+      metaKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/deals"),
       description: "Go to Deals",
-      category: "Navigation",
     },
-    {
+    dealsCtrl: {
       key: "d",
-      ctrl: true,
-      shift: true,
+      ctrlKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/deals"),
       description: "Go to Deals",
-      category: "Navigation",
     },
-    {
+    activitiesMeta: {
       key: "a",
-      meta: true,
-      shift: true,
+      metaKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/activities"),
       description: "Go to Activities",
-      category: "Navigation",
     },
-    {
+    activitiesCtrl: {
       key: "a",
-      ctrl: true,
-      shift: true,
+      ctrlKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/activities"),
       description: "Go to Activities",
-      category: "Navigation",
     },
-    {
+    projectsMeta: {
       key: "p",
-      meta: true,
-      shift: true,
+      metaKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/projects"),
       description: "Go to Projects",
-      category: "Navigation",
     },
-    {
+    projectsCtrl: {
       key: "p",
-      ctrl: true,
-      shift: true,
+      ctrlKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/projects"),
       description: "Go to Projects",
-      category: "Navigation",
     },
-    {
+    voiceCampaignsMeta: {
       key: "v",
-      meta: true,
-      shift: true,
+      metaKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/voice-campaigns"),
       description: "Go to Voice Campaigns",
-      category: "Navigation",
     },
-    {
+    voiceCampaignsCtrl: {
       key: "v",
-      ctrl: true,
-      shift: true,
+      ctrlKey: true,
+      shiftKey: true,
       action: () => router.push("/dashboard/voice-campaigns"),
       description: "Go to Voice Campaigns",
-      category: "Navigation",
     },
-  ]);
+  });
 
   const contextValue: KeyboardShortcutsContextType = {
     openCommandPalette: () => setCommandPaletteOpen(true),

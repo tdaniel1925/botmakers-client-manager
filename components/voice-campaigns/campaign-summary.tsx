@@ -204,7 +204,7 @@ export function CampaignSummary({ campaign }: CampaignSummaryProps) {
       )}
 
       {/* Call Statistics (from campaign) */}
-      {campaign.totalCalls > 0 && (
+      {campaign.totalCalls && campaign.totalCalls > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

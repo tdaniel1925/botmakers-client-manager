@@ -54,8 +54,8 @@ export function ActivityFormDialog({
 
   const loadFormData = async () => {
     // Load contacts
-    const contactsResult = await getContactsAction(organizationId, { limit: 100 });
-    if (contactsResult.isSuccess && contactsResult.data) {
+    const contactsResult = await getContactsAction({ limit: 100 });
+    if (contactsResult.success && contactsResult.data) {
       setContacts(contactsResult.data.contacts);
     }
     

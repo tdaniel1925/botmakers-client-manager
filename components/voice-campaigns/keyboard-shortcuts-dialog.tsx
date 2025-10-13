@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Keyboard } from "lucide-react";
-import { KEYBOARD_SHORTCUTS } from "@/hooks/use-keyboard-shortcuts";
+import { DEFAULT_SHORTCUTS } from "@/hooks/use-keyboard-shortcuts";
 
 interface KeyboardShortcutsDialogProps {
   open: boolean;
@@ -20,13 +20,11 @@ export function KeyboardShortcutsDialog({
   open,
   onOpenChange,
 }: KeyboardShortcutsDialogProps) {
-  const categories = Array.from(
-    new Set(KEYBOARD_SHORTCUTS.map((s) => s.category))
-  );
+  const shortcuts = Object.entries(DEFAULT_SHORTCUTS);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
@@ -41,19 +39,13 @@ export function KeyboardShortcutsDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {categories.map((category) => {
-            const shortcuts = KEYBOARD_SHORTCUTS.filter(
-              (s) => s.category === category
-            );
-
-            return (
-              <div key={category}>
-                <h3 className="text-sm font-semibold mb-3 text-gray-700">
-                  {category}
-                </h3>
-                <div className="space-y-2">
-                  {shortcuts.map((shortcut, index) => (
+        <div className="space-y-4 py-4">
+          <div>
+            <h3 className="text-sm font-semibold mb-3 text-gray-700">
+              Available Shortcuts
+            </h3>
+            <div className="space-y-2">
+              {shortcuts.map(([name, shortcut], index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50"
@@ -68,11 +60,9 @@ export function KeyboardShortcutsDialog({
                         {shortcut.key}
                       </Badge>
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="pt-4 border-t text-sm text-gray-500">

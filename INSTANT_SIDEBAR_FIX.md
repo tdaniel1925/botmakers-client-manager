@@ -318,3 +318,4 @@ The sidebar now appears instantly when navigating from emails back to dashboard.
 
 **This fix is permanent and will feel instant forever!** 🌟
 
+

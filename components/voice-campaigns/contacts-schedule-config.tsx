@@ -91,8 +91,8 @@ export function ContactsScheduleConfigComponent({
         </CardHeader>
         <CardContent>
           <ContactListUpload
-            onContactsUploaded={(contacts) => updateConfig({ contacts })}
-            campaignType={campaignType}
+            campaignId="draft"
+            onUploadComplete={(stats) => updateConfig({ contacts: stats?.imported || [] })}
           />
           
           {value.contacts && value.contacts.length > 0 && (
@@ -412,6 +412,7 @@ export function ContactsScheduleConfigComponent({
     </div>
   );
 }
+
 
 
 

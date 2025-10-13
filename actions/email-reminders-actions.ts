@@ -251,7 +251,7 @@ export async function detectFollowUpEmailsAction() {
         // Check if reminder already exists
         const existingReminder = await db.query.emailRemindersTable.findFirst({
           where: and(
-            eq(emailRemindersTable.emailId, email.id),
+            eq(emailRemindersTable.emailId, email.id as string),
             eq(emailRemindersTable.status, 'pending')
           ),
         });
@@ -349,5 +349,6 @@ function analyzeEmailForFollowUp(email: any): {
 
   return { needsFollowUp: false };
 }
+
 
 

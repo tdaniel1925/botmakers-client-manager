@@ -32,3 +32,4 @@ CREATE INDEX IF NOT EXISTS idx_email_accounts_user_id ON email_accounts(user_id)
 -- AFTER:  ⚡ Database query took 100ms  ← 75% FASTER!
 -- ============================================================================
 
+

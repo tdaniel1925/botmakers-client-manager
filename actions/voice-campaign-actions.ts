@@ -81,7 +81,7 @@ export async function createVoiceCampaignAction(
         const activeCampaigns = await getActiveCampaignsByProject(projectId);
         const campaignLimit = plan.maxActiveCampaigns;
         
-        if (campaignLimit !== -1 && activeCampaigns.length >= campaignLimit) {
+        if (campaignLimit !== null && campaignLimit !== -1 && activeCampaigns.length >= campaignLimit) {
           return { 
             error: `Campaign limit reached (${campaignLimit} active campaigns). Please upgrade your plan to create more campaigns.`,
             requiresUpgrade: true,
@@ -153,8 +153,7 @@ export async function createVoiceCampaignAction(
         console.log("[Campaign] Provisioning new number with area code:", areaCode);
         phoneNumber = await providerInstance.provisionPhoneNumber(
           agent.id,
-          areaCode,
-          setupAnswers.campaign_name
+          areaCode
         );
         console.log("[Campaign] Phone number provisioned:", phoneNumber);
       }
@@ -184,7 +183,7 @@ export async function createVoiceCampaignAction(
         systemPrompt: aiConfig.systemPrompt,
         firstMessage: aiConfig.firstMessage,
         voicemailMessage: aiConfig.voicemailMessage,
-        scheduleConfig: setupAnswers.schedule_config as any, // Call scheduling configuration
+        scheduleConfig: (setupAnswers as any).schedule_config || null, // Call scheduling configuration
         isActive: false, // Not active until launched
         createdBy: userId,
       });
@@ -480,24 +479,33 @@ export async function duplicateCampaignAction(
     }
     
     // Create new webhook for the duplicated campaign
-    const webhook = await createWebhook(
-      originalCampaign.projectId,
-      `${options.newName} Webhook`,
-      `Webhook for duplicated campaign: ${options.newName}`
-    );
+    const webhook = await createWebhook({
+      projectId: originalCampaign.projectId,
+      label: `${options.newName} Webhook`,
+      createdBy: userId || "system",
+      webhookToken: `webhook_${Date.now()}`, // Generate a webhook token
+    });
     
     newCampaignData.webhookId = webhook.id;
     
     // Create agent on provider
     const providerInstance = getVoiceProvider(originalCampaign.provider as any);
     
-    const agent = await providerInstance.createAgent({
-      name: options.newName,
+    // Reconstruct setup answers and AI config for the new agent
+    const setupAnswers = {
+      ...(originalCampaign.setupAnswers || {}),
+      campaign_name: options.newName,
+    };
+    
+    const aiConfig = {
       systemPrompt: originalCampaign.systemPrompt,
       firstMessage: originalCampaign.firstMessage,
-      model: originalCampaign.setupAnswers?.model || "gpt-4",
-      voice: originalCampaign.setupAnswers?.voice_preference || "auto",
-    });
+      voicemailMessage: originalCampaign.voicemailMessage,
+    };
+    
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/${webhook.id}`;
+    
+    const agent = await providerInstance.createAgent(setupAnswers as any, aiConfig as any, webhookUrl);
     
     newCampaignData.providerAssistantId = agent.id;
     

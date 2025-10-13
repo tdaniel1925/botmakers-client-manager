@@ -423,3 +423,4 @@ const [isMinimized, setIsMinimized] = useState(false);
 **Now you can position your AI assistant anywhere and see emails underneath!** 🚀
 
 
+
