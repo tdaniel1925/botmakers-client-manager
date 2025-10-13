@@ -13,6 +13,7 @@ const connectionOptions = {
   prepare: false,       // Disable prepared statements
   keepalive: true,      // Keep connections alive
   debug: false,         // Disable debug logging in production
+  ssl: 'require',       // REQUIRED for Supabase connections
   connection: {
     application_name: "whop-boilerplate" // Identify app in Supabase logs
   }
